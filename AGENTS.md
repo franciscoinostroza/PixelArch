@@ -17,6 +17,7 @@
 | Prisma | schema con `url` | **`prisma.config.ts`** separado | Prisma 7 rompió compatibilidad |
 | Middleware | `middleware.ts` | **`proxy.ts`** | Next.js 16 deprecó middleware |
 | Deploy | Vercel | **Railway** | Proyecto ya conectado en Railway |
+| Env vars | Crash sin keys | **Condicional (safe-by-default)** | La app carga sin API keys |
 
 ---
 
@@ -24,7 +25,7 @@
 
 ### Design System
 - `src/app/globals.css` — CSS vars (`--bg`, `--accent`, `--accent2`, etc.) + `@theme`
-- `src/app/layout.tsx` — Fuentes Syne + DM Mono, ClerkProvider con tema PixelArch
+- `src/app/layout.tsx` — Fuentes Syne + DM Mono, ClerkProvider condicional (solo si hay keys)
 - `src/lib/utils.ts` — `cn()` helper (clsx + tailwind-merge)
 
 ### UI Components (`src/components/ui/`)
@@ -71,8 +72,8 @@
 ### Páginas — Auth `(auth)`
 | Ruta | Archivo | Nota |
 |------|---------|------|
-| `/sign-in` | `(auth)/sign-in/[[...sign-in]]/page.tsx` | `<SignIn />` con tema PixelArch |
-| `/sign-up` | `(auth)/sign-up/[[...sign-up]]/page.tsx` | `<SignUp />` con tema PixelArch |
+| `/sign-in` | `(auth)/sign-in/[[...sign-in]]/page.tsx` | `<SignIn />` con tema PixelArch, fallback si no hay keys |
+| `/sign-up` | `(auth)/sign-up/[[...sign-up]]/page.tsx` | `<SignUp />` con tema PixelArch, fallback si no hay keys |
 
 ### Páginas — Admin `(admin)`
 | Ruta | Archivo | Protegido |
@@ -119,7 +120,7 @@
 ### Config
 | Archivo | Función |
 |---------|---------|
-| `src/proxy.ts` | Clerk middleware con roles (admin/cliente/público) |
+| `src/proxy.ts` | Clerk middleware con roles (admin/cliente/público), no-op sin keys |
 | `next.config.ts` | Dominios de imágenes (Sanity CDN) |
 | `components.json` | Config de shadcn/ui |
 | `.env.example` | Las 18 variables de entorno documentadas |
@@ -156,6 +157,7 @@ Route (app)
 
 ### Para desarrollo local
 - [ ] Llenar `.env.local` con las API keys reales (ver `.env.example`)
+- [x] El frontend carga sin API keys (safe-by-default) — landing, servicios, gracias visibles
 - [ ] Crear app en [Clerk](https://clerk.com) → pegar `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` y `CLERK_SECRET_KEY`
 - [ ] Configurar webhook de Clerk apuntando a `https://pixelarch-production.up.railway.app/api/webhooks/clerk`
 - [ ] Asignar `publicMetadata: { role: "admin" }` a tu usuario en Clerk

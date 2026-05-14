@@ -19,6 +19,7 @@ Plataforma SaaS de servicios digitales: desarrollo web, chatbots, agentes de IA 
 |---------|--------|---------|
 | Build | ✅ | 0 errores TypeScript |
 | Deploy | ✅ | [pixelarch-production.up.railway.app](https://pixelarch-production.up.railway.app) |
+| Frontend | ✅ | Landing, servicios, gracias — visibles sin API keys |
 | BD Railway | ✅ | PostgreSQL — tablas creadas con `prisma db push` |
 | GitHub | ✅ | [franciscoinostroza/PixelArch](https://github.com/franciscoinostroza/PixelArch) |
 | Clerk | ❌ | Falta crear app y keys |

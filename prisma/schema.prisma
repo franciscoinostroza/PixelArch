@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Cliente {
+  id               String   @id @default(cuid())
+  clerkUserId      String   @unique
+  stripeCustomerId String?  @unique
+  nombre           String
+  email            String   @unique
+  empresa          String?
+  telefono         String?
+  activo           Boolean  @default(true)
+  creadoEn         DateTime @default(now())
+  actualizadoEn    DateTime @updatedAt
+
+  suscripciones Suscripcion[]
+  pagos         Pago[]
+}
+
+model Servicio {
+  id            String    @id @default(cuid())
+  nombre        String
+  descripcion   String
+  precio        Int
+  intervalo     Intervalo
+  activo        Boolean   @default(true)
+  stripePriceId String    @unique
+
+  suscripciones Suscripcion[]
+}
+
+enum Intervalo {
+  MONTHLY
+  YEARLY
+}
+
+model Suscripcion {
+  id                   String    @id @default(cuid())
+  clienteId            String
+  servicioId           String
+  stripeSubscriptionId String    @unique
+  estado               Estado
+  proximoPago          DateTime?
+  canceladoEn          DateTime?
+  creadoEn             DateTime  @default(now())
+  actualizadoEn        DateTime  @updatedAt
+
+  cliente  Cliente  @relation(fields: [clienteId], references: [id])
+  servicio Servicio @relation(fields: [servicioId], references: [id])
+  pagos    Pago[]
+}
+
+enum Estado {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  PAUSED
+  TRIALING
+}
+
+model Pago {
+  id              String     @id @default(cuid())
+  clienteId       String
+  suscripcionId   String
+  stripePaymentId String     @unique
+  monto           Int
+  moneda          String     @default("usd")
+  estadoPago      EstadoPago
+  creadoEn        DateTime   @default(now())
+
+  cliente     Cliente     @relation(fields: [clienteId], references: [id])
+  suscripcion Suscripcion @relation(fields: [suscripcionId], references: [id])
+}
+
+enum EstadoPago {
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PENDING
+}

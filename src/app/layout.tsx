@@ -26,6 +26,21 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const hasClerk =
+    !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== ""
+
+  const html = (
+    <html
+      lang="es"
+      className={`${syne.variable} ${dmMono.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col">{children}</body>
+    </html>
+  )
+
+  if (!hasClerk) return html
+
   return (
     <ClerkProvider
       appearance={{
@@ -38,12 +53,7 @@ export default function RootLayout({
         },
       }}
     >
-      <html
-        lang="es"
-        className={`${syne.variable} ${dmMono.variable} h-full antialiased`}
-      >
-        <body className="min-h-full flex flex-col">{children}</body>
-      </html>
+      {html}
     </ClerkProvider>
   )
 }

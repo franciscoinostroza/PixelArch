@@ -2,17 +2,68 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Show, SignInButton, UserButton } from "@clerk/nextjs"
-import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Menu, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 const links = [
   { href: "/", label: "Inicio" },
   { href: "/servicios", label: "Servicios" },
   { href: "/#contacto", label: "Contacto" },
 ]
+
+const hasClerkKey = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
+function ClerkAuthSection() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [ClerkComponents, setClerkComponents] = useState<any>(null)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    if (!hasClerkKey) return
+    import("@clerk/nextjs")
+      .then((mod) => {
+        setClerkComponents({
+          Show: mod.Show,
+          SignInButton: mod.SignInButton,
+          UserButton: mod.UserButton,
+        })
+      })
+      .catch(() => setError(true))
+  }, [])
+
+  if (!hasClerkKey || error || !ClerkComponents) {
+    return (
+      <Button variant="ghost" size="sm" disabled>
+        Ingresar
+      </Button>
+    )
+  }
+
+  const { Show, SignInButton, UserButton } = ClerkComponents
+
+  return (
+    <>
+      <Show when="signed-out">
+        <SignInButton mode="modal">
+          <Button variant="ghost" size="sm">
+            Ingresar
+          </Button>
+        </SignInButton>
+      </Show>
+      <Show when="signed-in">
+        <UserButton
+          appearance={{
+            elements: {
+              userButtonBox: "border border-border rounded-full",
+            },
+          }}
+        />
+      </Show>
+    </>
+  )
+}
 
 export function Nav() {
   const pathname = usePathname()
@@ -41,22 +92,7 @@ export function Nav() {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Show when="signed-out">
-            <SignInButton mode="modal">
-              <Button variant="ghost" size="sm">
-                Ingresar
-              </Button>
-            </SignInButton>
-          </Show>
-          <Show when="signed-in">
-            <UserButton
-              appearance={{
-                elements: {
-                  userButtonBox: "border border-border rounded-full",
-                },
-              }}
-            />
-          </Show>
+          <ClerkAuthSection />
         </div>
 
         <button
@@ -80,15 +116,7 @@ export function Nav() {
             </Link>
           ))}
           <div className="mt-3 border-t border-border pt-3">
-            <Show when="signed-in">
-              <UserButton
-                appearance={{
-                  elements: {
-                    userButtonBox: "border border-border rounded-full",
-                  },
-                }}
-              />
-            </Show>
+            <ClerkAuthSection />
           </div>
         </div>
       )}

@@ -1,7 +1,9 @@
 # PixelArch — Estado del Proyecto
 
 **Última actualización:** Mayo 2026  
-**Build:** ✅ Exitoso | **TypeScript:** ✅ 0 errores | **Rutas:** 22 compiladas
+**Build:** ✅ Exitoso | **TypeScript:** ✅ 0 errores | **Rutas:** 22 compiladas  
+**Deploy Railway:** ✅ Online | **BD:** ✅ PostgreSQL sincronizada  
+**URL:** https://pixelarch-production.up.railway.app
 
 ---
 
@@ -14,6 +16,7 @@
 | Clerk | `SignedIn`/`SignedOut` | **`Show`** (v7) | API cambió en Clerk 7 |
 | Prisma | schema con `url` | **`prisma.config.ts`** separado | Prisma 7 rompió compatibilidad |
 | Middleware | `middleware.ts` | **`proxy.ts`** | Next.js 16 deprecó middleware |
+| Deploy | Vercel | **Railway** | Proyecto ya conectado en Railway |
 
 ---
 
@@ -154,18 +157,18 @@ Route (app)
 ### Para desarrollo local
 - [ ] Llenar `.env.local` con las API keys reales (ver `.env.example`)
 - [ ] Crear app en [Clerk](https://clerk.com) → pegar `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` y `CLERK_SECRET_KEY`
-- [ ] Configurar webhook de Clerk apuntando a `https://tudominio.com/api/webhooks/clerk`
+- [ ] Configurar webhook de Clerk apuntando a `https://pixelarch-production.up.railway.app/api/webhooks/clerk`
 - [ ] Asignar `publicMetadata: { role: "admin" }` a tu usuario en Clerk
 
 ### Base de datos
-- [ ] Crear proyecto en [Railway](https://railway.app) con PostgreSQL
-- [ ] Pegar `DATABASE_URL` en `.env.local`
-- [ ] `npx prisma db push` (crea las tablas)
+- [x] Crear proyecto en [Railway](https://railway.app) con PostgreSQL
+- [x] Pegar `DATABASE_URL` en Railway env vars
+- [x] `npx prisma db push` (tablas creadas)
 - [ ] Descomentar queries de Prisma en webhooks y páginas admin
 
 ### Sanity CMS
 - [ ] Crear proyecto en [Sanity](https://sanity.io)
-- [ ] Pegar `NEXT_PUBLIC_SANITY_PROJECT_ID` en `.env.local`
+- [ ] Pegar `NEXT_PUBLIC_SANITY_PROJECT_ID` en Railway env vars
 - [ ] `SANITY_API_TOKEN` (para revalidación)
 - [ ] Subir los schemas de `sanity/schemas/` al Studio
 - [ ] Crear documentos: landing, servicios, SEO, contacto
@@ -173,7 +176,7 @@ Route (app)
 ### Stripe
 - [ ] Crear cuenta en [Stripe](https://stripe.com)
 - [ ] Pegar `STRIPE_SECRET_KEY` y `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
-- [ ] Configurar webhook de Stripe → `https://tudominio.com/api/webhooks/stripe`
+- [ ] Configurar webhook de Stripe → `https://pixelarch-production.up.railway.app/api/webhooks/stripe`
 - [ ] Crear productos/precios en Stripe y vincularlos a `Servicio.stripePriceId`
 
 ### Email + Telegram
@@ -183,8 +186,8 @@ Route (app)
 - [ ] Obtener `TELEGRAM_CHAT_ID` (tu chat o grupo)
 
 ### Deploy
-- [ ] `NEXT_PUBLIC_URL=https://pixelarch.com` (o URL de Vercel)
-- [ ] Deploy en [Vercel](https://vercel.com) → todas las env vars
+- [x] `NEXT_PUBLIC_URL=https://pixelarch-production.up.railway.app`
+- [x] Deploy en Railway → auto-deploy desde GitHub
 - [ ] Configurar webhook de Sanity → `/api/revalidate` con `SANITY_REVALIDATE_SECRET`
 
 ### Conexiones pendientes en código (marcadas con TODO)

@@ -1,11 +1,38 @@
+import { Webhook } from "svix"
+import { headers } from "next/headers"
 import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
 
-// Clerk webhook: sync user data to our Cliente table
-// TODO: wire up with Prisma once DATABASE_URL is set
+const WH_SECRET = process.env.CLERK_WEBHOOK_SECRET
 
 export async function POST(req: Request) {
-  const body = await req.json()
-  const { type, data } = body
+  const payload = await req.json()
+  const body = JSON.stringify(payload)
+  const headerPayload = await headers()
+
+  const svixId = headerPayload.get("svix-id")
+  const svixTimestamp = headerPayload.get("svix-timestamp")
+  const svixSignature = headerPayload.get("svix-signature")
+
+  if (!svixId || !svixTimestamp || !svixSignature) {
+    return NextResponse.json({ error: "Faltan headers svix" }, { status: 400 })
+  }
+
+  if (WH_SECRET) {
+    try {
+      const wh = new Webhook(WH_SECRET)
+      wh.verify(body, {
+        "svix-id": svixId,
+        "svix-timestamp": svixTimestamp,
+        "svix-signature": svixSignature,
+      })
+    } catch (err) {
+      console.error("Webhook signature verification failed:", err)
+      return NextResponse.json({ error: "Firma inválida" }, { status: 401 })
+    }
+  }
+
+  const { type, data } = payload
 
   try {
     switch (type) {
@@ -14,9 +41,11 @@ export async function POST(req: Request) {
         const email = email_addresses?.[0]?.email_address
         const nombre = `${first_name || ""} ${last_name || ""}`.trim()
 
-        // TODO: await prisma.cliente.create({
-        //   data: { clerkUserId: id, email, nombre, activo: true },
-        // })
+        await prisma.cliente.upsert({
+          where: { clerkUserId: id },
+          create: { clerkUserId: id, email: email || "", nombre, activo: true },
+          update: { email: email || "", nombre },
+        })
 
         console.log("user.created", { id, email, nombre })
         break
@@ -27,10 +56,10 @@ export async function POST(req: Request) {
         const email = email_addresses?.[0]?.email_address
         const nombre = `${first_name || ""} ${last_name || ""}`.trim()
 
-        // TODO: await prisma.cliente.update({
-        //   where: { clerkUserId: id },
-        //   data: { email, nombre },
-        // })
+        await prisma.cliente.update({
+          where: { clerkUserId: id },
+          data: { email: email || undefined, nombre: nombre || undefined },
+        })
 
         console.log("user.updated", { id, email, nombre })
         break
@@ -38,11 +67,11 @@ export async function POST(req: Request) {
 
       case "user.deleted": {
         const { id } = data
-        // Soft delete
-        // TODO: await prisma.cliente.update({
-        //   where: { clerkUserId: id },
-        //   data: { activo: false },
-        // })
+
+        await prisma.cliente.update({
+          where: { clerkUserId: id },
+          data: { activo: false },
+        })
 
         console.log("user.deleted", { id })
         break

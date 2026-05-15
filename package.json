@@ -12,9 +12,11 @@
   "dependencies": {
     "@clerk/nextjs": "^7.3.3",
     "@hookform/resolvers": "^5.2.2",
+    "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@sanity/client": "^7.22.0",
     "@sanity/image-url": "^2.1.1",
+    "@sanity/vision": "^5.25.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.14.0",
@@ -25,7 +27,10 @@
     "react-dom": "19.2.4",
     "react-hook-form": "^7.75.0",
     "resend": "^6.12.3",
+    "sanity": "^5.25.1",
     "stripe": "^22.1.1",
+    "styled-components": "^6.4.1",
+    "svix": "^1.93.0",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },

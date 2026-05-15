@@ -20,6 +20,7 @@ async function getClerkHandler() {
     "/sign-in(.*)",
     "/sign-up(.*)",
     "/gracias",
+    "/studio(.*)",
   ])
 
   return clerkMiddleware(async (auth, req) => {
@@ -54,5 +55,5 @@ export default async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: ["/((?!.*\\..*|_next|api/webhooks).*)", "/", "/(api/(?!webhooks)|trpc)(.*)"],
 }

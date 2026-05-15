@@ -2,7 +2,7 @@
 
 **Última actualización:** Mayo 2026  
 **Build:** ✅ Exitoso | **TypeScript:** ✅ 0 errores | **Rutas:** 22 compiladas  
-**Deploy Railway:** ✅ Online | **BD:** ✅ PostgreSQL sincronizada  
+**Deploy Railway:** ✅ Online | **BD:** ✅ PostgreSQL sincronizada | **Clerk:** ✅ Auth + Webhook svix | **Sanity:** ✅ Studio + Schemas + 9 docs  
 **URL:** https://pixelarch-production.up.railway.app
 
 ---
@@ -14,8 +14,9 @@
 | Next.js | 14 | **16.2.6** | Último estable, App Router compatible |
 | Tailwind | v3 + config | **v4** (CSS-first con `@theme`) | Viene con Next 16 |
 | Clerk | `SignedIn`/`SignedOut` | **`Show`** (v7) | API cambió en Clerk 7 |
-| Prisma | schema con `url` | **`prisma.config.ts`** separado | Prisma 7 rompió compatibilidad |
+| Prisma | schema con `url` | **prisma.config.ts + adapter Pg** | Prisma 7 requiere adapter explícito |
 | Middleware | `middleware.ts` | **`proxy.ts`** | Next.js 16 deprecó middleware |
+| Webhook Clerk | sin verificar | **svix** (firma criptográfica) | Clerk requiere svix para webhooks |
 | Deploy | Vercel | **Railway** | Proyecto ya conectado en Railway |
 | Env vars | Crash sin keys | **Condicional (safe-by-default)** | La app carga sin API keys |
 
@@ -53,7 +54,7 @@
 ### Librerías (`src/lib/`)
 | Archivo | Función | Nota |
 |---------|---------|------|
-| `prisma.ts` | Singleton PrismaClient | Prisma 7, sin URL en schema |
+| `prisma.ts` | Singleton PrismaClient con adapter `PrismaPg` | Prisma 7, adapter @prisma/adapter-pg |
 | `sanity.ts` | Cliente Sanity + `sanityFetch()` genérico | Retorna null si no hay project ID |
 | `stripe.ts` | Cliente Stripe lazy | No crashea sin STRIPE_SECRET_KEY |
 | `resend.ts` | Cliente Resend lazy | No crashea sin RESEND_API_KEY |
@@ -97,7 +98,7 @@
 | `/api/revalidate` | POST | ISR on-demand (protegido por secreto) |
 | `/api/stripe/checkout` | POST | Crea sesión de checkout Stripe |
 | `/api/webhooks/stripe` | POST | 5 eventos: checkout, invoice, subscription |
-| `/api/webhooks/clerk` | POST | Sync user.created/updated/deleted → BD |
+| `/api/webhooks/clerk` | POST | Sync user.created/updated/deleted → BD (svix verificado) |
 | `/api/admin/suscripciones` | PATCH | Acciones admin sobre suscripciones |
 
 ### Schemas
@@ -120,7 +121,8 @@
 ### Config
 | Archivo | Función |
 |---------|---------|
-| `src/proxy.ts` | Clerk middleware con roles (admin/cliente/público), no-op sin keys |
+| `src/proxy.ts` | Clerk middleware con roles (admin/cliente/público), no-op sin keys, excluye webhooks |
+| `sanity.config.ts` | Config del Sanity Studio (embebido en `/studio`) |
 | `next.config.ts` | Dominios de imágenes (Sanity CDN) |
 | `components.json` | Config de shadcn/ui |
 | `.env.example` | Las 18 variables de entorno documentadas |
@@ -155,50 +157,34 @@ Route (app)
 
 ## Lo que falta (pendiente)
 
-### Para desarrollo local
-- [ ] Llenar `.env.local` con las API keys reales (ver `.env.example`)
-- [x] El frontend carga sin API keys (safe-by-default) — landing, servicios, gracias visibles
-- [ ] Crear app en [Clerk](https://clerk.com) → pegar `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` y `CLERK_SECRET_KEY`
-- [ ] Configurar webhook de Clerk apuntando a `https://pixelarch-production.up.railway.app/api/webhooks/clerk`
-- [ ] Asignar `publicMetadata: { role: "admin" }` a tu usuario en Clerk
+### ✅ Completado hoy (Mayo 15)
+- Clerk: auth (7 vars Railway), webhook svix + Prisma sync, publicMetadata admin
+- Sanity: Studio embebido (`/studio`), schemas conectados, 9 docs (6 servicios + landing + SEO + contacto), API token, webhook revalidación
+- Proxy: excluye webhooks y `/studio` del middleware Clerk
+- Prisma 7: adapter `@prisma/adapter-pg`
+- Precios sugeridos en USD/ARS para 6 servicios
 
-### Base de datos
-- [x] Crear proyecto en [Railway](https://railway.app) con PostgreSQL
-- [x] Pegar `DATABASE_URL` en Railway env vars
-- [x] `npx prisma db push` (tablas creadas)
-- [ ] Descomentar queries de Prisma en webhooks y páginas admin
-
-### Sanity CMS
-- [ ] Crear proyecto en [Sanity](https://sanity.io)
-- [ ] Pegar `NEXT_PUBLIC_SANITY_PROJECT_ID` en Railway env vars
-- [ ] `SANITY_API_TOKEN` (para revalidación)
-- [ ] Subir los schemas de `sanity/schemas/` al Studio
-- [ ] Crear documentos: landing, servicios, SEO, contacto
-
-### Stripe
+### ⬜ Stripe — próximo paso
 - [ ] Crear cuenta en [Stripe](https://stripe.com)
 - [ ] Pegar `STRIPE_SECRET_KEY` y `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - [ ] Configurar webhook de Stripe → `https://pixelarch-production.up.railway.app/api/webhooks/stripe`
 - [ ] Crear productos/precios en Stripe y vincularlos a `Servicio.stripePriceId`
 
-### Email + Telegram
-- [ ] Crear API key en [Resend](https://resend.com) → `RESEND_API_KEY`
-- [ ] `CONTACT_EMAIL` (tu email para recibir mensajes)
-- [ ] Crear bot en [@BotFather](https://t.me/BotFather) → `TELEGRAM_BOT_TOKEN`
-- [ ] Obtener `TELEGRAM_CHAT_ID` (tu chat o grupo)
-
-### Deploy
-- [x] `NEXT_PUBLIC_URL=https://pixelarch-production.up.railway.app`
-- [x] Deploy en Railway → auto-deploy desde GitHub
-- [ ] Configurar webhook de Sanity → `/api/revalidate` con `SANITY_REVALIDATE_SECRET`
-
-### Conexiones pendientes en código (marcadas con TODO)
-- [ ] `api/webhooks/clerk/route.ts` — queries Prisma comentadas
+### ⬜ Admin + Portal — queries reales
 - [ ] `api/webhooks/stripe/route.ts` — queries Prisma comentadas
 - [ ] `api/stripe/checkout/route.ts` — obtener cliente de Clerk + precio de BD
 - [ ] `api/admin/suscripciones/route.ts` — integrar con Stripe API + Prisma
 - [ ] Páginas admin — reemplazar placeholders con queries reales
 - [ ] Portal cliente — fetch suscripciones y pagos desde BD
+
+### ⬜ Email + Telegram
+- [ ] Crear API key en [Resend](https://resend.com) → `RESEND_API_KEY`
+- [ ] `CONTACT_EMAIL` (tu email para recibir mensajes)
+- [ ] Crear bot en [@BotFather](https://t.me/BotFather) → `TELEGRAM_BOT_TOKEN`
+- [ ] Obtener `TELEGRAM_CHAT_ID` (tu chat o grupo)
+
+### ⬜ Deploy
+- [ ] Configurar webhook de Stripe en Railway (tras crear cuenta)
 
 ---
 

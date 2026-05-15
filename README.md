@@ -22,9 +22,9 @@ Plataforma SaaS de servicios digitales: desarrollo web, chatbots, agentes de IA 
 | Frontend | ✅ | Landing, servicios, gracias — visibles sin API keys |
 | BD Railway | ✅ | PostgreSQL — tablas creadas con `prisma db push` |
 | GitHub | ✅ | [franciscoinostroza/PixelArch](https://github.com/franciscoinostroza/PixelArch) |
-| Clerk | ❌ | Falta crear app y keys |
+| Clerk | ✅ | Auth, webhook svix, sync BD, 7 vars en Railway |
 | Stripe | ❌ | Falta crear cuenta y keys |
-| Sanity | ❌ | Falta crear proyecto y project ID |
+| Sanity | ✅ | Studio + schemas + API token + 9 documentos creados |
 | Resend | ❌ | Falta API key |
 | Telegram | ❌ | Falta bot token |
 

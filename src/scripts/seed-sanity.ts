@@ -85,9 +85,9 @@ async function seed() {
       titulo: "Integraciones",
       slug: { _type: "slug", current: "integraciones" },
       descripcion:
-        "Conectamos tu negocio con las plataformas que ya usás: Stripe para pagos, Clerk para autenticación, Resend para emails, Telegram para notificaciones y cualquier API externa.",
+        "Conectamos tu negocio con las plataformas que ya usás: Paddle para pagos, Clerk para autenticación, Resend para emails, Telegram para notificaciones y cualquier API externa.",
       icono: "🔗",
-      tags: ["API REST", "Webhooks", "Stripe", "Clerk", "OAuth"],
+      tags: ["API REST", "Webhooks", "Paddle", "Clerk", "OAuth"],
       orden: 6,
       activo: true,
     },

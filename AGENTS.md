@@ -56,7 +56,7 @@
 |---------|---------|------|
 | `prisma.ts` | Singleton PrismaClient con adapter `PrismaPg` | Prisma 7, adapter @prisma/adapter-pg |
 | `sanity.ts` | Cliente Sanity + `sanityFetch()` genérico | Retorna null si no hay project ID |
-| `stripe.ts` | Cliente Stripe lazy | No crashea sin STRIPE_SECRET_KEY |
+| `payments.ts` | Cliente Paddle lazy | No crashea sin PADDLE_API_KEY |
 | `resend.ts` | Cliente Resend lazy | No crashea sin RESEND_API_KEY |
 | `telegram.ts` | `sendTelegramMessage()` via fetch | Sin dependencia extra |
 | `auth.ts` | `getCurrentCliente()` + `requireAdmin()` | Usa Clerk + Prisma |
@@ -96,8 +96,8 @@
 |------|--------|---------|
 | `/api/contact` | POST | Valida con Zod → Resend + Telegram en parallel |
 | `/api/revalidate` | POST | ISR on-demand (protegido por secreto) |
-| `/api/stripe/checkout` | POST | Crea sesión de checkout Stripe |
-| `/api/webhooks/stripe` | POST | 5 eventos: checkout, invoice, subscription |
+| `/api/payments/checkout` | POST | Crea checkout Paddle |
+| `/api/webhooks/paddle` | POST | 6 eventos: transaction, subscription |
 | `/api/webhooks/clerk` | POST | Sync user.created/updated/deleted → BD (svix verificado) |
 | `/api/admin/suscripciones` | PATCH | Acciones admin sobre suscripciones |
 
@@ -164,16 +164,13 @@ Route (app)
 - Prisma 7: adapter `@prisma/adapter-pg`
 - Precios sugeridos en USD/ARS para 6 servicios
 
-### ⬜ Stripe — próximo paso
-- [ ] Crear cuenta en [Stripe](https://stripe.com)
-- [ ] Pegar `STRIPE_SECRET_KEY` y `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
-- [ ] Configurar webhook de Stripe → `https://pixelarch-production.up.railway.app/api/webhooks/stripe`
-- [ ] Crear productos/precios en Stripe y vincularlos a `Servicio.stripePriceId`
+### ⬜ Paddle — próximo paso
+- [ ] Crear productos/precios en [Paddle](https://paddle.com) (modo sandbox) y vincularlos a `Servicio.paddlePriceId`
+- [ ] Pegar `PADDLE_API_KEY` y `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`
+- [ ] Configurar webhook de Paddle → `https://pixelarch-production.up.railway.app/api/webhooks/paddle`
+- [ ] Obtener `PADDLE_WEBHOOK_SECRET` del notification destination
 
 ### ⬜ Admin + Portal — queries reales
-- [ ] `api/webhooks/stripe/route.ts` — queries Prisma comentadas
-- [ ] `api/stripe/checkout/route.ts` — obtener cliente de Clerk + precio de BD
-- [ ] `api/admin/suscripciones/route.ts` — integrar con Stripe API + Prisma
 - [ ] Páginas admin — reemplazar placeholders con queries reales
 - [ ] Portal cliente — fetch suscripciones y pagos desde BD
 
@@ -184,7 +181,7 @@ Route (app)
 - [ ] Obtener `TELEGRAM_CHAT_ID` (tu chat o grupo)
 
 ### ⬜ Deploy
-- [ ] Configurar webhook de Stripe en Railway (tras crear cuenta)
+- [ ] Configurar webhook de Paddle en Railway (tras crear API key)
 
 ---
 

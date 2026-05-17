@@ -1,18 +1,40 @@
 import { auth } from "@clerk/nextjs/server"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { DollarSign, Users, RefreshCw, AlertTriangle } from "lucide-react"
+import { prisma } from "@/lib/prisma"
+import Link from "next/link"
 
 export default async function AdminDashboard() {
   const { userId } = await auth()
 
-  // TODO: Replace with real Prisma queries
-  const metrics = {
-    ingresosMes: 0,
-    clientesActivos: 0,
-    suscripciones: 0,
-    pagosVencidos: 0,
-  }
+  const now = new Date()
+  const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  const [clientesActivos, suscripcionesActivas, pagosVencidos, ingresos] = await Promise.all([
+    prisma.cliente.count({ where: { activo: true } }),
+    prisma.suscripcion.count({ where: { estado: "ACTIVE" } }),
+    prisma.suscripcion.count({ where: { estado: "PAST_DUE" } }),
+    prisma.pago.aggregate({
+      where: {
+        estadoPago: "SUCCEEDED",
+        creadoEn: { gte: inicioMes },
+      },
+      _sum: { monto: true },
+    }),
+  ])
+
+  const ultimosClientes = await prisma.cliente.findMany({
+    orderBy: { creadoEn: "desc" },
+    take: 5,
+    include: { _count: { select: { suscripciones: true } } },
+  })
+
+  const suscripcionesPorMes = await prisma.suscripcion.groupBy({
+    by: ["estado"],
+    _count: { id: true },
+  })
+
+  const totalSuscripciones = suscripcionesPorMes.reduce((acc, g) => acc + g._count.id, 0)
 
   return (
     <div>
@@ -35,7 +57,7 @@ export default async function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-text font-display">
-              ${(metrics.ingresosMes / 100).toFixed(0)}
+              ${((ingresos._sum.monto ?? 0) / 100).toFixed(0)}
             </p>
           </CardContent>
         </Card>
@@ -53,7 +75,7 @@ export default async function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-text font-display">
-              {metrics.clientesActivos}
+              {clientesActivos}
             </p>
           </CardContent>
         </Card>
@@ -71,7 +93,7 @@ export default async function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-text font-display">
-              {metrics.suscripciones}
+              {suscripcionesActivas}
             </p>
           </CardContent>
         </Card>
@@ -89,7 +111,7 @@ export default async function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-text font-display">
-              {metrics.pagosVencidos}
+              {pagosVencidos}
             </p>
           </CardContent>
         </Card>
@@ -98,24 +120,58 @@ export default async function AdminDashboard() {
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Últimos clientes</CardTitle>
+            <CardTitle>Ultimos clientes</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center py-8 text-muted font-mono text-sm">
-              <Users size={32} className="mb-2 opacity-30" />
-              Conecta la base de datos para ver los clientes
-            </div>
+            {ultimosClientes.length === 0 ? (
+              <div className="flex flex-col items-center py-8 text-muted font-mono text-sm">
+                <Users size={32} className="mb-2 opacity-30" />
+                No hay clientes registrados
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {ultimosClientes.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/admin/clientes/${c.id}`}
+                    className="flex items-center justify-between rounded-lg border border-border px-4 py-3 transition-colors hover:bg-muted/5"
+                  >
+                    <div>
+                      <p className="font-mono text-sm text-text">{c.nombre}</p>
+                      <p className="text-xs text-muted font-mono">{c.email}</p>
+                    </div>
+                    <div className="text-right text-xs text-muted font-mono">
+                      {c._count.suscripciones} susc.
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Ingresos mensuales</CardTitle>
+            <CardTitle>Estado de suscripciones</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border text-muted font-mono text-sm">
-              Gráfico (conecta BD)
-            </div>
+            {suscripcionesPorMes.length === 0 ? (
+              <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border text-muted font-mono text-sm">
+                Sin datos
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {suscripcionesPorMes.map((g) => (
+                  <div key={g.estado} className="flex items-center justify-between">
+                    <span className="font-mono text-sm text-text">{g.estado}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 rounded-full bg-accent" style={{ width: `${Math.max((g._count.id / totalSuscripciones) * 200, 8)}px` }} />
+                      <span className="text-xs text-muted font-mono">{g._count.id}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

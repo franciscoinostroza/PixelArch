@@ -12,6 +12,8 @@
   "dependencies": {
     "@clerk/nextjs": "^7.3.3",
     "@hookform/resolvers": "^5.2.2",
+    "@paddle/paddle-js": "^1.6.4",
+    "@paddle/paddle-node-sdk": "^3.8.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@sanity/client": "^7.22.0",
@@ -28,7 +30,6 @@
     "react-hook-form": "^7.75.0",
     "resend": "^6.12.3",
     "sanity": "^5.25.1",
-    "stripe": "^22.1.1",
     "styled-components": "^6.4.1",
     "svix": "^1.93.0",
     "tailwind-merge": "^3.6.0",

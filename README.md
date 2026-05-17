@@ -9,7 +9,7 @@ Plataforma SaaS de servicios digitales: desarrollo web, chatbots, agentes de IA 
 - **CMS:** Sanity.io
 - **BD:** PostgreSQL en Railway (Prisma 7)
 - **Auth:** Clerk
-- **Pagos:** Stripe
+- **Pagos:** Paddle
 - **Email:** Resend + Telegram
 - **Deploy:** Railway
 
@@ -23,7 +23,7 @@ Plataforma SaaS de servicios digitales: desarrollo web, chatbots, agentes de IA 
 | BD Railway | ✅ | PostgreSQL — tablas creadas con `prisma db push` |
 | GitHub | ✅ | [franciscoinostroza/PixelArch](https://github.com/franciscoinostroza/PixelArch) |
 | Clerk | ✅ | Auth, webhook svix, sync BD, 7 vars en Railway |
-| Stripe | ❌ | Falta crear cuenta y keys |
+| Paddle | ❌ | Falta crear API key y webhook |
 | Sanity | ✅ | Studio + schemas + API token + 9 documentos creados |
 | Resend | ❌ | Falta API key |
 | Telegram | ❌ | Falta bot token |

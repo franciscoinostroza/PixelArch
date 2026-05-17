@@ -9,7 +9,7 @@ datasource db {
 model Cliente {
   id               String   @id @default(cuid())
   clerkUserId      String   @unique
-  stripeCustomerId String?  @unique
+  paddleCustomerId  String?  @unique
   nombre           String
   email            String   @unique
   empresa          String?
@@ -29,7 +29,7 @@ model Servicio {
   precio        Int
   intervalo     Intervalo
   activo        Boolean   @default(true)
-  stripePriceId String    @unique
+  paddlePriceId  String    @unique
 
   suscripciones Suscripcion[]
 }
@@ -43,7 +43,7 @@ model Suscripcion {
   id                   String    @id @default(cuid())
   clienteId            String
   servicioId           String
-  stripeSubscriptionId String    @unique
+  paddleSubscriptionId String    @unique
   estado               Estado
   proximoPago          DateTime?
   canceladoEn          DateTime?
@@ -66,15 +66,15 @@ enum Estado {
 model Pago {
   id              String     @id @default(cuid())
   clienteId       String
-  suscripcionId   String
-  stripePaymentId String     @unique
+  suscripcionId   String?
+  paddleTransactionId String     @unique
   monto           Int
   moneda          String     @default("usd")
   estadoPago      EstadoPago
   creadoEn        DateTime   @default(now())
 
   cliente     Cliente     @relation(fields: [clienteId], references: [id])
-  suscripcion Suscripcion @relation(fields: [suscripcionId], references: [id])
+  suscripcion Suscripcion? @relation(fields: [suscripcionId], references: [id])
 }
 
 enum EstadoPago {

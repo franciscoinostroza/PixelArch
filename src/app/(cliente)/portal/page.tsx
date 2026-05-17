@@ -4,21 +4,56 @@ import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { AlertTriangle, Plus } from "lucide-react"
+import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 
 export default async function PortalPage() {
   const { userId } = await auth()
 
-  // TODO: Fetch active subscriptions from Prisma
-  const suscripciones: {
-    id: string
-    nombre: string
-    estado: string
-    precio: number
-    proximoPago: string | null
-  }[] = []
+  if (!userId) {
+    return (
+      <div>
+        <Card>
+          <CardContent className="py-12 text-center text-muted font-mono text-sm">
+            Iniciá sesión para ver tus servicios.
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
-  const tienePagoFallido = false
+  const cliente = await prisma.cliente.findUnique({
+    where: { clerkUserId: userId },
+    select: { id: true },
+  })
+
+  const suscripciones = cliente
+    ? await prisma.suscripcion.findMany({
+        where: { clienteId: cliente.id },
+        include: { servicio: { select: { nombre: true, precio: true } } },
+        orderBy: { creadoEn: "desc" },
+      })
+    : []
+
+  const tienePagoFallido = cliente
+    ? (await prisma.pago.count({
+        where: {
+          clienteId: cliente.id,
+          estadoPago: "FAILED",
+        },
+      })) > 0
+    : false
+
+  const mapEstado = (e: string) => {
+    switch (e) {
+      case "ACTIVE": return "Activo"
+      case "PAST_DUE": return "Pendiente"
+      case "CANCELED": return "Cancelado"
+      case "PAUSED": return "Pausado"
+      case "TRIALING": return "Prueba"
+      default: return e
+    }
+  }
 
   return (
     <div>
@@ -26,13 +61,10 @@ export default async function PortalPage() {
         <div>
           <h1 className="text-2xl font-bold text-text font-display">Mis servicios</h1>
           <p className="mt-1 text-muted font-mono text-sm">
-            Cliente #{userId?.slice(-6)}
+            Cliente #{userId.slice(-6)}
           </p>
         </div>
-        <Link
-          href="/servicios"
-          className={cn(buttonVariants())}
-        >
+        <Link href="/servicios" className={cn(buttonVariants())}>
           <Plus size={16} /> Agregar servicio
         </Link>
       </div>
@@ -57,15 +89,15 @@ export default async function PortalPage() {
             <Card key={s.id}>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>{s.nombre}</CardTitle>
+                  <CardTitle>{s.servicio.nombre}</CardTitle>
                   <Badge
                     variant={s.estado === "ACTIVE" ? "accent2" : "accent"}
                   >
-                    {s.estado === "ACTIVE" ? "Activo" : s.estado}
+                    {mapEstado(s.estado)}
                   </Badge>
                 </div>
                 <CardDescription>
-                  ${(s.precio / 100).toFixed(2)}/mes
+                  ${(s.servicio.precio / 100).toFixed(2)}/mes
                 </CardDescription>
               </CardHeader>
               <CardContent>

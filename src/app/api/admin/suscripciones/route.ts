@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { prisma } from "@/lib/prisma"
+import { paddle } from "@/lib/payments"
 
-// TODO: wire up with Prisma once DB is ready
 export async function PATCH(req: Request) {
   const { userId, sessionClaims } = await auth()
   const role = (sessionClaims?.metadata as { role?: string } | undefined)?.role
@@ -13,13 +14,54 @@ export async function PATCH(req: Request) {
   try {
     const { suscripcionId, accion } = await req.json()
 
-    // accion: "pause" | "cancel" | "activate"
-    console.log("suscripcion action", { suscripcionId, accion, adminId: userId })
+    const suscripcion = await prisma.suscripcion.findUnique({
+      where: { id: suscripcionId },
+      select: { paddleSubscriptionId: true },
+    })
 
-    // TODO: Integrate with Stripe API + update Prisma
+    if (!suscripcion?.paddleSubscriptionId) {
+      return NextResponse.json({ error: "Suscripcion no encontrada" }, { status: 404 })
+    }
+
+    switch (accion) {
+      case "pause": {
+        await paddle().subscriptions.pause(suscripcion.paddleSubscriptionId, {
+          effectiveFrom: "immediately",
+        })
+        await prisma.suscripcion.update({
+          where: { id: suscripcionId },
+          data: { estado: "PAUSED" },
+        })
+        break
+      }
+      case "resume": {
+        await paddle().subscriptions.resume(suscripcion.paddleSubscriptionId, {
+          effectiveFrom: "immediately",
+        })
+        await prisma.suscripcion.update({
+          where: { id: suscripcionId },
+          data: { estado: "ACTIVE" },
+        })
+        break
+      }
+      case "cancel": {
+        await paddle().subscriptions.cancel(suscripcion.paddleSubscriptionId)
+        await prisma.suscripcion.update({
+          where: { id: suscripcionId },
+          data: {
+            estado: "CANCELED",
+            canceladoEn: new Date(),
+          },
+        })
+        break
+      }
+      default:
+        return NextResponse.json({ error: "Accion no valida" }, { status: 400 })
+    }
 
     return NextResponse.json({ ok: true })
-  } catch {
+  } catch (error) {
+    console.error("suscripcion action error:", error)
     return NextResponse.json({ error: "Error interno" }, { status: 500 })
   }
 }

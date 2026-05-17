@@ -6,13 +6,17 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
+import { CheckoutButton } from "@/components/ui/checkout-button"
 
 const SERVICIO_QUERY = `*[_type == "servicio" && slug.current == $slug][0]{
   titulo,
   "slug": slug.current,
   descripcion,
   icono,
-  tags
+  tags,
+  precio,
+  intervalo,
+  paddlePriceId
 }`
 
 export async function generateMetadata({
@@ -32,6 +36,12 @@ export async function generateMetadata({
   }
 }
 
+function formatPrice(precio: number, intervalo: string) {
+  if (!precio) return null
+  const label = intervalo === "ANUAL" ? "/ano" : "/mes"
+  return `$${(precio / 100).toFixed(0)}${label}`
+}
+
 export default async function ServicioPage({
   params,
 }: {
@@ -44,9 +54,14 @@ export default async function ServicioPage({
     descripcion: string
     icono: string
     tags: string[]
+    precio: number
+    intervalo: string
+    paddlePriceId: string
   } | null>(SERVICIO_QUERY, { slug })
 
   if (!servicio) notFound()
+
+  const priceLabel = formatPrice(servicio.precio, servicio.intervalo)
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-24">
@@ -58,9 +73,16 @@ export default async function ServicioPage({
       </Link>
 
       <span className="text-5xl">{servicio.icono || "⚡"}</span>
-      <h1 className="mt-4 text-4xl font-bold text-text font-display md:text-5xl">
-        {servicio.titulo}
-      </h1>
+      <div className="flex items-center gap-4 mt-4">
+        <h1 className="text-4xl font-bold text-text font-display md:text-5xl">
+          {servicio.titulo}
+        </h1>
+        {priceLabel && (
+          <Badge variant="accent2" className="text-lg px-3 py-1">
+            {priceLabel}
+          </Badge>
+        )}
+      </div>
       <p className="mt-6 text-lg text-muted font-mono leading-relaxed">
         {servicio.descripcion}
       </p>
@@ -75,13 +97,20 @@ export default async function ServicioPage({
         </div>
       )}
 
-      <div className="mt-12">
-        <Link
-          href="/#contacto"
-          className={cn(buttonVariants({ size: "lg" }))}
-        >
-          Solicitar información
-        </Link>
+      <div className="mt-12 flex items-center gap-4">
+        {servicio.paddlePriceId ? (
+          <CheckoutButton
+            paddlePriceId={servicio.paddlePriceId}
+            servicioNombre={servicio.titulo}
+          />
+        ) : (
+          <Link
+            href="/#contacto"
+            className={cn(buttonVariants({ size: "lg" }))}
+          >
+            Solicitar informacion
+          </Link>
+        )}
       </div>
     </div>
   )

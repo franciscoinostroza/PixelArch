@@ -20,13 +20,16 @@ const SERVICIOS_QUERY = `*[_type == "servicio" && activo == true] | order(orden 
   "slug": slug.current,
   descripcion,
   icono,
-  tags
+  tags,
+  precio,
+  intervalo,
+  paddlePriceId
 }`
 
 export default async function LandingPage() {
   const landing = await sanityFetch<LandingFields | null>(LANDING_QUERY)
   const servicios = await sanityFetch<
-    { titulo: string; slug: string; descripcion: string; icono: string; tags: string[] }[]
+    { titulo: string; slug: string; descripcion: string; icono: string; tags: string[]; precio: number; intervalo: string; paddlePriceId: string }[]
   >(SERVICIOS_QUERY)
 
   return (

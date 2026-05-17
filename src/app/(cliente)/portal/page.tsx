@@ -3,12 +3,17 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { AlertTriangle, Plus } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Plus } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 
-export default async function PortalPage() {
+export default async function PortalPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ success?: string }>
+}) {
   const { userId } = await auth()
+  const { success } = await searchParams
 
   if (!userId) {
     return (
@@ -57,6 +62,13 @@ export default async function PortalPage() {
 
   return (
     <div>
+      {success === "true" && (
+        <div className="mb-6 flex items-center gap-3 rounded-lg border border-accent2/30 bg-accent2/5 px-4 py-3 text-sm text-accent2 font-mono">
+          <CheckCircle2 size={18} />
+          Pago exitoso. Tu suscripcion se activara en breve.
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-text font-display">Mis servicios</h1>

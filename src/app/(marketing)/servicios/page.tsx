@@ -2,11 +2,12 @@ import { sanityFetch } from "@/lib/sanity"
 import Link from "next/link"
 import { SectionLabel } from "@/components/ui/section-label"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Servicios — PixelArch",
-  description: "Conocé todos nuestros servicios: desarrollo web, chatbots, agentes de IA y más.",
+  description: "Conoce todos nuestros servicios: desarrollo web, chatbots, agentes de IA y mas.",
 }
 
 const SERVICIOS_QUERY = `*[_type == "servicio" && activo == true] | order(orden asc) {
@@ -14,12 +15,21 @@ const SERVICIOS_QUERY = `*[_type == "servicio" && activo == true] | order(orden 
   "slug": slug.current,
   descripcion,
   icono,
-  tags
+  tags,
+  precio,
+  intervalo,
+  paddlePriceId
 }`
+
+function formatPrice(precio: number, intervalo: string) {
+  if (!precio) return null
+  const label = intervalo === "ANUAL" ? "/ano" : "/mes"
+  return `$ ${(precio / 100).toFixed(0)}${label}`
+}
 
 export default async function ServiciosPage() {
   const servicios = await sanityFetch<
-    { titulo: string; slug: string; descripcion: string; icono: string; tags: string[] }[]
+    { titulo: string; slug: string; descripcion: string; icono: string; tags: string[]; precio: number; intervalo: string; paddlePriceId: string }[]
   >(SERVICIOS_QUERY)
 
   return (
@@ -30,7 +40,7 @@ export default async function ServiciosPage() {
           Soluciones a medida
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-muted font-mono">
-          Elegí el servicio que mejor se adapte a tu negocio. Todos incluyen
+          Elegi el servicio que mejor se adapte a tu negocio. Todos incluyen
           soporte y mantenimiento.
         </p>
       </div>
@@ -41,7 +51,14 @@ export default async function ServiciosPage() {
             <Card className="h-full transition-colors hover:border-accent/30">
               <CardHeader>
                 <span className="text-3xl">{s.icono || "⚡"}</span>
-                <CardTitle className="mt-3">{s.titulo}</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="mt-3">{s.titulo}</CardTitle>
+                  {s.precio > 0 && (
+                    <Badge variant="accent2" className="text-xs shrink-0">
+                      {formatPrice(s.precio, s.intervalo)}
+                    </Badge>
+                  )}
+                </div>
                 <CardDescription>{s.descripcion}</CardDescription>
               </CardHeader>
               <div className="flex flex-wrap gap-2 mt-2">

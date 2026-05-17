@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { SectionLabel } from "@/components/ui/section-label"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 
 interface ServiceItem {
   titulo: string
@@ -8,10 +9,18 @@ interface ServiceItem {
   descripcion: string
   icono: string
   tags: string[]
+  precio: number
+  intervalo: string
+  paddlePriceId: string
 }
 
 interface ServicesProps {
   servicios: ServiceItem[]
+}
+
+function formatPrice(precio: number, intervalo: string) {
+  const label = intervalo === "ANUAL" ? "/ano" : "/mes"
+  return `$${(precio / 100).toFixed(0)}${label}`
 }
 
 export function Services({ servicios }: ServicesProps) {
@@ -23,7 +32,7 @@ export function Services({ servicios }: ServicesProps) {
           Soluciones a medida
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-muted font-mono">
-          Desde una landing page hasta un agente de IA autónomo. Elegí lo que tu
+          Desde una landing page hasta un agente de IA autonomo. Elegi lo que tu
           negocio necesita.
         </p>
       </div>
@@ -34,7 +43,14 @@ export function Services({ servicios }: ServicesProps) {
             <Card className="h-full transition-colors hover:border-accent/30">
               <CardHeader>
                 <span className="text-3xl">{s.icono || "⚡"}</span>
-                <CardTitle className="mt-3">{s.titulo}</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="mt-3">{s.titulo}</CardTitle>
+                  {s.precio > 0 && (
+                    <Badge variant="accent2" className="text-xs">
+                      {formatPrice(s.precio, s.intervalo)}
+                    </Badge>
+                  )}
+                </div>
                 <CardDescription>{s.descripcion}</CardDescription>
               </CardHeader>
               <div className="flex flex-wrap gap-2 mt-2">

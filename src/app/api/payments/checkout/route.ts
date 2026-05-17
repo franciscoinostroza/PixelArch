@@ -5,18 +5,22 @@ import { getCurrentCliente } from "@/lib/auth"
 
 export async function POST(req: Request) {
   try {
-    const { servicioId, successUrl } = await req.json()
+    const { servicioId, paddlePriceId, successUrl } = await req.json()
 
-    if (!servicioId) {
-      return NextResponse.json({ error: "servicioId requerido" }, { status: 400 })
+    let priceId = paddlePriceId as string | undefined
+
+    if (servicioId && !priceId) {
+      const servicio = await prisma.servicio.findUnique({
+        where: { id: servicioId },
+      })
+      if (!servicio?.activo) {
+        return NextResponse.json({ error: "Servicio no encontrado" }, { status: 404 })
+      }
+      priceId = servicio.paddlePriceId
     }
 
-    const servicio = await prisma.servicio.findUnique({
-      where: { id: servicioId },
-    })
-
-    if (!servicio || !servicio.activo) {
-      return NextResponse.json({ error: "Servicio no encontrado" }, { status: 404 })
+    if (!priceId) {
+      return NextResponse.json({ error: "paddlePriceId requerido" }, { status: 400 })
     }
 
     const cliente = await getCurrentCliente()
@@ -40,7 +44,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
-      paddlePriceId: servicio.paddlePriceId,
+      paddlePriceId: priceId,
       customerId,
       successUrl: successUrl ?? `${process.env.NEXT_PUBLIC_URL}/portal?success=true`,
     })

@@ -25,7 +25,7 @@ Plataforma SaaS de servicios digitales: desarrollo web, chatbots, agentes de IA 
 | Clerk | ✅ | Auth, webhook svix, sync BD, 7 vars en Railway |
 | Paddle | ❌ | Falta crear API key y webhook |
 | Sanity | ✅ | Studio + schemas + API token + 9 documentos creados |
-| Resend | ❌ | Falta API key |
+| Resend | ✅ | API key configurada |
 | Telegram | ❌ | Falta bot token |
 
 ## Inicio rápido

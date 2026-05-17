@@ -11,6 +11,7 @@ import {
   SubscriptionCanceledEvent,
   SubscriptionPausedEvent,
 } from "@paddle/paddle-node-sdk"
+import { sendPaymentReceipt, sendPaymentFailed, sendSubscriptionCanceled } from "@/lib/notifications"
 
 const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET ?? ""
 
@@ -67,6 +68,16 @@ export async function POST(req: Request) {
           },
           update: { estadoPago: "SUCCEEDED" },
         })
+
+        if (servicio) {
+          sendPaymentReceipt(
+            cliente.email,
+            cliente.nombre,
+            parseInt(items[0]?.price?.unitPrice?.amount ?? "0"),
+            data.currencyCode ?? "usd",
+            servicio.nombre
+          )
+        }
         break
       }
 
@@ -135,6 +146,18 @@ export async function POST(req: Request) {
             canceladoEn: data.canceledAt ? new Date(data.canceledAt) : new Date(),
           },
         })
+
+        const cancelled = await prisma.suscripcion.findUnique({
+          where: { paddleSubscriptionId: data.id },
+          include: { cliente: true, servicio: true },
+        })
+        if (cancelled) {
+          sendSubscriptionCanceled(
+            cancelled.cliente.email,
+            cancelled.cliente.nombre,
+            cancelled.servicio.nombre
+          )
+        }
         break
       }
 
@@ -174,6 +197,16 @@ export async function POST(req: Request) {
           },
           update: { estadoPago: "FAILED" },
         })
+
+        if (cliente && subscriptionId) {
+          const sub = await prisma.suscripcion.findUnique({
+            where: { paddleSubscriptionId: subscriptionId },
+            include: { servicio: { select: { nombre: true } } },
+          })
+          if (sub) {
+            sendPaymentFailed(cliente.email, cliente.nombre, sub.servicio.nombre)
+          }
+        }
         break
       }
     }

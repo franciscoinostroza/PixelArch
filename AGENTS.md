@@ -162,26 +162,27 @@ Route (app)
 - Sanity: Studio embebido (`/studio`), schemas conectados, 9 docs (6 servicios + landing + SEO + contacto), API token, webhook revalidación
 - Proxy: excluye webhooks y `/studio` del middleware Clerk
 - Prisma 7: adapter `@prisma/adapter-pg`
-- Precios sugeridos en USD/ARS para 6 servicios
+- Paddle: API key, productos/precios (6), webhooks (7 eventos), checkout + admin queries → ✅
 
-### ⬜ Paddle — próximo paso
-- [ ] Crear productos/precios en [Paddle](https://paddle.com) (modo sandbox) y vincularlos a `Servicio.paddlePriceId`
-- [ ] Pegar `PADDLE_API_KEY` y `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`
-- [ ] Configurar webhook de Paddle → `https://pixelarch-production.up.railway.app/api/webhooks/paddle`
-- [ ] Obtener `PADDLE_WEBHOOK_SECRET` del notification destination
+### ✅ Paddle — completado
+- [x] Crear productos/precios en [Paddle](https://paddle.com) — 6 productos + 12 precios
+- [x] `PADDLE_API_KEY` y `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` configurados
+- [x] Webhook → `https://pixelarch-production.up.railway.app/api/webhooks/paddle` con 7 eventos
+- [x] `PADDLE_WEBHOOK_SECRET` del notification destination
 
-### ⬜ Admin + Portal — queries reales
-- [ ] Páginas admin — reemplazar placeholders con queries reales
-- [ ] Portal cliente — fetch suscripciones y pagos desde BD
+### ✅ Admin + Portal — queries reales
+- [x] Páginas admin — reemplazar placeholders con queries reales
+- [x] Portal cliente — fetch suscripciones y pagos desde BD
 
-### ⬜ Email + Telegram
-- [ ] Crear API key en [Resend](https://resend.com) → `RESEND_API_KEY`
-- [ ] `CONTACT_EMAIL` (tu email para recibir mensajes)
+### 🟡 Email + Telegram
+- [x] Crear API key en [Resend](https://resend.com) → `RESEND_API_KEY`
+- [x] `CONTACT_EMAIL` configurado
 - [ ] Crear bot en [@BotFather](https://t.me/BotFather) → `TELEGRAM_BOT_TOKEN`
 - [ ] Obtener `TELEGRAM_CHAT_ID` (tu chat o grupo)
 
-### ⬜ Deploy
-- [ ] Configurar webhook de Paddle en Railway (tras crear API key)
+### ✅ Deploy
+- [x] Webhook de Paddle configurado → `https://pixelarch-production.up.railway.app/api/webhooks/paddle`
+- [x] Railway deploy online, conectado a GitHub (auto-deploy en push)
 
 ---
 

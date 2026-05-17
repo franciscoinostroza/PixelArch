@@ -2,6 +2,7 @@ import { Webhook } from "svix"
 import { headers } from "next/headers"
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { sendWelcomeEmail } from "@/lib/notifications"
 
 const WH_SECRET = process.env.CLERK_WEBHOOK_SECRET
 
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
           update: { email: email || "", nombre },
         })
 
-        console.log("user.created", { id, email, nombre })
+        await sendWelcomeEmail(email || "", nombre)
         break
       }
 

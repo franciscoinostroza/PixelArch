@@ -55,5 +55,5 @@ export default async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next|api/webhooks).*)", "/", "/(api/(?!webhooks)|trpc)(.*)"],
+  matcher: ["/((?!.*\\..*|_next|api/webhooks|api/revalidate).*)", "/", "/(api/(?!webhooks|revalidate)|trpc)(.*)"],
 }

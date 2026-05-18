@@ -1,0 +1,16 @@
+name: Corte automatico de servicios
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  cortar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ejecutar corte de servicios vencidos
+        run: |
+          curl -sS -X GET \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            https://pixelarch-production.up.railway.app/api/cron/corte-servicios

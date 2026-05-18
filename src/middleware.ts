@@ -27,7 +27,10 @@ async function getClerkHandler() {
     const { userId } = await auth()
 
     if (isPublicRoute(req)) return NextResponse.next()
-    if (!userId) return NextResponse.redirect(new URL("/sign-in", req.url"))
+    if (!userId) {
+      const signInUrl = new URL("/sign-in", req.url)
+      return NextResponse.redirect(signInUrl)
+    }
     if (isAdminRoute(req)) return NextResponse.next()
     if (isClientRoute(req)) return NextResponse.next()
 

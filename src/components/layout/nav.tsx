@@ -60,6 +60,12 @@ function ClerkAuthSection() {
           >
             Portal
           </Link>
+          <Link
+            href="/admin/dashboard"
+            className="text-sm font-mono text-accent transition-colors hover:text-[#a78bfa]"
+          >
+            Admin
+          </Link>
           <UserButton
             appearance={{
               elements: {

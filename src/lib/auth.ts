@@ -14,7 +14,7 @@ export async function requireAdmin() {
   const { userId, sessionClaims } = await auth()
   if (!userId) return null
 
-  const role = sessionClaims?.role as string | undefined
+  const role = (sessionClaims?.publicMetadata as { role?: string } | undefined)?.role
   if (role !== "admin") return null
 
   return prisma.cliente.findUnique({

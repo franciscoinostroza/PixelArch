@@ -5,7 +5,7 @@ import { paddle } from "@/lib/payments"
 
 export async function PATCH(req: Request) {
   const { userId, sessionClaims } = await auth()
-  const role = sessionClaims?.role as string | undefined
+  const role = (sessionClaims?.publicMetadata as { role?: string } | undefined)?.role
 
   if (role !== "admin") {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 })

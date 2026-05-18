@@ -39,10 +39,14 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <Script id="remove-clerk-dev-badge" strategy="afterInteractive">
-          {`setTimeout(function() {
-            var badges = document.querySelectorAll('[class*="development"], [class*="cl-development"], [data-clerk-component*="dev"]');
-            badges.forEach(function(b) { b.remove(); });
-          }, 500);`}
+          {`(function() {
+            var tries = 0;
+            var interval = setInterval(function() {
+              var el = document.querySelector('.cl-developmentModeBadge, [data-localization-key="developmentModeBadge"], clerk-development-mode-badge');
+              if (el) { el.remove(); clearInterval(interval); }
+              if (++tries > 20) clearInterval(interval);
+            }, 300);
+          })();`}
         </Script>
         <PaddleScript />
         {children}
@@ -87,6 +91,8 @@ export default function RootLayout({
           formFieldSuccessText: "text-[#2cb67d]",
           alert: "bg-[#111118] border-[rgba(255,255,255,0.07)]",
           alertText: "text-[#fffffe]",
+          developmentModeContainer: "hidden",
+          developmentModeBadge: "hidden",
           userButtonPopoverCard: "bg-[#111118] border border-[rgba(255,255,255,0.07)]",
           userButtonPopoverActionButton: "text-[#fffffe] hover:bg-[#7f5af0]/10",
           userButtonPopoverActionButtonText: "text-[#fffffe]",

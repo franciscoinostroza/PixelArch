@@ -2,6 +2,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
+import { SubscriptionActions } from "@/components/ui/subscription-actions"
 
 export default async function ClienteDetalle({
   params,
@@ -105,9 +106,12 @@ export default async function ClienteDetalle({
                         ${(s.servicio.precio / 100).toFixed(2)}/mes
                       </p>
                     </div>
-                    <Badge variant={s.estado === "ACTIVE" ? "accent2" : "accent"}>
-                      {mapEstado(s.estado)}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={s.estado === "ACTIVE" ? "accent2" : "accent"}>
+                        {mapEstado(s.estado)}
+                      </Badge>
+                      <SubscriptionActions suscripcionId={s.id} estado={s.estado} />
+                    </div>
                   </div>
                 ))}
               </div>

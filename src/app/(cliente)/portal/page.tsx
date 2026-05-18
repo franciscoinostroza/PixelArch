@@ -1,11 +1,13 @@
 import { auth } from "@clerk/nextjs/server"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { buttonVariants } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { AlertTriangle, CheckCircle2, Plus } from "lucide-react"
+import { AlertTriangle, CheckCircle2, ExternalLink, Plus } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
+import { CancelSubscriptionButton } from "@/components/ui/cancel-subscription-button"
+import { PaymentPortalLink } from "@/components/ui/payment-portal-link"
 
 export default async function PortalPage({
   searchParams,
@@ -20,7 +22,7 @@ export default async function PortalPage({
       <div>
         <Card>
           <CardContent className="py-12 text-center text-muted font-mono text-sm">
-            Iniciá sesión para ver tus servicios.
+            Inicia sesion para ver tus servicios.
           </CardContent>
         </Card>
       </div>
@@ -84,8 +86,10 @@ export default async function PortalPage({
       {tienePagoFallido && (
         <div className="mt-6 flex items-center gap-3 rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400 font-mono">
           <AlertTriangle size={18} />
-          Tenés un pago pendiente. Actualizá tu método de pago para evitar la
-          interrupción del servicio.
+          <span className="flex-1">
+            Tienes un pago pendiente. Actualiza tu metodo de pago para evitar la interrupcion del servicio.
+          </span>
+          <PaymentPortalLink />
         </div>
       )}
 
@@ -93,7 +97,7 @@ export default async function PortalPage({
         {suscripciones.length === 0 ? (
           <Card className="sm:col-span-2 lg:col-span-3">
             <CardContent className="py-12 text-center text-muted font-mono text-sm">
-              No tenés servicios activos. Explorá nuestro catálogo.
+              No tenes servicios activos. Explora nuestro catalogo.
             </CardContent>
           </Card>
         ) : (
@@ -113,12 +117,19 @@ export default async function PortalPage({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {s.proximoPago && (
-                  <p className="text-xs text-muted font-mono">
-                    Próximo pago:{" "}
-                    {new Date(s.proximoPago).toLocaleDateString("es-AR")}
-                  </p>
-                )}
+                <div className="flex items-center justify-between">
+                  <div>
+                    {s.proximoPago && (
+                      <p className="text-xs text-muted font-mono">
+                        Proximo pago:{" "}
+                        {new Date(s.proximoPago).toLocaleDateString("es-AR")}
+                      </p>
+                    )}
+                  </div>
+                  {(s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
+                    <CancelSubscriptionButton suscripcionId={s.id} />
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))

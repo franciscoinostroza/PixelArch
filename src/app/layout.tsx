@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Syne, DM_Mono } from "next/font/google"
 import { ClerkProvider } from "@clerk/nextjs"
 import { PaddleScript } from "@/components/ui/paddle-script"
+import Script from "next/script"
 import "./globals.css"
 
 const syne = Syne({
@@ -37,6 +38,12 @@ export default function RootLayout({
       className={`${syne.variable} ${dmMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <Script id="remove-clerk-dev-badge" strategy="afterInteractive">
+          {`setTimeout(function() {
+            var badges = document.querySelectorAll('[class*="development"], [class*="cl-development"], [data-clerk-component*="dev"]');
+            badges.forEach(function(b) { b.remove(); });
+          }, 500);`}
+        </Script>
         <PaddleScript />
         {children}
       </body>

@@ -29,3 +29,9 @@ body {
   color: var(--text);
   font-family: var(--font-mono);
 }
+
+.cl-developmentModeBadge,
+.cl-badge.cl-developmentBadge,
+[class*="cl-development"] {
+  display: none !important;
+}

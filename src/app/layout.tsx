@@ -86,6 +86,7 @@ export default function RootLayout({
           userButtonPopoverFooter: "border-t border-[rgba(255,255,255,0.07)]",
         },
       }}
+      unsafe_disableDevelopmentModeConsoleWarning={true}
     >
       {html}
     </ClerkProvider>

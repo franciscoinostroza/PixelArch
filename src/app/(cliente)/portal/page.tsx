@@ -31,7 +31,7 @@ export default async function PortalPage({
 
   const cliente = await prisma.cliente.findUnique({
     where: { clerkUserId: userId },
-    select: { id: true },
+    select: { id: true, nombre: true },
   })
 
   const suscripciones = cliente
@@ -75,7 +75,7 @@ export default async function PortalPage({
         <div>
           <h1 className="text-2xl font-bold text-text font-display">Mis servicios</h1>
           <p className="mt-1 text-muted font-mono text-sm">
-            Cliente #{userId.slice(-6)}
+            Cliente {cliente?.nombre ?? userId.slice(-6)}
           </p>
         </div>
         <Link href="/servicios" className={cn(buttonVariants())}>

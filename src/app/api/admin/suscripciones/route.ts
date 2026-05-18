@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { auth, clerkClient } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 import { paddle } from "@/lib/payments"
 
 export async function PATCH(req: Request) {
-  const { userId, sessionClaims } = await auth()
-  const role = sessionClaims?.role as string | undefined
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+
+  const clerk = await clerkClient()
+  const user = await clerk.users.getUser(userId)
+  const role = (user.publicMetadata as { role?: string } | undefined)?.role
 
   if (role !== "admin") {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 })

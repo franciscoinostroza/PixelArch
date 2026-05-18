@@ -24,13 +24,11 @@ async function getClerkHandler() {
   ])
 
   return clerkMiddleware(async (auth, req) => {
-    const { userId, sessionClaims } = await auth()
-    const role = sessionClaims?.role as string | undefined
+    const { userId } = await auth()
 
     if (isPublicRoute(req)) return NextResponse.next()
-    if (!userId) return NextResponse.redirect(new URL("/sign-in", req.url))
-    if (isAdminRoute(req) && role !== "admin")
-      return NextResponse.redirect(new URL("/portal", req.url))
+    if (!userId) return NextResponse.redirect(new URL("/sign-in", req.url"))
+    if (isAdminRoute(req)) return NextResponse.next()
     if (isClientRoute(req)) return NextResponse.next()
 
     return NextResponse.next()

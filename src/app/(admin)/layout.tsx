@@ -1,6 +1,6 @@
 import { AdminSidebar } from "@/components/layout/admin-sidebar"
 import { redirect } from "next/navigation"
-import { auth } from "@clerk/nextjs/server"
+import { auth, clerkClient } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 
 export default async function AdminLayout({
@@ -8,8 +8,12 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { userId, sessionClaims } = await auth()
-  const role = sessionClaims?.role as string | undefined
+  const { userId } = await auth()
+  if (!userId) redirect("/sign-in")
+
+  const clerk = await clerkClient()
+  const user = await clerk.users.getUser(userId)
+  const role = (user.publicMetadata as { role?: string } | undefined)?.role
 
   if (role !== "admin") redirect("/portal")
 

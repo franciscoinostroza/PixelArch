@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server"
+import { auth, clerkClient } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 
 export async function getCurrentCliente() {
@@ -11,10 +11,13 @@ export async function getCurrentCliente() {
 }
 
 export async function requireAdmin() {
-  const { userId, sessionClaims } = await auth()
+  const { userId } = await auth()
   if (!userId) return null
 
-  const role = sessionClaims?.role as string | undefined
+  const clerk = await clerkClient()
+  const user = await clerk.users.getUser(userId)
+  const role = (user.publicMetadata as { role?: string } | undefined)?.role
+
   if (role !== "admin") return null
 
   return prisma.cliente.findUnique({

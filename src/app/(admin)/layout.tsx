@@ -9,7 +9,7 @@ export default async function AdminLayout({
   children: React.ReactNode
 }) {
   const { userId, sessionClaims } = await auth()
-  const role = (sessionClaims?.publicMetadata as { role?: string } | undefined)?.role
+  const role = sessionClaims?.role as string | undefined
 
   if (role !== "admin") redirect("/portal")
 

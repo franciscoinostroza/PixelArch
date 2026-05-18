@@ -1,11 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import type { EstadoPago } from "@prisma/client"
 
 const PER_PAGE = 20
 
@@ -67,17 +65,19 @@ export default async function AdminPagos({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-text font-display">Pagos</h1>
-      <p className="mt-1 text-muted font-mono text-sm">Historial completo de transacciones</p>
+      <div className="mb-7">
+        <h1 className="font-display text-xl font-extrabold">Pagos</h1>
+        <p className="mt-0.5 text-xs text-muted">Historial completo de transacciones</p>
+      </div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
+      <div className="mb-5 flex flex-wrap items-center gap-3">
         <form className="flex flex-wrap items-center gap-3">
           <select
             name="estado"
             defaultValue={estado ?? ""}
-            className="rounded-lg border border-border bg-bg2 px-3 py-2 text-sm text-text font-mono"
+            className="rounded-lg border border-border bg-bg2 px-3 py-2 text-xs text-text font-mono"
           >
-            <option value="">Todos</option>
+            <option value="">Todos los estados</option>
             {estados.map((e) => (
               <option key={e} value={e}>{mapEstado(e)}</option>
             ))}
@@ -86,14 +86,14 @@ export default async function AdminPagos({
             type="date"
             name="desde"
             defaultValue={desde ?? ""}
-            className="rounded-lg border border-border bg-bg2 px-3 py-2 text-sm text-text font-mono"
+            className="rounded-lg border border-border bg-bg2 px-3 py-2 text-xs text-text font-mono"
             title="Desde"
           />
           <input
             type="date"
             name="hasta"
             defaultValue={hasta ?? ""}
-            className="rounded-lg border border-border bg-bg2 px-3 py-2 text-sm text-text font-mono"
+            className="rounded-lg border border-border bg-bg2 px-3 py-2 text-xs text-text font-mono"
             title="Hasta"
           />
           <Button type="submit" size="sm" variant="outline">Filtrar</Button>
@@ -106,48 +106,80 @@ export default async function AdminPagos({
         <span className="text-xs text-muted font-mono">{total} resultados</span>
       </div>
 
-      <div className="mt-6">
-        {pagos.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted font-mono text-sm">
-              No hay pagos registrados
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {pagos.map((p) => (
-              <Card key={p.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-mono text-sm text-text">
-                        {p.cliente.nombre}
-                      </p>
-                      <p className="text-xs text-muted font-mono">
-                        {p.suscripcion?.servicio.nombre ?? "—"} ·{" "}
-                        {new Date(p.creadoEn).toLocaleDateString("es-AR")}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-mono font-medium text-text">
-                        ${(p.monto / 100).toFixed(2)} {p.moneda.toUpperCase()}
-                      </p>
-                      <Badge
-                        variant={p.estadoPago === "SUCCEEDED" ? "accent2" : "accent"}
-                      >
-                        {mapEstado(p.estadoPago)}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+      <div className="rounded-xl border border-border bg-bg2 overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr>
+              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 pt-4 pb-3 font-mono font-normal">
+                Cliente
+              </th>
+              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 pt-4 pb-3 font-mono font-normal">
+                Servicio
+              </th>
+              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 pt-4 pb-3 font-mono font-normal">
+                Fecha
+              </th>
+              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 pt-4 pb-3 font-mono font-normal">
+                Monto
+              </th>
+              <th className="text-right text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 pt-4 pb-3 font-mono font-normal">
+                Estado
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagos.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="py-12 text-center text-xs text-muted">
+                  No hay pagos registrados
+                </td>
+              </tr>
+            ) : (
+              pagos.map((p) => (
+                <tr key={p.id} className="border-t border-border/50">
+                  <td className="px-5 py-3 text-xs text-text">{p.cliente.nombre}</td>
+                  <td className="px-5 py-3 text-xs text-muted">
+                    {p.suscripcion?.servicio.nombre ?? "—"}
+                  </td>
+                  <td className="px-5 py-3 text-xs text-muted font-mono">
+                    {new Date(p.creadoEn).toLocaleDateString("es-AR")}
+                  </td>
+                  <td className="px-5 py-3 text-xs text-text font-mono font-medium">
+                    ${(p.monto / 100).toFixed(2)} {p.moneda.toUpperCase()}
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]",
+                        p.estadoPago === "SUCCEEDED"
+                          ? "bg-accent2/10 text-accent2"
+                          : p.estadoPago === "FAILED"
+                            ? "bg-red-500/10 text-red-400"
+                            : "bg-muted/10 text-muted"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "w-[5px] h-[5px] rounded-full",
+                          p.estadoPago === "SUCCEEDED"
+                            ? "bg-accent2"
+                            : p.estadoPago === "FAILED"
+                              ? "bg-red-400"
+                              : "bg-muted"
+                        )}
+                      />
+                      {mapEstado(p.estadoPago)}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
       {totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-center gap-4">
+        <div className="mt-5 flex items-center justify-center gap-4">
           <Link
             href={`/admin/pagos?${queryString(currentPage - 1)}`}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }), currentPage <= 1 && "pointer-events-none opacity-40")}

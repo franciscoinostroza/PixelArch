@@ -1,9 +1,40 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import { SubscriptionActions } from "@/components/ui/subscription-actions"
 import { DeployConfig } from "@/components/ui/deploy-config"
+import { cn } from "@/lib/utils"
+
+const mapEstado = (e: string) => {
+  switch (e) {
+    case "ACTIVE": return "active"
+    case "PAST_DUE": return "past_due"
+    case "CANCELED": return "paused"
+    case "PAUSED": return "paused"
+    case "TRIALING": return "active"
+    default: return "paused"
+  }
+}
+
+const mapLabel = (e: string) => {
+  switch (e) {
+    case "ACTIVE": return "Activo"
+    case "PAST_DUE": return "Vencido"
+    case "CANCELED": return "Cancelado"
+    case "PAUSED": return "Pausado"
+    case "TRIALING": return "Prueba"
+    default: return e
+  }
+}
+
+const mapEstadoPago = (e: string) => {
+  switch (e) {
+    case "SUCCEEDED": return "Pagado"
+    case "FAILED": return "Fallido"
+    case "REFUNDED": return "Reembolsado"
+    case "PENDING": return "Pendiente"
+    default: return e
+  }
+}
 
 export default async function ClienteDetalle({
   params,
@@ -28,145 +59,181 @@ export default async function ClienteDetalle({
 
   if (!cliente) notFound()
 
-  const mapEstado = (e: string) => {
-    switch (e) {
-      case "ACTIVE": return "Activo"
-      case "PAST_DUE": return "Pendiente"
-      case "CANCELED": return "Cancelado"
-      case "PAUSED": return "Pausado"
-      case "TRIALING": return "Prueba"
-      default: return e
-    }
-  }
-
-  const mapEstadoPago = (e: string) => {
-    switch (e) {
-      case "SUCCEEDED": return "Pagado"
-      case "FAILED": return "Fallido"
-      case "REFUNDED": return "Reembolsado"
-      case "PENDING": return "Pendiente"
-      default: return e
-    }
-  }
-
   return (
     <div>
-      <h1 className="text-2xl font-bold text-text font-display">
-        {cliente.nombre}
-      </h1>
-      <p className="mt-1 text-muted font-mono text-sm">ID: {id}</p>
+      <div className="mb-7 flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-xl font-extrabold">{cliente.nombre}</h1>
+          <p className="mt-0.5 text-xs text-muted">{cliente.email}</p>
+        </div>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px]",
+            cliente.activo
+              ? "bg-accent2/10 text-accent2"
+              : "bg-muted/10 text-muted"
+          )}
+        >
+          <span className={cn("w-[5px] h-[5px] rounded-full", cliente.activo ? "bg-accent2" : "bg-muted")} />
+          {cliente.activo ? "Cliente activo" : "Inactivo"}
+        </span>
+      </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Datos del cliente</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 text-sm font-mono">
-              <div className="flex justify-between">
-                <span className="text-muted">Nombre</span>
-                <span className="text-text">{cliente.nombre}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Email</span>
-                <span className="text-text">{cliente.email}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Empresa</span>
-                <span className="text-text">{cliente.empresa ?? "—"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Estado</span>
-                <Badge variant={cliente.activo ? "accent2" : "muted"}>
-                  {cliente.activo ? "Activo" : "Inactivo"}
-                </Badge>
-              </div>
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="rounded-xl border border-border bg-bg2 p-5">
+          <div className="grid grid-cols-2 gap-4 text-xs font-mono">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.1em] text-[#4a5568] mb-1">Empresa</p>
+              <p className="text-text">{cliente.empresa || "—"}</p>
             </div>
-          </CardContent>
-        </Card>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.1em] text-[#4a5568] mb-1">Telefono</p>
+              <p className="text-text">{cliente.telefono || "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.1em] text-[#4a5568] mb-1">Registrado</p>
+              <p className="text-text">{new Date(cliente.creadoEn).toLocaleDateString("es-AR")}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.1em] text-[#4a5568] mb-1">Paddle ID</p>
+              <p className="text-muted text-[11px] truncate">{cliente.paddleCustomerId || "—"}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Suscripciones ({cliente.suscripciones.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {cliente.suscripciones.length === 0 ? (
-              <p className="text-muted font-mono text-sm">Sin suscripciones</p>
-            ) : (
-              <div className="space-y-3">
-                {cliente.suscripciones.map((s) => (
-                  <div
-                    key={s.id}
-                    className="rounded-lg border border-border px-3 py-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-mono text-sm text-text">
-                          {s.servicio.nombre}
-                        </p>
-                        <p className="text-xs text-muted font-mono">
-                          ${(s.servicio.precio / 100).toFixed(2)}/mes
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={s.estado === "ACTIVE" ? "accent2" : "accent"}>
-                          {mapEstado(s.estado)}
-                        </Badge>
-                        <SubscriptionActions suscripcionId={s.id} estado={s.estado} />
-                      </div>
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="rounded-xl border border-border bg-bg2 p-5">
+          <p className="font-display text-sm font-bold mb-4">
+            Suscripciones ({cliente.suscripciones.length})
+          </p>
+          {cliente.suscripciones.length === 0 ? (
+            <p className="text-xs text-muted py-4 text-center">Sin suscripciones</p>
+          ) : (
+            <div className="space-y-2">
+              {cliente.suscripciones.map((s) => (
+                <div
+                  key={s.id}
+                  className="rounded-lg border border-border px-3 py-2.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-text">{s.servicio.nombre}</p>
+                      <p className="text-[11px] text-muted font-mono">
+                        ${(s.servicio.precio / 100).toFixed(2)}/mes
+                      </p>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]",
+                          s.estado === "ACTIVE"
+                            ? "bg-accent2/10 text-accent2"
+                            : s.estado === "PAST_DUE"
+                              ? "bg-red-500/10 text-red-400"
+                              : "bg-muted/10 text-muted"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "w-[5px] h-[5px] rounded-full",
+                            s.estado === "ACTIVE"
+                              ? "bg-accent2"
+                              : s.estado === "PAST_DUE"
+                                ? "bg-red-400"
+                                : "bg-muted"
+                          )}
+                        />
+                        {mapLabel(s.estado)}
+                      </span>
+                      <SubscriptionActions suscripcionId={s.id} estado={s.estado} />
+                    </div>
+                  </div>
+                  {(s.estado === "ACTIVE" || s.estado === "PAST_DUE" || s.estado === "PAUSED") && (
                     <DeployConfig
                       suscripcionId={s.id}
                       deploymentId={s.deploymentId}
                       deploymentPlatform={s.deploymentPlatform}
                     />
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Historial de pagos ({cliente.pagos.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <div className="rounded-xl border border-border bg-bg2 overflow-hidden">
+        <div className="px-5 pt-4 pb-3">
+          <p className="font-display text-sm font-bold">
+            Historial de pagos ({cliente.pagos.length})
+          </p>
+        </div>
+        <table className="w-full">
+          <thead>
+            <tr className="border-t border-border">
+              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 py-3 font-mono font-normal">
+                Servicio
+              </th>
+              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 py-3 font-mono font-normal">
+                Fecha
+              </th>
+              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 py-3 font-mono font-normal">
+                Monto
+              </th>
+              <th className="text-right text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 py-3 font-mono font-normal">
+                Estado
+              </th>
+            </tr>
+          </thead>
+          <tbody>
             {cliente.pagos.length === 0 ? (
-              <p className="text-muted font-mono text-sm">Sin pagos registrados</p>
+              <tr>
+                <td colSpan={4} className="py-12 text-center text-xs text-muted">
+                  Sin pagos registrados
+                </td>
+              </tr>
             ) : (
-              <div className="space-y-2">
-                {cliente.pagos.map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between rounded-lg border border-border px-4 py-3"
-                  >
-                    <div>
-                      <p className="font-mono text-sm text-text">
-                        {p.suscripcion?.servicio.nombre ?? "Pago suelto"}
-                      </p>
-                      <p className="text-xs text-muted font-mono">
-                        {new Date(p.creadoEn).toLocaleDateString("es-AR")}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-mono font-medium text-text">
-                        ${(p.monto / 100).toFixed(2)} {p.moneda.toUpperCase()}
-                      </p>
-                      <Badge
-                        variant={
-                          p.estadoPago === "SUCCEEDED" ? "accent2" : "accent"
-                        }
-                      >
-                        {mapEstadoPago(p.estadoPago)}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              cliente.pagos.map((p) => (
+                <tr key={p.id} className="border-t border-border/50">
+                  <td className="px-5 py-3 text-xs text-text">
+                    {p.suscripcion?.servicio.nombre ?? "—"}
+                  </td>
+                  <td className="px-5 py-3 text-xs text-muted font-mono">
+                    {new Date(p.creadoEn).toLocaleDateString("es-AR")}
+                  </td>
+                  <td className="px-5 py-3 text-xs text-text font-mono">
+                    ${(p.monto / 100).toFixed(2)} {p.moneda.toUpperCase()}
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]",
+                        p.estadoPago === "SUCCEEDED"
+                          ? "bg-accent2/10 text-accent2"
+                          : p.estadoPago === "FAILED"
+                            ? "bg-red-500/10 text-red-400"
+                            : "bg-muted/10 text-muted"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "w-[5px] h-[5px] rounded-full",
+                          p.estadoPago === "SUCCEEDED"
+                            ? "bg-accent2"
+                            : p.estadoPago === "FAILED"
+                              ? "bg-red-400"
+                              : "bg-muted"
+                        )}
+                      />
+                      {mapEstadoPago(p.estadoPago)}
+                    </span>
+                  </td>
+                </tr>
+              ))
             )}
-          </CardContent>
-        </Card>
+          </tbody>
+        </table>
       </div>
     </div>
   )

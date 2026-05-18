@@ -53,13 +53,21 @@ function ClerkAuthSection() {
         </SignInButton>
       </Show>
       <Show when="signed-in">
-        <UserButton
-          appearance={{
-            elements: {
-              userButtonBox: "border border-border rounded-full",
-            },
-          }}
-        />
+        <div className="flex items-center gap-3">
+          <Link
+            href="/portal"
+            className="text-sm font-mono text-muted transition-colors hover:text-text"
+          >
+            Portal
+          </Link>
+          <UserButton
+            appearance={{
+              elements: {
+                userButtonBox: "border border-border rounded-full",
+              },
+            }}
+          />
+        </div>
       </Show>
     </>
   )

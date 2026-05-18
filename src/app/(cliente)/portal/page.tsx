@@ -96,8 +96,51 @@ export default async function PortalPage({
       <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {suscripciones.length === 0 ? (
           <Card className="sm:col-span-2 lg:col-span-3">
-            <CardContent className="py-12 text-center text-muted font-mono text-sm">
-              No tenes servicios activos. Explora nuestro catalogo.
+            <CardContent className="py-12">
+              <div className="text-center">
+                <p className="text-2xl mb-2">🚀</p>
+                <p className="text-lg font-display font-bold text-text">
+                  Bienvenido a PixelArch
+                </p>
+                <p className="mt-2 text-muted font-mono text-sm">
+                  No tenes servicios activos todavia. Asi funciona:
+                </p>
+              </div>
+              <div className="mt-8 grid gap-4 sm:grid-cols-3">
+                <div className="rounded-xl border border-border bg-bg2 p-4 text-center">
+                  <p className="text-2xl mb-2">1</p>
+                  <p className="text-sm font-mono font-medium text-text">
+                    Elegi un servicio
+                  </p>
+                  <p className="mt-1 text-xs text-muted font-mono">
+                    Desarrollo web, chatbots, IA y mas
+                  </p>
+                  <Link
+                    href="/servicios"
+                    className={cn(buttonVariants({ size: "sm" }), "mt-3")}
+                  >
+                    Ver catalogo
+                  </Link>
+                </div>
+                <div className="rounded-xl border border-border bg-bg2 p-4 text-center">
+                  <p className="text-2xl mb-2">2</p>
+                  <p className="text-sm font-mono font-medium text-text">
+                    Paga seguro
+                  </p>
+                  <p className="mt-1 text-xs text-muted font-mono">
+                    Con tarjeta via Paddle, sin riesgos
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border bg-bg2 p-4 text-center">
+                  <p className="text-2xl mb-2">3</p>
+                  <p className="text-sm font-mono font-medium text-text">
+                    Empeza a usar
+                  </p>
+                  <p className="mt-1 text-xs text-muted font-mono">
+                    Tu servicio se activa al instante
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ) : (

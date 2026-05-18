@@ -45,6 +45,8 @@ model Suscripcion {
   servicioId           String
   paddleSubscriptionId String    @unique
   estado               Estado
+  deploymentId         String?
+  deploymentPlatform   String?
   proximoPago          DateTime?
   canceladoEn          DateTime?
   creadoEn             DateTime  @default(now())

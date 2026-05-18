@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import { SubscriptionActions } from "@/components/ui/subscription-actions"
+import { DeployConfig } from "@/components/ui/deploy-config"
 
 export default async function ClienteDetalle({
   params,
@@ -96,22 +97,29 @@ export default async function ClienteDetalle({
                 {cliente.suscripciones.map((s) => (
                   <div
                     key={s.id}
-                    className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+                    className="rounded-lg border border-border px-3 py-2"
                   >
-                    <div>
-                      <p className="font-mono text-sm text-text">
-                        {s.servicio.nombre}
-                      </p>
-                      <p className="text-xs text-muted font-mono">
-                        ${(s.servicio.precio / 100).toFixed(2)}/mes
-                      </p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-mono text-sm text-text">
+                          {s.servicio.nombre}
+                        </p>
+                        <p className="text-xs text-muted font-mono">
+                          ${(s.servicio.precio / 100).toFixed(2)}/mes
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={s.estado === "ACTIVE" ? "accent2" : "accent"}>
+                          {mapEstado(s.estado)}
+                        </Badge>
+                        <SubscriptionActions suscripcionId={s.id} estado={s.estado} />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={s.estado === "ACTIVE" ? "accent2" : "accent"}>
-                        {mapEstado(s.estado)}
-                      </Badge>
-                      <SubscriptionActions suscripcionId={s.id} estado={s.estado} />
-                    </div>
+                    <DeployConfig
+                      suscripcionId={s.id}
+                      deploymentId={s.deploymentId}
+                      deploymentPlatform={s.deploymentPlatform}
+                    />
                   </div>
                 ))}
               </div>

@@ -55,6 +55,14 @@ export async function PATCH(req: Request) {
         })
         break
       }
+      case "update-deploy": {
+        const { deploymentId, deploymentPlatform } = await req.json()
+        await prisma.suscripcion.update({
+          where: { id: suscripcionId },
+          data: { deploymentId, deploymentPlatform },
+        })
+        break
+      }
       default:
         return NextResponse.json({ error: "Accion no valida" }, { status: 400 })
     }

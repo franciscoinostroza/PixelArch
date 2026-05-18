@@ -1,17 +1,29 @@
 import { auth } from "@clerk/nextjs/server"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { prisma } from "@/lib/prisma"
+import Link from "next/link"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
-export default async function FacturacionPage() {
+const PER_PAGE = 20
+
+export default async function FacturacionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>
+}) {
   const { userId } = await auth()
+  const { page } = await searchParams
+  const currentPage = Math.max(1, parseInt(page ?? "1"))
 
   if (!userId) {
     return (
       <div>
         <Card>
           <CardContent className="py-12 text-center text-muted font-mono text-sm">
-            Iniciá sesión para ver tu historial.
+            Inicia sesion para ver tu historial.
           </CardContent>
         </Card>
       </div>
@@ -23,17 +35,34 @@ export default async function FacturacionPage() {
     select: { id: true },
   })
 
-  const pagos = cliente
-    ? await prisma.pago.findMany({
-        where: { clienteId: cliente.id },
-        include: {
-          suscripcion: {
-            include: { servicio: { select: { nombre: true } } },
-          },
+  if (!cliente) {
+    return (
+      <div>
+        <Card>
+          <CardContent className="py-12 text-center text-muted font-mono text-sm">
+            Cliente no encontrado.
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const [pagos, total] = await Promise.all([
+    prisma.pago.findMany({
+      where: { clienteId: cliente.id },
+      include: {
+        suscripcion: {
+          include: { servicio: { select: { nombre: true } } },
         },
-        orderBy: { creadoEn: "desc" },
-      })
-    : []
+      },
+      orderBy: { creadoEn: "desc" },
+      skip: (currentPage - 1) * PER_PAGE,
+      take: PER_PAGE,
+    }),
+    prisma.pago.count({ where: { clienteId: cliente.id } }),
+  ])
+
+  const totalPages = Math.ceil(total / PER_PAGE)
 
   return (
     <div>
@@ -78,6 +107,28 @@ export default async function FacturacionPage() {
           </div>
         )}
       </div>
+
+      {totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-center gap-4">
+          <Link
+            href={`/portal/facturacion?page=${currentPage - 1}`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), currentPage <= 1 && "pointer-events-none opacity-40")}
+            aria-disabled={currentPage <= 1}
+          >
+            <ChevronLeft size={14} /> Anterior
+          </Link>
+          <span className="text-xs text-muted font-mono">
+            Pagina {currentPage} de {totalPages}
+          </span>
+          <Link
+            href={`/portal/facturacion?page=${currentPage + 1}`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), currentPage >= totalPages && "pointer-events-none opacity-40")}
+            aria-disabled={currentPage >= totalPages}
+          >
+            Siguiente <ChevronRight size={14} />
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

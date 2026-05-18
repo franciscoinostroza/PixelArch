@@ -1,9 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Users, Wrench, CreditCard, LogOut } from "lucide-react"
+import { LayoutDashboard, Users, Wrench, CreditCard, LogOut, Menu, X } from "lucide-react"
 
 const links = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -14,9 +15,10 @@ const links = [
 
 export function AdminSidebar() {
   const pathname = usePathname()
+  const [open, setOpen] = useState(false)
 
-  return (
-    <aside className="flex h-screen w-64 flex-col border-r border-border bg-bg2">
+  const sidebar = (
+    <>
       <div className="flex h-16 items-center border-b border-border px-6">
         <Link href="/admin/dashboard" className="font-display text-lg font-bold text-text">
           PixelArch
@@ -28,6 +30,7 @@ export function AdminSidebar() {
           <Link
             key={href}
             href={href}
+            onClick={() => setOpen(false)}
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-mono transition-colors",
               pathname === href
@@ -50,6 +53,41 @@ export function AdminSidebar() {
           Portal Cliente
         </Link>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      <button
+        className="fixed top-3 left-3 z-50 rounded-lg border border-border bg-bg2 p-2 text-muted hover:text-text lg:hidden"
+        onClick={() => setOpen(!open)}
+      >
+        <Menu size={20} />
+      </button>
+
+      <aside className="hidden lg:flex h-screen w-64 flex-col border-r border-border bg-bg2">
+        {sidebar}
+      </aside>
+
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            onClick={() => setOpen(false)}
+          />
+          <aside className="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-border bg-bg2 lg:hidden">
+            <div className="flex h-16 items-center justify-between border-b border-border px-6">
+              <Link href="/admin/dashboard" className="font-display text-lg font-bold text-text">
+                PixelArch
+              </Link>
+              <button className="text-muted hover:text-text" onClick={() => setOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            {sidebar.props.children.slice(1)}
+          </aside>
+        </>
+      )}
+    </>
   )
 }

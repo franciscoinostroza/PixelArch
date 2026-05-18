@@ -1,32 +1,44 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { prisma } from "@/lib/prisma"
+import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+
+const PER_PAGE = 20
 
 export default async function AdminClientes({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>
+  searchParams: Promise<{ q?: string; page?: string }>
 }) {
-  const { q } = await searchParams
+  const { q, page } = await searchParams
+  const currentPage = Math.max(1, parseInt(page ?? "1"))
 
-  const clientes = q
-    ? await prisma.cliente.findMany({
-        where: {
-          OR: [
-            { nombre: { contains: q, mode: "insensitive" } },
-            { email: { contains: q, mode: "insensitive" } },
-            { empresa: { contains: q, mode: "insensitive" } },
-          ],
-        },
-        include: { _count: { select: { suscripciones: true, pagos: true } } },
-        orderBy: { creadoEn: "desc" },
-      })
-    : await prisma.cliente.findMany({
-        include: { _count: { select: { suscripciones: true, pagos: true } } },
-        orderBy: { creadoEn: "desc" },
-      })
+  const where = q
+    ? {
+        OR: [
+          { nombre: { contains: q, mode: "insensitive" as const } },
+          { email: { contains: q, mode: "insensitive" as const } },
+          { empresa: { contains: q, mode: "insensitive" as const } },
+        ],
+      }
+    : {}
+
+  const [clientes, total] = await Promise.all([
+    prisma.cliente.findMany({
+      where,
+      include: { _count: { select: { suscripciones: true, pagos: true } } },
+      orderBy: { creadoEn: "desc" },
+      skip: (currentPage - 1) * PER_PAGE,
+      take: PER_PAGE,
+    }),
+    prisma.cliente.count({ where }),
+  ])
+
+  const totalPages = Math.ceil(total / PER_PAGE)
 
   return (
     <div>
@@ -76,6 +88,28 @@ export default async function AdminClientes({
           </div>
         )}
       </div>
+
+      {totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-center gap-4">
+          <Link
+            href={`/admin/clientes?page=${currentPage - 1}${q ? `&q=${q}` : ""}`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), currentPage <= 1 && "pointer-events-none opacity-40")}
+            aria-disabled={currentPage <= 1}
+          >
+            <ChevronLeft size={14} /> Anterior
+          </Link>
+          <span className="text-xs text-muted font-mono">
+            Pagina {currentPage} de {totalPages}
+          </span>
+          <Link
+            href={`/admin/clientes?page=${currentPage + 1}${q ? `&q=${q}` : ""}`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), currentPage >= totalPages && "pointer-events-none opacity-40")}
+            aria-disabled={currentPage >= totalPages}
+          >
+            Siguiente <ChevronRight size={14} />
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { PortalNav } from "@/components/ui/portal-nav"
+import { PortalUserButton } from "@/components/ui/portal-user-button"
 
 export default async function PortalLayout({
   children,
@@ -22,6 +23,7 @@ export default async function PortalLayout({
             PixelArch
           </Link>
           <PortalNav />
+          <PortalUserButton />
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>

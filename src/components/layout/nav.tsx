@@ -66,13 +66,7 @@ function ClerkAuthSection() {
           >
             Admin
           </Link>
-          <UserButton
-            appearance={{
-              elements: {
-                userButtonBox: "border border-border rounded-full",
-              },
-            }}
-          />
+          <UserButton />
         </div>
       </Show>
     </>

@@ -81,6 +81,7 @@ export default function RootLayout({
           alert: "bg-[#111118] border-[rgba(255,255,255,0.07)]",
           alertText: "text-[#fffffe]",
           developmentModeText: "hidden",
+          userButtonBox: "border border-border rounded-full",
           userButtonPopoverFooter: "hidden",
           userButtonPopoverCard: "bg-[#111118] border border-[rgba(255,255,255,0.07)]",
           userButtonPopoverActionButton: "text-[#fffffe] hover:bg-[#7f5af0]/10",

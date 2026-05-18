@@ -25,7 +25,7 @@ async function getClerkHandler() {
 
   return clerkMiddleware(async (auth, req) => {
     const { userId, sessionClaims } = await auth()
-    const role = (sessionClaims?.publicMetadata as { role?: string } | undefined)?.role
+    const role = sessionClaims?.role as string | undefined
 
     if (isPublicRoute(req)) return NextResponse.next()
     if (!userId) return NextResponse.redirect(new URL("/sign-in", req.url))

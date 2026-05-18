@@ -15,6 +15,35 @@ const links = [
 
 const hasClerkKey = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
+function AdminNavLink() {
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    const typedWindow = window as unknown as {
+      Clerk?: { user?: { publicMetadata?: { role?: string } } }
+    }
+    const check = setInterval(() => {
+      const role = typedWindow.Clerk?.user?.publicMetadata?.role
+      if (role === "admin") {
+        setIsAdmin(true)
+        clearInterval(check)
+      }
+    }, 500)
+    return () => clearInterval(check)
+  }, [])
+
+  if (!isAdmin) return null
+
+  return (
+    <Link
+      href="/admin/dashboard"
+      className="text-sm font-mono text-accent transition-colors hover:text-[#a78bfa]"
+    >
+      Admin
+    </Link>
+  )
+}
+
 function ClerkAuthSection() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [ClerkComponents, setClerkComponents] = useState<any>(null)
@@ -60,12 +89,7 @@ function ClerkAuthSection() {
           >
             Portal
           </Link>
-          <Link
-            href="/admin/dashboard"
-            className="text-sm font-mono text-accent transition-colors hover:text-[#a78bfa]"
-          >
-            Admin
-          </Link>
+          <AdminNavLink />
           <UserButton />
         </div>
       </Show>

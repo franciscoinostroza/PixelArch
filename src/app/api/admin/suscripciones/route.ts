@@ -12,7 +12,19 @@ export async function PATCH(req: Request) {
   }
 
   try {
-    const { suscripcionId, accion } = await req.json()
+    const { suscripcionId, accion, deploymentId, deploymentPlatform } = await req.json()
+
+    if (!suscripcionId) {
+      return NextResponse.json({ error: "suscripcionId requerido" }, { status: 400 })
+    }
+
+    if (accion === "update-deploy") {
+      await prisma.suscripcion.update({
+        where: { id: suscripcionId },
+        data: { deploymentId: deploymentId ?? null, deploymentPlatform: deploymentPlatform ?? null },
+      })
+      return NextResponse.json({ ok: true })
+    }
 
     const suscripcion = await prisma.suscripcion.findUnique({
       where: { id: suscripcionId },
@@ -52,14 +64,6 @@ export async function PATCH(req: Request) {
             estado: "CANCELED",
             canceladoEn: new Date(),
           },
-        })
-        break
-      }
-      case "update-deploy": {
-        const { deploymentId, deploymentPlatform } = await req.json()
-        await prisma.suscripcion.update({
-          where: { id: suscripcionId },
-          data: { deploymentId, deploymentPlatform },
         })
         break
       }

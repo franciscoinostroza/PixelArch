@@ -41,7 +41,7 @@ async function getClerkHandler() {
 let clerkHandler: any = null
 let clerkLoading = false
 
-export default async function proxy(req: NextRequest) {
+export default async function middleware(req: NextRequest) {
   if (!CLERK_ENABLED) return NextResponse.next()
 
   if (!clerkHandler && !clerkLoading) {
@@ -55,5 +55,5 @@ export default async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next|api/webhooks|api/revalidate|api/cron|api/portal).*)", "/", "/(api/(?!webhooks|revalidate|cron|portal)|trpc)(.*)"],
+  matcher: ["/((?!.*\\..*|_next|api/webhooks|api/revalidate|api/cron|api/portal|api/contact|api/payments).*)", "/", "/(api/(?!webhooks|revalidate|cron|portal|contact|payments)|trpc)(.*)"],
 }

@@ -3,8 +3,10 @@ import { resend } from "@/lib/resend"
 const FROM = `PixelArch <${process.env.CONTACT_EMAIL || "noreply@pixelarch.com"}>`
 
 async function sendEmail(to: string, subject: string, text: string) {
+  const r = resend()
+  if (!r) return
   try {
-    await resend().emails.send({ from: FROM, to, subject, text })
+    await r.emails.send({ from: FROM, to, subject, text })
   } catch (e) {
     console.error("Error sending email:", e)
   }

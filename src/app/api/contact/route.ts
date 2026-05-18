@@ -14,8 +14,9 @@ export async function POST(req: Request) {
 
     const { nombre, email, mensaje } = parsed.data
 
+    const resendClient = resend()
     await Promise.allSettled([
-      resend().emails.send({
+      resendClient?.emails.send({
         from: `PixelArch <${process.env.CONTACT_EMAIL || "onboarding@resend.dev"}>`,
         to: process.env.CONTACT_EMAIL || "",
         replyTo: email,

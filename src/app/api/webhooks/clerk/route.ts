@@ -7,8 +7,8 @@ import { sendWelcomeEmail } from "@/lib/notifications"
 const WH_SECRET = process.env.CLERK_WEBHOOK_SECRET
 
 export async function POST(req: Request) {
-  const payload = await req.json()
-  const body = JSON.stringify(payload)
+  const rawBody = await req.text()
+  const payload = JSON.parse(rawBody)
   const headerPayload = await headers()
 
   const svixId = headerPayload.get("svix-id")
@@ -22,14 +22,13 @@ export async function POST(req: Request) {
   if (WH_SECRET) {
     try {
       const wh = new Webhook(WH_SECRET)
-      wh.verify(body, {
+      wh.verify(rawBody, {
         "svix-id": svixId,
         "svix-timestamp": svixTimestamp,
         "svix-signature": svixSignature,
       })
-    } catch (err) {
-      console.error("Webhook signature verification failed:", err)
-      return NextResponse.json({ error: "Firma inválida" }, { status: 401 })
+    } catch {
+      return NextResponse.json({ error: "Firma invalida" }, { status: 401 })
     }
   }
 
@@ -39,16 +38,14 @@ export async function POST(req: Request) {
     switch (type) {
       case "user.created": {
         const { id, email_addresses, first_name, last_name } = data
-        const email = email_addresses?.[0]?.email_address
+        const email = email_addresses?.[0]?.email_address ?? ""
         const nombre = `${first_name || ""} ${last_name || ""}`.trim()
 
         await prisma.cliente.upsert({
           where: { clerkUserId: id },
-          create: { clerkUserId: id, email: email || "", nombre, activo: true },
-          update: { email: email || "", nombre },
+          create: { clerkUserId: id, email, nombre, activo: true },
+          update: { email, nombre, activo: true },
         })
-
-        await sendWelcomeEmail(email || "", nombre)
         break
       }
 
@@ -57,26 +54,33 @@ export async function POST(req: Request) {
         const email = email_addresses?.[0]?.email_address
         const nombre = `${first_name || ""} ${last_name || ""}`.trim()
 
-        await prisma.cliente.update({
+        await prisma.cliente.upsert({
           where: { clerkUserId: id },
-          data: { email: email || undefined, nombre: nombre || undefined },
+          create: { clerkUserId: id, email: email ?? "", nombre, activo: true },
+          update: { email: email ?? undefined, nombre: nombre || undefined },
         })
-
-        console.log("user.updated", { id, email, nombre })
         break
       }
 
       case "user.deleted": {
         const { id } = data
 
-        await prisma.cliente.update({
+        await prisma.cliente.upsert({
           where: { clerkUserId: id },
-          data: { activo: false },
+          create: { clerkUserId: id, email: "", nombre: "", activo: false },
+          update: { activo: false },
         })
-
-        console.log("user.deleted", { id })
         break
       }
+    }
+
+    if (type === "user.created") {
+      const { email_addresses, first_name, last_name } = data
+      const email = email_addresses?.[0]?.email_address ?? ""
+      const nombre = `${first_name || ""} ${last_name || ""}`.trim()
+      sendWelcomeEmail(email, nombre).catch((e) =>
+        console.error("Welcome email error:", e)
+      )
     }
 
     return NextResponse.json({ ok: true })

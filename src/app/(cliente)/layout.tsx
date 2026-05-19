@@ -24,7 +24,7 @@ export default async function PortalLayout({
       <header className="border-b border-border bg-bg2">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <Link
-            href="/portal"
+            href="/"
             className="font-display text-lg font-bold text-text"
           >
             Pixel<span className="text-accent">Arch</span>

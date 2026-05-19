@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Zap, Shield, Wrench } from "lucide-react"
+import { ArrowLeft, Shield, Wrench } from "lucide-react"
 import { CheckoutButton } from "@/components/ui/checkout-button"
 import { prisma } from "@/lib/prisma"
 
@@ -61,35 +61,38 @@ export default async function ServicioPage({ params }: { params: Promise<{ slug:
       )}
 
       {servicioDB && (
-        <div className="mt-16 grid gap-5 sm:grid-cols-3">
-          <div className="rounded-xl border border-border/50 bg-bg2 p-6 text-center">
-            <Zap size={24} className="mx-auto mb-3 text-accent" />
-            <p className="text-xs uppercase tracking-[0.1em] text-[#4a5568] font-mono mb-2">Pago unico</p>
-            <p className="font-display text-2xl font-extrabold tracking-[-0.03em]">{price(servicioDB.precioUnico)}</p>
-            <p className="text-xs text-muted mt-2">Entrega completa del proyecto</p>
+        <div className="mt-16 space-y-8">
+          <div className="rounded-xl border-2 border-accent/30 bg-bg2 p-8 text-center">
+            <p className="text-xs uppercase tracking-[0.12em] text-[#4a5568] font-mono mb-3">1. Contrata el desarrollo</p>
+            <p className="font-display text-4xl font-extrabold tracking-[-0.04em]">{price(servicioDB.precioUnico)}</p>
+            <p className="text-sm text-muted mt-2 mb-6">Pago unico — incluye la entrega completa del proyecto</p>
             {servicioDB.paddlePriceIdUnico && (
-              <div className="mt-5"><CheckoutButton paddlePriceId={servicioDB.paddlePriceIdUnico} servicioNombre={servicioSanity.titulo} label={`Contratar — ${price(servicioDB.precioUnico)}`} /></div>
+              <CheckoutButton paddlePriceId={servicioDB.paddlePriceIdUnico} servicioNombre={servicioSanity.titulo} label={`Contratar ${servicioSanity.titulo}`} />
             )}
           </div>
 
-          <div className="rounded-xl border border-border/50 bg-bg2 p-6 text-center border-t-2 border-t-accent">
-            <Shield size={24} className="mx-auto mb-3 text-accent" />
-            <p className="text-xs uppercase tracking-[0.1em] text-[#4a5568] font-mono mb-2">Plan Basico</p>
-            <p className="font-display text-2xl font-extrabold tracking-[-0.03em]">{price(servicioDB.precioBasico)}<span className="text-sm font-normal text-muted">/mes</span></p>
-            <p className="text-xs text-muted mt-2">Servicio activo, sin cambios ni soporte</p>
-            {servicioDB.paddlePriceIdBasico && (
-              <div className="mt-5"><CheckoutButton paddlePriceId={servicioDB.paddlePriceIdBasico} servicioNombre={servicioSanity.titulo} label={`Contratar — ${price(servicioDB.precioBasico)}/mes`} /></div>
-            )}
-          </div>
-
-          <div className="rounded-xl border border-border/50 bg-bg2 p-6 text-center border-t-2 border-t-accent">
-            <Wrench size={24} className="mx-auto mb-3 text-accent" />
-            <p className="text-xs uppercase tracking-[0.1em] text-[#4a5568] font-mono mb-2">Plan Mantenimiento</p>
-            <p className="font-display text-2xl font-extrabold tracking-[-0.03em]">{price(servicioDB.precioMantenimiento)}<span className="text-sm font-normal text-muted">/mes</span></p>
-            <p className="text-xs text-muted mt-2">Cambios + soporte prioritario incluido</p>
-            {servicioDB.paddlePriceIdMantenimiento && (
-              <div className="mt-5"><CheckoutButton paddlePriceId={servicioDB.paddlePriceIdMantenimiento} servicioNombre={servicioSanity.titulo} label={`Contratar — ${price(servicioDB.precioMantenimiento)}/mes`} /></div>
-            )}
+          <div>
+            <p className="text-center text-sm text-muted font-mono mb-5">Despues de la entrega, mantenelo activo con uno de estos planes mensuales:</p>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="rounded-xl border border-border/50 bg-bg2 p-6 text-center border-t-2 border-t-muted">
+                <Shield size={22} className="mx-auto mb-2 text-muted" />
+                <p className="text-xs uppercase tracking-[0.1em] text-[#4a5568] font-mono mb-2">Plan Basico</p>
+                <p className="font-display text-xl font-extrabold tracking-[-0.03em]">{price(servicioDB.precioBasico)}<span className="text-xs font-normal text-muted">/mes</span></p>
+                <p className="text-xs text-muted mt-1 mb-4">Servicio activo sin cambios ni soporte</p>
+                {servicioDB.paddlePriceIdBasico && (
+                  <CheckoutButton paddlePriceId={servicioDB.paddlePriceIdBasico} servicioNombre={servicioSanity.titulo} label={`Basico ${price(servicioDB.precioBasico)}/mes`} />
+                )}
+              </div>
+              <div className="rounded-xl border-2 border-accent/30 bg-bg2 p-6 text-center">
+                <Wrench size={22} className="mx-auto mb-2 text-accent" />
+                <p className="text-xs uppercase tracking-[0.1em] text-[#4a5568] font-mono mb-2">Plan Mantenimiento</p>
+                <p className="font-display text-xl font-extrabold tracking-[-0.03em]">{price(servicioDB.precioMantenimiento)}<span className="text-xs font-normal text-muted">/mes</span></p>
+                <p className="text-xs text-muted mt-1 mb-4">Cambios ilimitados + soporte prioritario</p>
+                {servicioDB.paddlePriceIdMantenimiento && (
+                  <CheckoutButton paddlePriceId={servicioDB.paddlePriceIdMantenimiento} servicioNombre={servicioSanity.titulo} label={`Mantenimiento ${price(servicioDB.precioMantenimiento)}/mes`} />
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

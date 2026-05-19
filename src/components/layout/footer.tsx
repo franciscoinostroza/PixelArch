@@ -7,7 +7,7 @@ export function Footer() {
         <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
           <div>
             <Link href="/" className="font-display text-lg font-bold text-text">
-              PixelArch
+              Pixel<span className="text-accent">Arch</span>
             </Link>
             <p className="mt-1 text-sm text-muted font-mono">
               Desarrollo web · Chatbots · Agentes IA

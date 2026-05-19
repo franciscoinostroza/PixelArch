@@ -80,10 +80,8 @@
 | `sanity.ts` | Cliente Sanity + `sanityFetch()` generico |
 | `payments.ts` | Singleton Paddle SDK (sandbox/prod) |
 | `resend.ts` | Singleton Resend (email) |
-| `telegram.ts` | `sendTelegramMessage()` via fetch |
-| `auth.ts` | `getCurrentCliente()` + `requireAdmin()` |
 | `validations.ts` | `contactSchema` (Zod) |
-| `notifications.ts` | 4 emails transaccionales (welcome, receipt, failed, cancel) |
+| `notifications.ts` | 4 emails transaccionales (welcome, receipt, failed, cancel, ready) |
 
 ### UI Components (`src/components/ui/`)
 

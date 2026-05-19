@@ -10,7 +10,7 @@ Plataforma SaaS de servicios digitales: desarrollo web, chatbots, agentes de IA 
 - **BD:** PostgreSQL en Railway (Prisma 7)
 - **Auth:** Clerk
 - **Pagos:** Paddle
-- **Email:** Resend + Telegram
+- **Email:** Resend
 - **Deploy:** Railway
 
 ## Estado actual
@@ -26,7 +26,7 @@ Plataforma SaaS de servicios digitales: desarrollo web, chatbots, agentes de IA 
 | Paddle | ❌ | Falta crear API key y webhook |
 | Sanity | ✅ | Studio + schemas + API token + 9 documentos creados |
 | Resend | ✅ | API key configurada |
-| Telegram | ❌ | Falta bot token |
+| Resend | ✅ | API key configurada |
 
 ## Inicio rápido
 

@@ -62,7 +62,7 @@
 
 | Ruta | Metodo | Proposito |
 |------|--------|-----------|
-| `/api/contact` | POST | Form de contacto (Resend + Telegram) |
+| `/api/contact` | POST | Form de contacto (Resend) |
 | `/api/payments/checkout` | POST | Datos para checkout Paddle (priceId + customer) |
 | `/api/webhooks/paddle` | POST | 6 eventos: transaction.completed/paid/payment_failed, subscription.created/updated/canceled/paused |
 | `/api/webhooks/clerk` | POST | Sync user.created/updated/deleted + welcome email |
@@ -146,7 +146,7 @@
 
 ## Pendiente
 
-- [ ] Telegram: crear bot en @BotFather → `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`
+- [ ] Nada pendiente
 
 ---
 

@@ -18,10 +18,6 @@ interface ServicesProps {
   servicios: ServiceItem[]
 }
 
-function formatPrice(precio: number) {
-  return `$${(precio / 100).toFixed(0)}`
-}
-
 export function Services({ servicios }: ServicesProps) {
   return (
     <section id="servicios" className="mx-auto max-w-7xl px-6 py-24">
@@ -44,9 +40,9 @@ export function Services({ servicios }: ServicesProps) {
                 <span className="text-3xl">{s.icono || "⚡"}</span>
                 <div className="flex items-center justify-between">
                   <CardTitle className="mt-3">{s.titulo}</CardTitle>
-                  {s.precioUnico > 0 && (
+                  {s.precioBasico > 0 && (
                     <Badge variant="accent2" className="text-xs">
-                      Desde {formatPrice(s.precioBasico)}/mes
+                      Desde ${(s.precioBasico / 100).toFixed(0)}/mes
                     </Badge>
                   )}
                 </div>

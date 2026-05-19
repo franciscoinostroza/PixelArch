@@ -23,7 +23,12 @@ const SERVICIOS_QUERY = `*[_type == "servicio" && activo == true] | order(orden 
 
 function formatPrice(precio: number) {
   if (!precio) return null
-  return `$ ${(precio / 100).toFixed(0)}`
+  return `$${(precio / 100).toFixed(0)}`
+}
+
+function priceLabel(s: { precioUnico: number; precioBasico: number }) {
+  if (!s.precioBasico) return null
+  return `Desde ${formatPrice(s.precioBasico)}/mes`
 }
 
 export default async function ServiciosPage() {
@@ -52,9 +57,9 @@ export default async function ServiciosPage() {
                 <span className="text-3xl">{s.icono || "⚡"}</span>
                 <div className="flex items-center justify-between">
                   <CardTitle className="mt-3">{s.titulo}</CardTitle>
-                  {s.precioUnico > 0 && (
+                  {s.precioBasico > 0 && (
                     <Badge variant="accent2" className="text-xs shrink-0">
-                      {formatPrice(s.precioUnico)} unico
+                      {priceLabel(s)}
                     </Badge>
                   )}
                 </div>

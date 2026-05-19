@@ -64,7 +64,9 @@ export async function GET(req: Request) {
 
   for (const s of aCortar) {
     try {
-      await paddle().subscriptions.cancel(s.paddleSubscriptionId)
+      if (s.paddleSubscriptionId) {
+        await paddle().subscriptions.cancel(s.paddleSubscriptionId)
+      }
       await prisma.suscripcion.update({
         where: { id: s.id },
         data: { estado: "CANCELED", canceladoEn: new Date() },

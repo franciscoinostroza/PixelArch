@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import { SubscriptionActions } from "@/components/ui/subscription-actions"
 import { DeployConfig } from "@/components/ui/deploy-config"
+import { EntregarButton } from "@/components/ui/entregar-button"
 import { cn } from "@/lib/utils"
 
 const mapEstado = (e: string) => {
@@ -10,7 +11,8 @@ const mapEstado = (e: string) => {
     case "PAST_DUE": return "past_due"
     case "CANCELED": return "paused"
     case "PAUSED": return "paused"
-    case "TRIALING": return "active"
+    case "PENDING": return "pending"
+    case "READY": return "active"
     default: return "paused"
   }
 }
@@ -21,7 +23,8 @@ const mapLabel = (e: string) => {
     case "PAST_DUE": return "Vencido"
     case "CANCELED": return "Cancelado"
     case "PAUSED": return "Pausado"
-    case "TRIALING": return "Prueba"
+    case "PENDING": return "En desarrollo"
+    case "READY": return "Entregado"
     default: return e
   }
 }
@@ -47,7 +50,7 @@ export default async function ClienteDetalle({
     where: { id },
     include: {
       suscripciones: {
-        include: { servicio: { select: { nombre: true, precio: true } } },
+        include: { servicio: { select: { nombre: true, precioUnico: true, precioBasico: true, precioMantenimiento: true, paddlePriceIdBasico: true, paddlePriceIdMantenimiento: true, paddlePriceIdUnico: true } } },
         orderBy: { creadoEn: "desc" },
       },
       pagos: {
@@ -118,37 +121,49 @@ export default async function ClienteDetalle({
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-text">{s.servicio.nombre}</p>
+                      <p className="text-xs text-text">
+                        {s.servicio.nombre}
+                        {s.plan && <span className="text-[10px] text-muted ml-1">· {s.plan === "UNICO" ? "Pago unico" : s.plan === "BASICO" ? "Basico" : "Mantenimiento"}</span>}
+                      </p>
                       <p className="text-[11px] text-muted font-mono">
-                        ${(s.servicio.precio / 100).toFixed(2)}/mes
+                        {s.plan === "MANTENIMIENTO" ? `$${(s.servicio.precioMantenimiento / 100).toFixed(2)}/mes` : s.plan === "BASICO" ? `$${(s.servicio.precioBasico / 100).toFixed(2)}/mes` : `$${(s.servicio.precioUnico / 100).toFixed(2)} pago unico`}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span
                         className={cn(
                           "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]",
-                          s.estado === "ACTIVE"
+                          s.estado === "ACTIVE" || s.estado === "READY"
                             ? "bg-accent2/10 text-accent2"
                             : s.estado === "PAST_DUE"
                               ? "bg-red-500/10 text-red-400"
-                              : "bg-muted/10 text-muted"
+                              : s.estado === "PENDING"
+                                ? "bg-yellow-400/10 text-yellow-400"
+                                : "bg-muted/10 text-muted"
                         )}
                       >
                         <span
                           className={cn(
                             "w-[5px] h-[5px] rounded-full",
-                            s.estado === "ACTIVE"
+                            s.estado === "ACTIVE" || s.estado === "READY"
                               ? "bg-accent2"
                               : s.estado === "PAST_DUE"
                                 ? "bg-red-400"
-                                : "bg-muted"
+                                : s.estado === "PENDING"
+                                  ? "bg-yellow-400"
+                                  : "bg-muted"
                           )}
                         />
                         {mapLabel(s.estado)}
                       </span>
-                      <SubscriptionActions suscripcionId={s.id} estado={s.estado} />
+                      {s.estado !== "PENDING" && <SubscriptionActions suscripcionId={s.id} estado={s.estado} />}
                     </div>
                   </div>
+                  {s.estado === "PENDING" && (
+                    <div className="mt-2">
+                      <EntregarButton suscripcionId={s.id} />
+                    </div>
+                  )}
                   {(s.estado === "ACTIVE" || s.estado === "PAST_DUE" || s.estado === "PAUSED") && (
                     <DeployConfig
                       suscripcionId={s.id}

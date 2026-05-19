@@ -1,8 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { cn } from "@/lib/utils"
 
-const intervaloLabel = (i: string) => (i === "MONTHLY" ? "/mes" : "/ano")
-
 export default async function AdminServicios() {
   const servicios = await prisma.servicio.findMany({
     orderBy: { nombre: "asc" },
@@ -50,8 +48,7 @@ export default async function AdminServicios() {
                     {s.descripcion}
                   </td>
                   <td className="px-5 py-3 text-xs text-text font-mono font-medium">
-                    ${(s.precio / 100).toFixed(2)}
-                    <span className="text-muted font-normal">{intervaloLabel(s.intervalo)}</span>
+                    ${(s.precioUnico / 100).toFixed(0)} unico · {s.precioBasico > 0 ? `$${(s.precioBasico / 100).toFixed(0)}/mes` : "—"} · {s.precioMantenimiento > 0 ? `$${(s.precioMantenimiento / 100).toFixed(0)}/mes` : "—"}
                   </td>
                   <td className="px-5 py-3 text-right">
                     <span

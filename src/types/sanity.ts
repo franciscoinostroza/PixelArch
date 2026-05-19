@@ -4,9 +4,9 @@ export interface ServicioFields {
   descripcion: string
   icono: string
   tags: string[]
-  precio: number
-  intervalo: string
-  paddlePriceId: string
+  precioUnico: number
+  precioBasico: number
+  precioMantenimiento: number
   orden: number
   activo: boolean
 }

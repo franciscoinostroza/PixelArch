@@ -12,6 +12,7 @@ import {
   SubscriptionPausedEvent,
 } from "@paddle/paddle-node-sdk"
 import { sendPaymentReceipt, sendPaymentFailed, sendSubscriptionCanceled } from "@/lib/notifications"
+import { sendWelcomeEmail } from "@/lib/notifications"
 
 const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET ?? ""
 
@@ -28,164 +29,125 @@ export async function POST(req: Request) {
         const { data } = event
         const subscriptionId = data.subscriptionId
         const customerId = data.customerId
+        const customData = (data as unknown as { customData?: { tipo?: string } }).customData
+        const tipo = customData?.tipo
 
-        if (!subscriptionId) break
+        if (subscriptionId) {
+          const cliente = await prisma.cliente.findUnique({ where: { paddleCustomerId: customerId ?? undefined } })
+          if (!cliente) break
 
-        const cliente = await prisma.cliente.findUnique({
-          where: { paddleCustomerId: customerId ?? undefined },
-        })
-        if (!cliente) break
+          const items = data.items ?? []
+          const item = items[0]
+          const servicio = item ? await prisma.servicio.findUnique({ where: { paddlePriceIdBasico: item.price?.id } }) : null
+          if (!servicio) break
 
-        const items = data.items ?? []
-        const item = items[0]
-        const servicio = item
-          ? await prisma.servicio.findUnique({
-              where: { paddlePriceId: item.price?.id },
-            })
-          : null
-
-        if (servicio) {
           await prisma.suscripcion.upsert({
             where: { paddleSubscriptionId: subscriptionId },
             create: {
               paddleSubscriptionId: subscriptionId,
               clienteId: cliente.id,
               servicioId: servicio.id,
+              plan: tipo === "MANTENIMIENTO" ? "MANTENIMIENTO" : "BASICO",
               estado: "ACTIVE",
             },
             update: { estado: "ACTIVE" },
           })
-        }
 
-        await prisma.pago.upsert({
-          where: { paddleTransactionId: data.id },
-          create: {
-            paddleTransactionId: data.id,
-            clienteId: cliente.id,
-            monto: parseInt(items[0]?.price?.unitPrice?.amount ?? "0"),
-            moneda: data.currencyCode ?? "usd",
-            estadoPago: "SUCCEEDED",
-          },
-          update: { estadoPago: "SUCCEEDED" },
-        })
+          await prisma.pago.upsert({
+            where: { paddleTransactionId: data.id },
+            create: {
+              paddleTransactionId: data.id,
+              clienteId: cliente.id,
+              monto: parseInt(items[0]?.price?.unitPrice?.amount ?? "0"),
+              moneda: data.currencyCode ?? "usd",
+              estadoPago: "SUCCEEDED",
+            },
+            update: { estadoPago: "SUCCEEDED" },
+          })
 
-        if (servicio) {
-          sendPaymentReceipt(
-            cliente.email,
-            cliente.nombre,
-            parseInt(items[0]?.price?.unitPrice?.amount ?? "0"),
-            data.currencyCode ?? "usd",
-            servicio.nombre
-          )
+          sendPaymentReceipt(cliente.email, cliente.nombre, parseInt(items[0]?.price?.unitPrice?.amount ?? "0"), data.currencyCode ?? "usd", servicio.nombre)
+        } else {
+          // Pago unico — crear suscripcion PENDING
+          const cliente = await prisma.cliente.findUnique({ where: { paddleCustomerId: customerId ?? undefined } })
+          if (!cliente) break
+
+          const items = data.items ?? []
+          const item = items[0]
+          const servicio = item ? await prisma.servicio.findUnique({ where: { paddlePriceIdUnico: item.price?.id } }) : null
+          if (!servicio) break
+
+          const suscripcion = await prisma.suscripcion.create({
+            data: {
+              clienteId: cliente.id,
+              servicioId: servicio.id,
+              plan: "UNICO",
+              estado: "PENDING",
+              paddleTransactionId: data.id,
+            },
+          })
+
+          await prisma.pago.upsert({
+            where: { paddleTransactionId: data.id },
+            create: {
+              paddleTransactionId: data.id,
+              clienteId: cliente.id,
+              suscripcionId: suscripcion.id,
+              monto: parseInt(items[0]?.price?.unitPrice?.amount ?? "0"),
+              moneda: data.currencyCode ?? "usd",
+              estadoPago: "SUCCEEDED",
+            },
+            update: { estadoPago: "SUCCEEDED" },
+          })
+
+          sendWelcomeEmail(cliente.email, cliente.nombre)
         }
         break
       }
 
-      case EventName.SubscriptionCreated: {
-        const event = eventData as SubscriptionCreatedEvent
-        const { data } = event
-        const subscriptionId = data.id
-        const customerId = data.customerId
-        const status = mapPaddleStatus(data.status)
-
-        const cliente = await prisma.cliente.findUnique({
-          where: { paddleCustomerId: customerId ?? undefined },
-        })
-        if (!cliente) break
-
-        const items = data.items ?? []
-        const item = items[0]
-        const servicio = item
-          ? await prisma.servicio.findUnique({
-              where: { paddlePriceId: item.price?.id },
-            })
-          : null
-
-        if (servicio) {
-          await prisma.suscripcion.upsert({
-            where: { paddleSubscriptionId: subscriptionId },
-            create: {
-              paddleSubscriptionId: subscriptionId,
-              clienteId: cliente.id,
-              servicioId: servicio.id,
-              estado: status,
-              proximoPago: data.nextBilledAt ? new Date(data.nextBilledAt) : null,
-            },
-            update: {
-              estado: status,
-              proximoPago: data.nextBilledAt ? new Date(data.nextBilledAt) : null,
+      case EventName.SubscriptionCreated:
+      case EventName.SubscriptionUpdated: {
+        const status = (eventData as SubscriptionCreatedEvent | SubscriptionUpdatedEvent).data.status
+        const subId = (eventData as SubscriptionCreatedEvent | SubscriptionUpdatedEvent).data.id
+        // Don't override PENDING/READY with subscription webhooks
+        const paddleStatus = mapPaddleStatus(status)
+        if (paddleStatus !== "PENDING" && paddleStatus !== "READY") {
+          await prisma.suscripcion.updateMany({
+            where: { paddleSubscriptionId: subId, estado: { notIn: ["PENDING", "READY", "CANCELED"] } },
+            data: {
+              estado: paddleStatus,
+              proximoPago: (eventData as SubscriptionUpdatedEvent).data.nextBilledAt ? new Date((eventData as SubscriptionUpdatedEvent).data.nextBilledAt!) : undefined,
             },
           })
         }
         break
       }
 
-      case EventName.SubscriptionUpdated: {
-        const event = eventData as SubscriptionUpdatedEvent
-        const { data } = event
-        const status = mapPaddleStatus(data.status)
-
-        await prisma.suscripcion.updateMany({
-          where: { paddleSubscriptionId: data.id },
-          data: {
-            estado: status,
-            proximoPago: data.nextBilledAt ? new Date(data.nextBilledAt) : null,
-            canceladoEn: data.canceledAt ? new Date(data.canceledAt) : null,
-          },
-        })
-        break
-      }
-
       case EventName.SubscriptionCanceled: {
-        const event = eventData as SubscriptionCanceledEvent
-        const { data } = event
         await prisma.suscripcion.updateMany({
-          where: { paddleSubscriptionId: data.id },
-          data: {
-            estado: "CANCELED",
-            canceladoEn: data.canceledAt ? new Date(data.canceledAt) : new Date(),
-          },
+          where: { paddleSubscriptionId: (eventData as SubscriptionCanceledEvent).data.id },
+          data: { estado: "CANCELED", canceladoEn: new Date() },
         })
-
-        const cancelled = await prisma.suscripcion.findUnique({
-          where: { paddleSubscriptionId: data.id },
-          include: { cliente: true, servicio: true },
-        })
-        if (cancelled) {
-          sendSubscriptionCanceled(
-            cancelled.cliente.email,
-            cancelled.cliente.nombre,
-            cancelled.servicio.nombre
-          )
-        }
         break
       }
 
       case EventName.SubscriptionPaused: {
-        const event = eventData as SubscriptionPausedEvent
-        const { data } = event
         await prisma.suscripcion.updateMany({
-          where: { paddleSubscriptionId: data.id },
+          where: { paddleSubscriptionId: (eventData as SubscriptionPausedEvent).data.id },
           data: { estado: "PAUSED" },
         })
         break
       }
 
       case EventName.TransactionPaymentFailed: {
-        const event = eventData as TransactionPaymentFailedEvent
-        const { data } = event
+        const { data } = eventData as TransactionPaymentFailedEvent
         const subscriptionId = data.subscriptionId
-
         if (subscriptionId) {
           await prisma.suscripcion.updateMany({
-            where: { paddleSubscriptionId: subscriptionId },
+            where: { paddleSubscriptionId: subscriptionId, estado: { notIn: ["PENDING", "READY"] } },
             data: { estado: "PAST_DUE" },
           })
         }
-
-        const cliente = await prisma.cliente.findUnique({
-          where: { paddleCustomerId: data.customerId ?? undefined },
-        })
+        const cliente = await prisma.cliente.findUnique({ where: { paddleCustomerId: data.customerId ?? undefined } })
         await prisma.pago.upsert({
           where: { paddleTransactionId: data.id },
           create: {
@@ -197,15 +159,12 @@ export async function POST(req: Request) {
           },
           update: { estadoPago: "FAILED" },
         })
-
         if (cliente && subscriptionId) {
           const sub = await prisma.suscripcion.findUnique({
             where: { paddleSubscriptionId: subscriptionId },
             include: { servicio: { select: { nombre: true } } },
           })
-          if (sub) {
-            sendPaymentFailed(cliente.email, cliente.nombre, sub.servicio.nombre)
-          }
+          if (sub) sendPaymentFailed(cliente.email, cliente.nombre, sub.servicio.nombre)
         }
         break
       }
@@ -218,13 +177,13 @@ export async function POST(req: Request) {
   }
 }
 
-function mapPaddleStatus(paddleStatus: string): "ACTIVE" | "PAST_DUE" | "CANCELED" | "PAUSED" | "TRIALING" {
+function mapPaddleStatus(paddleStatus: string): "ACTIVE" | "PAST_DUE" | "CANCELED" | "PAUSED" | "PENDING" | "READY" {
   switch (paddleStatus) {
     case "active": return "ACTIVE"
     case "past_due": return "PAST_DUE"
     case "canceled": return "CANCELED"
     case "paused": return "PAUSED"
-    case "trialing": return "TRIALING"
+    case "trialing": return "ACTIVE"
     default: return "ACTIVE"
   }
 }

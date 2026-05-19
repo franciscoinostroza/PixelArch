@@ -16,20 +16,19 @@ const SERVICIOS_QUERY = `*[_type == "servicio" && activo == true] | order(orden 
   descripcion,
   icono,
   tags,
-  precio,
-  intervalo,
-  paddlePriceId
+  precioUnico,
+  precioBasico,
+  precioMantenimiento
 }`
 
-function formatPrice(precio: number, intervalo: string) {
+function formatPrice(precio: number) {
   if (!precio) return null
-  const label = intervalo === "ANUAL" ? "/ano" : "/mes"
-  return `$ ${(precio / 100).toFixed(0)}${label}`
+  return `$ ${(precio / 100).toFixed(0)}`
 }
 
 export default async function ServiciosPage() {
   const servicios = await sanityFetch<
-    { titulo: string; slug: string; descripcion: string; icono: string; tags: string[]; precio: number; intervalo: string; paddlePriceId: string }[]
+    { titulo: string; slug: string; descripcion: string; icono: string; tags: string[]; precioUnico: number; precioBasico: number; precioMantenimiento: number }[]
   >(SERVICIOS_QUERY)
 
   return (
@@ -53,9 +52,9 @@ export default async function ServiciosPage() {
                 <span className="text-3xl">{s.icono || "⚡"}</span>
                 <div className="flex items-center justify-between">
                   <CardTitle className="mt-3">{s.titulo}</CardTitle>
-                  {s.precio > 0 && (
+                  {s.precioUnico > 0 && (
                     <Badge variant="accent2" className="text-xs shrink-0">
-                      {formatPrice(s.precio, s.intervalo)}
+                      {formatPrice(s.precioUnico)} unico
                     </Badge>
                   )}
                 </div>

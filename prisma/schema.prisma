@@ -23,46 +23,60 @@ model Cliente {
 }
 
 model Servicio {
-  id            String    @id @default(cuid())
-  nombre        String
-  descripcion   String
-  precio        Int
-  intervalo     Intervalo
-  activo        Boolean   @default(true)
-  paddlePriceId  String    @unique
+  id                         String    @id @default(cuid())
+  nombre                     String
+  descripcion                String
+  icono                      String?
+  tags                       String[]
+
+  precioUnico                Int
+  precioBasico               Int
+  precioMantenimiento        Int
+
+  paddlePriceIdUnico         String    @unique
+  paddlePriceIdBasico        String    @unique
+  paddlePriceIdMantenimiento String    @unique
+
+  activo                     Boolean   @default(true)
+  orden                      Int       @default(0)
 
   suscripciones Suscripcion[]
 }
 
-enum Intervalo {
-  MONTHLY
-  YEARLY
-}
-
 model Suscripcion {
-  id                   String    @id @default(cuid())
-  clienteId            String
-  servicioId           String
-  paddleSubscriptionId String    @unique
-  estado               Estado
-  deploymentId         String?
-  deploymentPlatform   String?
-  proximoPago          DateTime?
-  canceladoEn          DateTime?
-  creadoEn             DateTime  @default(now())
-  actualizadoEn        DateTime  @updatedAt
+  id                      String      @id @default(cuid())
+  clienteId               String
+  servicioId              String
+  plan                    PlanTipo
+  estado                  Estado
+  paddleSubscriptionId    String?     @unique
+  paddleTransactionId     String?
+  deploymentId            String?
+  deploymentPlatform      String?
+  proximoPago             DateTime?
+  entregadoEn             DateTime?
+  canceladoEn             DateTime?
+  creadoEn                DateTime    @default(now())
+  actualizadoEn           DateTime    @updatedAt
 
   cliente  Cliente  @relation(fields: [clienteId], references: [id])
   servicio Servicio @relation(fields: [servicioId], references: [id])
   pagos    Pago[]
 }
 
+enum PlanTipo {
+  UNICO
+  BASICO
+  MANTENIMIENTO
+}
+
 enum Estado {
+  PENDING
+  READY
   ACTIVE
   PAST_DUE
-  CANCELED
   PAUSED
-  TRIALING
+  CANCELED
 }
 
 model Pago {

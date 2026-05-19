@@ -7,9 +7,10 @@ import { Loader2 } from "lucide-react"
 interface CheckoutButtonProps {
   paddlePriceId: string
   servicioNombre: string
+  label?: string
 }
 
-export function CheckoutButton({ paddlePriceId, servicioNombre }: CheckoutButtonProps) {
+export function CheckoutButton({ paddlePriceId, label }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false)
 
   async function handleCheckout() {
@@ -21,40 +22,24 @@ export function CheckoutButton({ paddlePriceId, servicioNombre }: CheckoutButton
         body: JSON.stringify({ paddlePriceId }),
       })
       const data = await res.json()
-
-      if (data.error) {
-        console.error(data.error)
-        setLoading(false)
-        return
-      }
+      if (data.error) { console.error(data.error); setLoading(false); return }
 
       const Paddle = (window as any).Paddle
-      if (!Paddle) {
-        console.error("Paddle.js no esta cargado")
-        setLoading(false)
-        return
-      }
+      if (!Paddle) { console.error("Paddle.js no cargado"); setLoading(false); return }
 
       Paddle.Checkout.open({
         items: [{ priceId: data.paddlePriceId, quantity: 1 }],
         customer: data.customerId ? { id: data.customerId } : undefined,
-        settings: {
-          displayMode: "overlay",
-          theme: "dark",
-          successUrl: data.successUrl,
-        },
+        settings: { displayMode: "overlay", theme: "dark", successUrl: data.successUrl },
+        customData: { tipo: "UNICO" },
       })
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
-    }
+    } catch (e) { console.error(e) } finally { setLoading(false) }
   }
 
   return (
     <Button size="lg" onClick={handleCheckout} disabled={loading}>
       {loading && <Loader2 size={16} className="animate-spin mr-2" />}
-      Contratar {servicioNombre}
+      {label || "Contratar"}
     </Button>
   )
 }

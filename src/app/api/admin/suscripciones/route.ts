@@ -36,12 +36,14 @@ export async function PATCH(req: Request) {
     })
 
     if (!suscripcion?.paddleSubscriptionId) {
-      return NextResponse.json({ error: "Suscripcion no encontrada" }, { status: 404 })
+      return NextResponse.json({ error: "Esta suscripcion no tiene plan mensual" }, { status: 400 })
     }
+
+    const subId = suscripcion.paddleSubscriptionId
 
     switch (accion) {
       case "pause": {
-        await paddle().subscriptions.pause(suscripcion.paddleSubscriptionId, {
+        await paddle().subscriptions.pause(subId, {
           effectiveFrom: "immediately",
         })
         await prisma.suscripcion.update({
@@ -51,7 +53,7 @@ export async function PATCH(req: Request) {
         break
       }
       case "resume": {
-        await paddle().subscriptions.resume(suscripcion.paddleSubscriptionId, {
+        await paddle().subscriptions.resume(subId, {
           effectiveFrom: "immediately",
         })
         await prisma.suscripcion.update({
@@ -61,7 +63,7 @@ export async function PATCH(req: Request) {
         break
       }
       case "cancel": {
-        await paddle().subscriptions.cancel(suscripcion.paddleSubscriptionId)
+        await paddle().subscriptions.cancel(subId)
         await prisma.suscripcion.update({
           where: { id: suscripcionId },
           data: {

@@ -9,18 +9,17 @@ interface ServiceItem {
   descripcion: string
   icono: string
   tags: string[]
-  precio: number
-  intervalo: string
-  paddlePriceId: string
+  precioUnico: number
+  precioBasico: number
+  precioMantenimiento: number
 }
 
 interface ServicesProps {
   servicios: ServiceItem[]
 }
 
-function formatPrice(precio: number, intervalo: string) {
-  const label = intervalo === "ANUAL" ? "/ano" : "/mes"
-  return `$${(precio / 100).toFixed(0)}${label}`
+function formatPrice(precio: number) {
+  return `$${(precio / 100).toFixed(0)}`
 }
 
 export function Services({ servicios }: ServicesProps) {
@@ -45,9 +44,9 @@ export function Services({ servicios }: ServicesProps) {
                 <span className="text-3xl">{s.icono || "⚡"}</span>
                 <div className="flex items-center justify-between">
                   <CardTitle className="mt-3">{s.titulo}</CardTitle>
-                  {s.precio > 0 && (
+                  {s.precioUnico > 0 && (
                     <Badge variant="accent2" className="text-xs">
-                      {formatPrice(s.precio, s.intervalo)}
+                      Desde {formatPrice(s.precioBasico)}/mes
                     </Badge>
                   )}
                 </div>

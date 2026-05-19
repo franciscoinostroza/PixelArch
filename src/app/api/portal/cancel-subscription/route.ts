@@ -16,10 +16,14 @@ export async function POST(req: Request) {
   const suscripcion = await prisma.suscripcion.findUnique({
     where: { id: suscripcionId, clienteId: cliente.id },
   })
-  if (!suscripcion) return NextResponse.json({ error: "Suscripcion no encontrada" }, { status: 404 })
+  if (!suscripcion?.paddleSubscriptionId) {
+    return NextResponse.json({ error: "Esta suscripcion no se puede cancelar por API" }, { status: 400 })
+  }
+
+  const subId = suscripcion.paddleSubscriptionId
 
   try {
-    await paddle().subscriptions.cancel(suscripcion.paddleSubscriptionId)
+    await paddle().subscriptions.cancel(subId)
     await prisma.suscripcion.update({
       where: { id: suscripcionId },
       data: { estado: "CANCELED", canceladoEn: new Date() },

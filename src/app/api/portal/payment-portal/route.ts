@@ -13,14 +13,20 @@ export async function POST() {
   }
 
   const suscripciones = await prisma.suscripcion.findMany({
-    where: { clienteId: cliente.id, estado: { in: ["ACTIVE", "PAST_DUE", "TRIALING"] } },
+    where: { clienteId: cliente.id, estado: { in: ["ACTIVE", "PAST_DUE"] } },
     select: { paddleSubscriptionId: true },
   })
+
+  const subIds = suscripciones.map((s) => s.paddleSubscriptionId).filter((id): id is string => !!id)
+
+  if (subIds.length === 0) {
+    return NextResponse.json({ error: "No hay suscripciones activas" }, { status: 404 })
+  }
 
   try {
     const session = await paddle().customerPortalSessions.create(
       cliente.paddleCustomerId,
-      suscripciones.map((s) => s.paddleSubscriptionId)
+      subIds
     )
     return NextResponse.json({ url: session.urls.general })
   } catch (error) {

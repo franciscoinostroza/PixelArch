@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       if (!servicio?.activo) {
         return NextResponse.json({ error: "Servicio no encontrado" }, { status: 404 })
       }
-      priceId = servicio.paddlePriceId
+      priceId = servicio.paddlePriceIdUnico
     }
 
     if (!priceId) {

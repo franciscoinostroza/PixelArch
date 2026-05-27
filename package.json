@@ -7,7 +7,7 @@
     "build": "npx prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "npx prisma generate"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.3.3",
@@ -24,12 +24,12 @@
     "lucide-react": "^1.14.0",
     "next": "16.2.6",
     "next-sanity": "^12.4.5",
-    "prisma": "^7.8.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.75.0",
     "resend": "^6.12.3",
     "sanity": "^5.25.1",
+    "sharp": "^0.34.5",
     "styled-components": "^6.4.1",
     "svix": "^1.93.0",
     "tailwind-merge": "^3.6.0",
@@ -42,6 +42,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "prisma": "^7.8.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

@@ -33,7 +33,7 @@ async function stopDeploy(deploymentId: string, platform: string) {
 
 export async function GET(req: Request) {
   const secret = req.headers.get("x-cron-secret")
-  if (secret !== process.env.SANITY_REVALIDATE_SECRET) {
+  if (secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   }
 

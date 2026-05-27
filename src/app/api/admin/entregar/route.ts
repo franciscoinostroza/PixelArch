@@ -14,17 +14,23 @@ export async function POST(req: Request) {
 
   const { suscripcionId } = await req.json()
 
-  const suscripcion = await prisma.suscripcion.update({
-    where: { id: suscripcionId },
-    data: { estado: "READY", entregadoEn: new Date() },
-    include: { cliente: true, servicio: true },
-  })
+  let suscripcion
+  try {
+    suscripcion = await prisma.suscripcion.update({
+      where: { id: suscripcionId },
+      data: { estado: "READY", entregadoEn: new Date() },
+      include: { cliente: true, servicio: true },
+    })
+  } catch (e) {
+    console.error("Error entregando servicio:", e)
+    return NextResponse.json({ error: "Error al entregar servicio" }, { status: 500 })
+  }
 
   try {
     const r = resend()
     if (r) {
       await r.emails.send({
-        from: `PixelArch <${process.env.CONTACT_EMAIL || "noreply@pixelarch.com"}>`,
+        from: "PixelArch <noreply@pixelarch.dev>",
         to: suscripcion.cliente.email,
         subject: `Tu ${suscripcion.servicio.nombre} esta listo — PixelArch`,
         text: [

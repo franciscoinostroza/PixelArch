@@ -16,10 +16,27 @@ const dmMono = DM_Mono({
   weight: ["300", "400", "500"],
 })
 
+const baseUrl = process.env.NEXT_PUBLIC_URL || "https://pixelarch.com"
+
 export const metadata: Metadata = {
   title: "PixelArch — Desarrollo Web · Chatbots · Agentes IA",
   description:
     "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio.",
+  openGraph: {
+    title: "PixelArch — Desarrollo Web · Chatbots · Agentes IA",
+    description:
+      "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio.",
+    url: baseUrl,
+    siteName: "PixelArch",
+    locale: "es_AR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PixelArch — Desarrollo Web · Chatbots · Agentes IA",
+    description:
+      "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio.",
+  },
 }
 
 export default function RootLayout({

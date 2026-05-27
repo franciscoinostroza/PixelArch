@@ -11,7 +11,7 @@ function getPaddle() {
       environment: process.env.NODE_ENV === "production"
         ? Environment.production
         : Environment.sandbox,
-      logLevel: LogLevel.verbose,
+      logLevel: process.env.NODE_ENV === "production" ? LogLevel.warn : LogLevel.verbose,
     })
   }
   return _paddle

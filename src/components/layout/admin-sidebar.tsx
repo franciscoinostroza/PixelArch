@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Users, Wrench, CreditCard, Menu, X, AlertTriangle, ExternalLink } from "lucide-react"
+import { LayoutDashboard, Users, Wrench, CreditCard, Menu, X, ExternalLink } from "lucide-react"
 
 const sections = [
   {
@@ -24,21 +24,12 @@ const sections = [
 ]
 
 interface SidebarProps {
-  nombreAdmin?: string
-  emailAdmin?: string
   alertasActivas?: number
 }
 
-export function AdminSidebar({ nombreAdmin, emailAdmin, alertasActivas = 0 }: SidebarProps) {
+export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => { setMounted(true) }, [])
-
-  const iniciales = nombreAdmin
-    ? nombreAdmin.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
-    : "PA"
 
   const sidebar = (
     <div className="flex h-full flex-col">
@@ -81,17 +72,6 @@ export function AdminSidebar({ nombreAdmin, emailAdmin, alertasActivas = 0 }: Si
       ))}
 
       <div className="mt-auto border-t border-border pt-3 pb-4 px-2">
-        {mounted && (
-          <div className="flex items-center gap-2.5 px-2 py-1.5">
-            <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-accent/20 font-display text-xs font-bold text-[#a78bfa]">
-              {iniciales}
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs text-text truncate">{nombreAdmin || "Admin"}</p>
-              <p className="text-[10px] text-[#4a5568] truncate">{emailAdmin || ""}</p>
-            </div>
-          </div>
-        )}
         <Link
           href="/portal"
           className="mx-2 mt-1 flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-muted hover:bg-card-bg hover:text-text transition-colors font-mono"

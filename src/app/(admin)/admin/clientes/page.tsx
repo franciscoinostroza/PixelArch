@@ -123,7 +123,7 @@ export default async function AdminClientes({
       {totalPages > 1 && (
         <div className="mt-5 flex items-center justify-center gap-4">
           <Link
-            href={`/admin/clientes?page=${currentPage - 1}${q ? `&q=${q}` : ""}`}
+            href={`/admin/clientes?page=${currentPage - 1}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
             className={cn(
               buttonVariants({ variant: "outline", size: "sm" }),
               currentPage <= 1 && "pointer-events-none opacity-40"
@@ -136,7 +136,7 @@ export default async function AdminClientes({
             Pagina {currentPage} de {totalPages}
           </span>
           <Link
-            href={`/admin/clientes?page=${currentPage + 1}${q ? `&q=${q}` : ""}`}
+            href={`/admin/clientes?page=${currentPage + 1}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
             className={cn(
               buttonVariants({ variant: "outline", size: "sm" }),
               currentPage >= totalPages && "pointer-events-none opacity-40"

@@ -62,6 +62,10 @@ model Suscripcion {
   cliente  Cliente  @relation(fields: [clienteId], references: [id])
   servicio Servicio @relation(fields: [servicioId], references: [id])
   pagos    Pago[]
+
+  @@index([clienteId])
+  @@index([servicioId])
+  @@index([estado])
 }
 
 enum PlanTipo {
@@ -91,6 +95,10 @@ model Pago {
 
   cliente     Cliente     @relation(fields: [clienteId], references: [id])
   suscripcion Suscripcion? @relation(fields: [suscripcionId], references: [id])
+
+  @@index([clienteId])
+  @@index([suscripcionId])
+  @@index([creadoEn])
 }
 
 enum EstadoPago {

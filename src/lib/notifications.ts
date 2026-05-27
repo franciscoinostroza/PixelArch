@@ -1,6 +1,6 @@
 import { resend } from "@/lib/resend"
 
-const FROM = `PixelArch <${process.env.CONTACT_EMAIL || "noreply@pixelarch.com"}>`
+const FROM = "PixelArch <noreply@pixelarch.dev>"
 
 async function sendEmail(to: string, subject: string, text: string) {
   const r = resend()

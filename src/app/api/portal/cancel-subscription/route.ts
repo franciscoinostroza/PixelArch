@@ -4,7 +4,13 @@ import { prisma } from "@/lib/prisma"
 import { paddle } from "@/lib/payments"
 
 export async function POST(req: Request) {
-  const { userId } = await auth()
+  let userId: string | null = null
+  try {
+    const session = await auth()
+    userId = session.userId
+  } catch {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  }
   if (!userId) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
   const { suscripcionId } = await req.json()

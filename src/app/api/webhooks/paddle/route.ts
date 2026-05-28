@@ -10,13 +10,18 @@ import {
   SubscriptionUpdatedEvent,
   SubscriptionCanceledEvent,
   SubscriptionPausedEvent,
+  SubscriptionResumedEvent,
 } from "@paddle/paddle-node-sdk"
 import { sendPaymentReceipt, sendPaymentFailed, sendSubscriptionCanceled } from "@/lib/notifications"
 import { sendWelcomeEmail } from "@/lib/notifications"
 
-const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET ?? ""
+const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET
 
 export async function POST(req: Request) {
+  if (!webhookSecret) {
+    return NextResponse.json({ error: "Webhook secret no configurado" }, { status: 500 })
+  }
+
   const body = await req.text()
   const signature = (await headers()).get("paddle-signature") ?? ""
 
@@ -38,7 +43,14 @@ export async function POST(req: Request) {
 
           const items = data.items ?? []
           const item = items[0]
-          const servicio = item ? await prisma.servicio.findUnique({ where: { paddlePriceIdBasico: item.price?.id } }) : null
+          const servicio = item ? await prisma.servicio.findFirst({
+            where: {
+              OR: [
+                { paddlePriceIdBasico: item.price?.id },
+                { paddlePriceIdMantenimiento: item.price?.id },
+              ],
+            },
+          }) : null
           if (!servicio) break
 
           await prisma.suscripcion.upsert({
@@ -115,6 +127,7 @@ export async function POST(req: Request) {
             where: { paddleSubscriptionId: subId, estado: { notIn: ["PENDING", "READY", "CANCELED"] } },
             data: {
               estado: paddleStatus,
+              pastDueEn: paddleStatus === "ACTIVE" ? null : undefined,
               proximoPago: (eventData as SubscriptionUpdatedEvent).data.nextBilledAt ? new Date((eventData as SubscriptionUpdatedEvent).data.nextBilledAt!) : undefined,
             },
           })
@@ -123,10 +136,16 @@ export async function POST(req: Request) {
       }
 
       case EventName.SubscriptionCanceled: {
+        const canceledSub = (eventData as SubscriptionCanceledEvent).data
         await prisma.suscripcion.updateMany({
-          where: { paddleSubscriptionId: (eventData as SubscriptionCanceledEvent).data.id },
+          where: { paddleSubscriptionId: canceledSub.id },
           data: { estado: "CANCELED", canceladoEn: new Date() },
         })
+        const sub = await prisma.suscripcion.findUnique({
+          where: { paddleSubscriptionId: canceledSub.id },
+          include: { cliente: true, servicio: true },
+        })
+        if (sub) sendSubscriptionCanceled(sub.cliente.email, sub.cliente.nombre, sub.servicio.nombre)
         break
       }
 
@@ -138,13 +157,21 @@ export async function POST(req: Request) {
         break
       }
 
+      case EventName.SubscriptionResumed: {
+        await prisma.suscripcion.updateMany({
+          where: { paddleSubscriptionId: (eventData as SubscriptionResumedEvent).data.id },
+          data: { estado: "ACTIVE", pastDueEn: null },
+        })
+        break
+      }
+
       case EventName.TransactionPaymentFailed: {
         const { data } = eventData as TransactionPaymentFailedEvent
         const subscriptionId = data.subscriptionId
         if (subscriptionId) {
           await prisma.suscripcion.updateMany({
             where: { paddleSubscriptionId: subscriptionId, estado: { notIn: ["PENDING", "READY"] } },
-            data: { estado: "PAST_DUE" },
+            data: { estado: "PAST_DUE", pastDueEn: new Date() },
           })
         }
         const cliente = await prisma.cliente.findUnique({ where: { paddleCustomerId: data.customerId ?? undefined } })
@@ -173,6 +200,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ received: true })
   } catch (error) {
     console.error("Webhook error:", error)
+    const msg = error instanceof Error ? error.message : ""
+    if (msg.includes("verification failed") || msg.includes("signature")) {
+      return NextResponse.json({ error: "Firma invalida" }, { status: 401 })
+    }
     return NextResponse.json({ error: "Error interno" }, { status: 500 })
   }
 }

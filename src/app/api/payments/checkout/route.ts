@@ -23,7 +23,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "paddlePriceId requerido" }, { status: 400 })
     }
 
-    const cliente = await getCurrentCliente()
+    let cliente
+    try {
+      cliente = await getCurrentCliente()
+    } catch {
+      cliente = null
+    }
 
     let customerId: string | undefined
 

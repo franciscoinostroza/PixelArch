@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     const resendClient = resend()
     if (resendClient) {
       await resendClient.emails.send({
-        from: `PixelArch <${process.env.CONTACT_EMAIL || "onboarding@resend.dev"}>`,
+        from: "PixelArch <noreply@pixelarch.dev>",
         to: process.env.CONTACT_EMAIL || "",
         replyTo: email,
         subject: `Nuevo mensaje de ${nombre}`,

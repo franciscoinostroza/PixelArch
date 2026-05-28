@@ -45,7 +45,7 @@ export async function GET(req: Request) {
   const aCortar = await prisma.suscripcion.findMany({
     where: {
       estado: "PAST_DUE",
-      actualizadoEn: { lte: corteEn },
+      pastDueEn: { lte: corteEn },
     },
     include: { cliente: true, servicio: true },
   })
@@ -53,7 +53,8 @@ export async function GET(req: Request) {
   const aAdvertir = await prisma.suscripcion.findMany({
     where: {
       estado: "PAST_DUE",
-      actualizadoEn: { lte: advertenciaEn, gt: corteEn },
+      pastDueEn: { lte: advertenciaEn },
+      NOT: { pastDueEn: { lte: corteEn } },
     },
     include: { cliente: true, servicio: true },
   })

@@ -19,17 +19,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Faltan headers svix" }, { status: 400 })
   }
 
-  if (WH_SECRET) {
-    try {
-      const wh = new Webhook(WH_SECRET)
-      wh.verify(rawBody, {
-        "svix-id": svixId,
-        "svix-timestamp": svixTimestamp,
-        "svix-signature": svixSignature,
-      })
-    } catch {
-      return NextResponse.json({ error: "Firma invalida" }, { status: 401 })
-    }
+  if (!WH_SECRET) {
+    return NextResponse.json({ error: "Webhook secret no configurado" }, { status: 500 })
+  }
+
+  try {
+    const wh = new Webhook(WH_SECRET)
+    wh.verify(rawBody, {
+      "svix-id": svixId,
+      "svix-timestamp": svixTimestamp,
+      "svix-signature": svixSignature,
+    })
+  } catch {
+    return NextResponse.json({ error: "Firma invalida" }, { status: 401 })
   }
 
   const { type, data } = payload
@@ -46,6 +48,10 @@ export async function POST(req: Request) {
           create: { clerkUserId: id, email, nombre, activo: true },
           update: { email, nombre, activo: true },
         })
+
+        sendWelcomeEmail(email, nombre).catch((e) =>
+          console.error("Welcome email error:", e)
+        )
         break
       }
 
@@ -72,15 +78,6 @@ export async function POST(req: Request) {
         })
         break
       }
-    }
-
-    if (type === "user.created") {
-      const { email_addresses, first_name, last_name } = data
-      const email = email_addresses?.[0]?.email_address ?? ""
-      const nombre = `${first_name || ""} ${last_name || ""}`.trim()
-      sendWelcomeEmail(email, nombre).catch((e) =>
-        console.error("Welcome email error:", e)
-      )
     }
 
     return NextResponse.json({ ok: true })

@@ -67,7 +67,7 @@ export default async function ServicioPage({ params }: { params: Promise<{ slug:
             <p className="font-display text-4xl font-extrabold tracking-[-0.04em]">{price(servicioDB.precioUnico)}</p>
             <p className="text-sm text-muted mt-2 mb-6">Pago unico — incluye la entrega completa del proyecto</p>
             {servicioDB.paddlePriceIdUnico && (
-              <CheckoutButton paddlePriceId={servicioDB.paddlePriceIdUnico} servicioNombre={servicioSanity.titulo} label={`Contratar ${servicioSanity.titulo}`} />
+              <CheckoutButton paddlePriceId={servicioDB.paddlePriceIdUnico} servicioNombre={servicioSanity.titulo} tipo="UNICO" label={`Contratar ${servicioSanity.titulo}`} />
             )}
           </div>
 
@@ -80,7 +80,7 @@ export default async function ServicioPage({ params }: { params: Promise<{ slug:
                 <p className="font-display text-xl font-extrabold tracking-[-0.03em]">{price(servicioDB.precioBasico)}<span className="text-xs font-normal text-muted">/mes</span></p>
                 <p className="text-xs text-muted mt-1 mb-4">Servicio activo sin cambios ni soporte</p>
                 {servicioDB.paddlePriceIdBasico && (
-                  <CheckoutButton paddlePriceId={servicioDB.paddlePriceIdBasico} servicioNombre={servicioSanity.titulo} label={`Basico ${price(servicioDB.precioBasico)}/mes`} />
+                  <CheckoutButton paddlePriceId={servicioDB.paddlePriceIdBasico} servicioNombre={servicioSanity.titulo} tipo="BASICO" label={`Basico ${price(servicioDB.precioBasico)}/mes`} />
                 )}
               </div>
               <div className="rounded-xl border-2 border-accent/30 bg-bg2 p-6 text-center">
@@ -89,7 +89,7 @@ export default async function ServicioPage({ params }: { params: Promise<{ slug:
                 <p className="font-display text-xl font-extrabold tracking-[-0.03em]">{price(servicioDB.precioMantenimiento)}<span className="text-xs font-normal text-muted">/mes</span></p>
                 <p className="text-xs text-muted mt-1 mb-4">Cambios ilimitados + soporte prioritario</p>
                 {servicioDB.paddlePriceIdMantenimiento && (
-                  <CheckoutButton paddlePriceId={servicioDB.paddlePriceIdMantenimiento} servicioNombre={servicioSanity.titulo} label={`Mantenimiento ${price(servicioDB.precioMantenimiento)}/mes`} />
+                  <CheckoutButton paddlePriceId={servicioDB.paddlePriceIdMantenimiento} servicioNombre={servicioSanity.titulo} tipo="MANTENIMIENTO" label={`Mantenimiento ${price(servicioDB.precioMantenimiento)}/mes`} />
                 )}
               </div>
             </div>

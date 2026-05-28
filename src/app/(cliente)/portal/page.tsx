@@ -94,8 +94,8 @@ export default async function PortalPage({
 
               {s.estado === "READY" && (
                 <div className="flex gap-2 mb-3">
-                  <CheckoutButton paddlePriceId={s.servicio.paddlePriceIdBasico} servicioNombre={s.servicio.nombre} label={`Basico ${price(s.servicio.precioBasico)}/mes`} />
-                  <CheckoutButton paddlePriceId={s.servicio.paddlePriceIdMantenimiento} servicioNombre={s.servicio.nombre} label={`Mant. ${price(s.servicio.precioMantenimiento)}/mes`} />
+                  <CheckoutButton paddlePriceId={s.servicio.paddlePriceIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label={`Basico ${price(s.servicio.precioBasico)}/mes`} />
+                  <CheckoutButton paddlePriceId={s.servicio.paddlePriceIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label={`Mant. ${price(s.servicio.precioMantenimiento)}/mes`} />
                 </div>
               )}
 

@@ -1,30 +1,19 @@
 "use client"
 
-import Script from "next/script"
-import { useCallback, useRef } from "react"
+import { initializePaddle } from "@paddle/paddle-js"
+
+const clientToken = typeof window !== "undefined"
+  ? process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN
+  : ""
+
+export const paddleReady: Promise<any> = clientToken
+  ? initializePaddle({
+      environment: process.env.NODE_ENV === "production" ? "production" : "sandbox",
+      token: clientToken,
+    })
+  : Promise.resolve(null)
 
 export function PaddleScript() {
-  const clientToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN
-  if (!clientToken) return null
-
-  const initRef = useRef(false)
-
-  const initPaddle = useCallback(() => {
-    if (initRef.current) return
-    const Paddle = (window as any).Paddle
-    if (!Paddle) return
-    initRef.current = true
-    if (process.env.NODE_ENV !== "production") {
-      Paddle.Environment.set("sandbox")
-    }
-    Paddle.Initialize({ token: clientToken })
-  }, [clientToken])
-
-  return (
-    <Script
-      src="https://cdn.paddle.com/paddle/v2/paddle.js"
-      strategy="afterInteractive"
-      onLoad={initPaddle}
-    />
-  )
+  paddleReady.catch((err) => console.error("Paddle init error:", err))
+  return null
 }

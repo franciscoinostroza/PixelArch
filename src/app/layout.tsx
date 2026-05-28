@@ -22,6 +22,10 @@ export const metadata: Metadata = {
   title: "PixelArch — Desarrollo Web · Chatbots · Agentes IA",
   description:
     "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio.",
+  metadataBase: new URL(baseUrl),
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     title: "PixelArch — Desarrollo Web · Chatbots · Agentes IA",
     description:
@@ -55,6 +59,19 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <PaddleScript />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "PixelArch",
+              url: baseUrl,
+              description:
+                "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio.",
+            }),
+          }}
+        />
         {children}
       </body>
     </html>

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "npx prisma generate && next build",
-    "start": "next start",
+    "start": "node -e \"console.log(\"CONTAINER_STARTED\");console.log(\"Node:\",process.version);console.log(\"CWD:\",process.cwd());console.log(\"Env PORT:\",process.env.PORT);console.log(\"LS:\",require(\"child_process\").execSync(\"ls -la\").toString())\"",
     "lint": "eslint",
     "postinstall": "npx prisma generate"
   },

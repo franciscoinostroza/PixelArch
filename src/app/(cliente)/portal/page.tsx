@@ -3,11 +3,9 @@ import { cn } from "@/lib/utils"
 import { AlertTriangle, CheckCircle2 } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
-import dynamic from "next/dynamic"
-
-const CancelSubscriptionButton = dynamic(() => import("@/components/ui/cancel-subscription-button"), { ssr: false })
-const PaymentPortalLink = dynamic(() => import("@/components/ui/payment-portal-link"), { ssr: false })
-const CheckoutButton = dynamic(() => import("@/components/ui/checkout-button"), { ssr: false })
+import { CancelSubscriptionButton } from "@/components/ui/cancel-subscription-button"
+import { PaymentPortalLink } from "@/components/ui/payment-portal-link"
+import { CheckoutButton } from "@/components/ui/checkout-button"
 
 export default async function PortalPage({
   searchParams,

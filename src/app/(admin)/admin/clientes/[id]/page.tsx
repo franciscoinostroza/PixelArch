@@ -1,10 +1,8 @@
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
-import dynamic from "next/dynamic"
 import { DeployConfig } from "@/components/ui/deploy-config"
 import { EntregarButton } from "@/components/ui/entregar-button"
-
-const SubscriptionActions = dynamic(() => import("@/components/ui/subscription-actions"), { ssr: false })
+import { SubscriptionActions } from "@/components/ui/subscription-actions"
 import { cn } from "@/lib/utils"
 
 const mapEstado = (e: string) => {

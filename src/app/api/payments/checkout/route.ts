@@ -2,8 +2,15 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { paddle } from "@/lib/payments"
 import { getCurrentCliente } from "@/lib/auth"
+import { rateLimit } from "@/lib/rate-limit"
+import { logger } from "@/lib/logger"
 
 export async function POST(req: Request) {
+  const ip = req.headers.get("x-forwarded-for") || "unknown"
+  if (!rateLimit(`checkout:${ip}`, 10, 60_000)) {
+    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 })
+  }
+
   try {
     const { servicioId, paddlePriceId, successUrl } = await req.json()
 
@@ -48,13 +55,15 @@ export async function POST(req: Request) {
       }
     }
 
+    logger.info("Checkout data generated", { priceId, customerId: !!customerId })
+
     return NextResponse.json({
       paddlePriceId: priceId,
       customerId,
       successUrl: successUrl ?? `${process.env.NEXT_PUBLIC_URL}/portal?success=true`,
     })
   } catch (error) {
-    console.error(error)
+    logger.error("Error creando checkout", { error: String(error) })
     return NextResponse.json({ error: "Error creando checkout" }, { status: 500 })
   }
 }

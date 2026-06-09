@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 import { paddle } from "@/lib/payments"
+import { logger } from "@/lib/logger"
 
 export async function POST() {
   let userId: string | null = null
@@ -15,28 +16,17 @@ export async function POST() {
 
   const cliente = await prisma.cliente.findUnique({ where: { clerkUserId: userId } })
   if (!cliente?.paddleCustomerId) {
-    return NextResponse.json({ error: "Cliente sin cuenta de pago" }, { status: 404 })
-  }
-
-  const suscripciones = await prisma.suscripcion.findMany({
-    where: { clienteId: cliente.id, estado: { in: ["ACTIVE", "PAST_DUE"] } },
-    select: { paddleSubscriptionId: true },
-  })
-
-  const subIds = suscripciones.map((s) => s.paddleSubscriptionId).filter((id): id is string => !!id)
-
-  if (subIds.length === 0) {
-    return NextResponse.json({ error: "No hay suscripciones activas" }, { status: 404 })
+    return NextResponse.json({ error: "Sin cliente en Paddle" }, { status: 400 })
   }
 
   try {
-    const session = await paddle().customerPortalSessions.create(
-      cliente.paddleCustomerId,
-      subIds
-    )
-    return NextResponse.json({ url: session.urls.general })
+    const session = await paddle().customerSessions.create({
+      customerId: cliente.paddleCustomerId,
+    })
+    logger.info("Payment portal session created", { clienteId: cliente.id })
+    return NextResponse.json({ url: session.urls?.general?.url })
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ error: "Error creando sesion" }, { status: 500 })
+    logger.error("Error creando portal session", { error: String(error) })
+    return NextResponse.json({ error: "Error creando portal" }, { status: 500 })
   }
 }

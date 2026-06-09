@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server"
 import { contactSchema } from "@/lib/validations"
 import { resend } from "@/lib/resend"
+import { rateLimit } from "@/lib/rate-limit"
+import { logger } from "@/lib/logger"
 
 export async function POST(req: Request) {
+  const ip = req.headers.get("x-forwarded-for") || "unknown"
+  if (!rateLimit(`contact:${ip}`, 5, 60_000)) {
+    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 })
+  }
+
   try {
     const body = await req.json()
     const parsed = contactSchema.safeParse(body)
@@ -16,16 +23,18 @@ export async function POST(req: Request) {
     const resendClient = resend()
     if (resendClient) {
       await resendClient.emails.send({
-        from: "PixelArch <noreply@pixelarch.dev>",
+        from: "PixelArch <hola@pixelarch.dev>",
         to: process.env.CONTACT_EMAIL || "",
         replyTo: email,
         subject: `Nuevo mensaje de ${nombre}`,
         text: `Nombre: ${nombre}\nEmail: ${email}\n\nMensaje:\n${mensaje}`,
       })
+      logger.info("Contact email sent", { nombre, email })
     }
 
     return NextResponse.json({ ok: true })
-  } catch {
+  } catch (e) {
+    logger.error("Error sending contact email", { error: String(e) })
     return NextResponse.json({ error: "Error interno" }, { status: 500 })
   }
 }

@@ -2,7 +2,10 @@ import type { Metadata } from "next"
 import { Syne, DM_Mono } from "next/font/google"
 import { ClerkProvider } from "@clerk/nextjs"
 import { PaddleScript } from "@/components/ui/paddle-script"
+import { registerShutdown } from "@/lib/shutdown"
 import "./globals.css"
+
+registerShutdown()
 
 const syne = Syne({
   variable: "--font-display",
@@ -41,6 +44,14 @@ export const metadata: Metadata = {
     description:
       "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio.",
   },
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
+  manifest: "/manifest.json",
+  other: {
+    "theme-color": "#0a0a0f",
+  },
 }
 
 export default function RootLayout({
@@ -52,6 +63,31 @@ export default function RootLayout({
     !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== ""
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        name: "PixelArch",
+        url: baseUrl,
+        description:
+          "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio.",
+      },
+      {
+        "@type": "WebSite",
+        url: baseUrl,
+        name: "PixelArch",
+        description:
+          "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio.",
+        potentialAction: {
+          "@type": "SearchAction",
+          target: `${baseUrl}/servicios?q={search_term_string}`,
+          "query-input": "required name=search_term_string",
+        },
+      },
+    ],
+  }
+
   const html = (
     <html
       lang="es"
@@ -62,14 +98,7 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Organization",
-              name: "PixelArch",
-              url: baseUrl,
-              description:
-                "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio.",
-            }),
+            __html: JSON.stringify(jsonLd),
           }}
         />
         {children}
@@ -116,7 +145,6 @@ export default function RootLayout({
           alertText: "text-[#fffffe]",
           developmentModeText: "hidden",
           userButtonBox: "border border-border rounded-full",
-          userButtonPopoverFooter: "hidden",
           userButtonPopoverCard: "bg-[#111118] border border-[rgba(255,255,255,0.07)]",
           userButtonPopoverActionButton: "text-[#fffffe] hover:bg-[#7f5af0]/10",
           userButtonPopoverActionButtonText: "text-[#fffffe]",

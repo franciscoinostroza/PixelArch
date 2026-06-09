@@ -1,7 +1,7 @@
 # PixelArch — Estado del Proyecto
 
-**Ultima actualizacion:** Mayo 2026
-**Build:** Excelente | **TypeScript:** 0 errores | **Rutas:** 26 compiladas
+**Ultima actualizacion:** Junio 2026
+**Build:** Excelente | **TypeScript:** 0 errores | **Rutas:** 26 compiladas | **Tests:** 60 pasando
 **Deploy Railway:** Online | **BD:** PostgreSQL sincronizada | **Clerk:** Auth + Webhook svix | **Sanity:** Studio + Schemas + 9 docs | **Paddle:** Productos + Checkout + Webhooks
 **URL:** https://pixelarch-production.up.railway.app
 
@@ -18,6 +18,8 @@
 | Sanity | v5 | Studio embebido en `/studio` |
 | Paddle | SDK v3 | Pagos internacionales, suscripciones |
 | Resend | v6 | Emails transaccionales |
+| Sentry | 10.57 | Error tracking (condicional a SENTRY_DSN) |
+| Vitest | 3.2.6 | Testing (60 tests) |
 | Deploy | Railway | Auto-deploy desde GitHub |
 
 ---
@@ -71,6 +73,7 @@
 | `/api/portal/payment-portal` | POST | Cliente: sesion del customer portal de Paddle |
 | `/api/cron/corte-servicios` | GET | Corte automatico de suscripciones morosas (+30 dias) |
 | `/api/revalidate` | POST | ISR on-demand |
+| `/api/health` | GET | Health check con status de DB |
 
 ### Librerias (`src/lib/`)
 
@@ -81,7 +84,11 @@
 | `payments.ts` | Singleton Paddle SDK (sandbox/prod) |
 | `resend.ts` | Singleton Resend (email) |
 | `validations.ts` | `contactSchema` (Zod) |
-| `notifications.ts` | 4 emails transaccionales (welcome, receipt, failed, cancel, ready) |
+| `notifications.ts` | 5 emails transaccionales con plain text fallback |
+| `rate-limit.ts` | Rate limiter en memoria (Map + timestamps) |
+| `logger.ts` | Logger estructurado JSON (niveles debug/info/warn/error) |
+| `env.ts` | Validacion de env vars al startup |
+| `shutdown.ts` | Graceful shutdown (SIGTERM/SIGINT) |
 
 ### UI Components (`src/components/ui/`)
 
@@ -146,9 +153,30 @@
 
 ## Pendiente
 
-- [ ] Nada pendiente
+- [ ] Generar iconos PNG reales para PWA (reemplazar SVGs placeholder)
+- [ ] Configurar Sentry DSN, org y project en Railway
+- [ ] Agregar `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `LOG_LEVEL` a Railway
 
 ---
+
+## Produccion Readiness — Implementado
+
+| Fase | Items | Estado |
+|------|-------|--------|
+| F1: Seguridad | CSP header + Rate limiting (5 endpoints) + CSRF (cubierto por Clerk) | ✅ |
+| F2: Observabilidad | Logger JSON estructurado + Sentry (condicional) + Graceful shutdown | ✅ |
+| F3: Resiliencia | Error boundaries (4 route groups) + Loading states (9 nuevos) + Env validation | ✅ |
+| F4: UX/PWA | Manifest + icons SVG + Accesibilidad (aria-*) + Code splitting (dynamic) | ✅ |
+| F5: Pulido | JSON-LD enriquecido + URLs dinámicas en emails + Plain text fallback + DRY auth + UserButton footer visible | ✅ |
+
+## Tests
+
+```
+✓ 10 test files | 60 tests | all passed
+```
+
+`npm test` — correr tests
+`npm run test:watch` — modo watch
 
 ## Build
 
@@ -158,14 +186,14 @@ Compiled successfully
 TypeScript — 0 errores
 Generating static pages (20/20)
 
-26 routes:
+27 routes:
   /, /servicios, /servicios/[slug], /gracias, /studio
   /sign-in, /sign-up
   /portal, /portal/facturacion
   /admin/dashboard, /admin/clientes, /admin/clientes/[id], /admin/servicios, /admin/pagos
   /api/contact, /api/payments/checkout, /api/webhooks/paddle, /api/webhooks/clerk
   /api/admin/suscripciones, /api/portal/cancel-subscription, /api/portal/payment-portal
-  /api/cron/corte-servicios, /api/revalidate
+  /api/cron/corte-servicios, /api/revalidate, /api/health
   /sitemap.xml, /robots.txt
   Proxy (Middleware)
 ```
@@ -177,6 +205,7 @@ Generating static pages (20/20)
 ```bash
 npm run dev        # Desarrollo local
 npm run build      # Build de produccion
+npm test           # Tests unitarios + componentes + API
 npx tsc --noEmit   # Type check
 npx prisma studio  # Explorar BD
 npx prisma db push # Sincronizar schema → BD

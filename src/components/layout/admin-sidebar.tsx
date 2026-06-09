@@ -58,7 +58,7 @@ export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
                     : "text-muted hover:bg-card-bg hover:text-text"
                 )}
               >
-                <Icon size={15} className="w-[18px] text-center shrink-0" />
+                <Icon size={15} className="w-[18px] text-center shrink-0" aria-hidden="true" />
                 <span className="flex-1">{label}</span>
                 {href === "/admin/pagos" && alertasActivas > 0 && (
                   <span className="rounded-full bg-red-500/20 px-1.5 py-px text-[10px] text-red-300 font-mono">
@@ -88,8 +88,10 @@ export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
       <button
         className="fixed top-3 left-3 z-50 rounded-lg border border-border bg-bg2 p-2 text-muted hover:text-text lg:hidden"
         onClick={() => setOpen(!open)}
+        aria-label={open ? "Cerrar sidebar" : "Abrir sidebar"}
+        aria-expanded={open}
       >
-        <Menu size={20} />
+        <Menu size={20} aria-hidden="true" />
       </button>
 
       <aside className="hidden lg:flex h-screen w-[220px] flex-col border-r border-border bg-bg2 shrink-0">
@@ -104,8 +106,8 @@ export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
               <p className="font-display text-lg font-bold text-text">
                 Pixel<span className="text-accent">Arch</span>
               </p>
-              <button className="text-muted hover:text-text" onClick={() => setOpen(false)}>
-                <X size={18} />
+              <button className="text-muted hover:text-text" onClick={() => setOpen(false)} aria-label="Cerrar sidebar">
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
             {sidebar.props.children.slice(1)}

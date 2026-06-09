@@ -13,7 +13,6 @@ const csp = [
   "base-uri 'self'",
   "object-src 'none'",
 ].join("; ")
-
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [

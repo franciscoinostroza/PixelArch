@@ -39,7 +39,6 @@ const nextConfig: NextConfig = {
       },
     ]
   },
-  serverExternalPackages: ["pino"],
 }
 
 export default process.env.SENTRY_DSN

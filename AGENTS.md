@@ -1,8 +1,8 @@
 # PixelArch — Estado del Proyecto
 
 **Ultima actualizacion:** Junio 2026
-**Build:** Excelente | **TypeScript:** 0 errores | **Rutas:** 26 compiladas | **Tests:** 60 pasando
-**Deploy Railway:** Online | **BD:** PostgreSQL sincronizada | **Clerk:** Auth + Webhook svix | **Sanity:** Studio + Schemas + 9 docs | **Paddle:** Productos + Checkout + Webhooks
+**Build:** Excelente | **TypeScript:** 0 errores | **Rutas:** 27 compiladas | **Tests:** 60 pasando
+**Deploy Railway:** Online (commit 5dfe469) | **Nuevo deploy:** BLOQUEADO por infraestructura Railway (incidentes 9 Jun) | **BD:** PostgreSQL sincronizada | **Clerk:** Auth + Webhook svix | **Sanity:** Studio + Schemas + 9 docs | **Paddle:** Productos + Checkout + Webhooks
 **URL:** https://pixelarch-production.up.railway.app
 
 ---
@@ -153,9 +153,8 @@
 
 ## Pendiente
 
+- [ ] Deploy: Railway bloqued (infra issue, incidentes 9 Jun 2026) — commit 5dfe469 sigue online
 - [ ] Generar iconos PNG reales para PWA (reemplazar SVGs placeholder)
-- [ ] Configurar Sentry DSN, org y project en Railway
-- [ ] Agregar `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `LOG_LEVEL` a Railway
 
 ---
 
@@ -200,7 +199,7 @@ Generating static pages (20/20)
 
 ---
 
-## Comandos utiles
+### Comandos utiles
 
 ```bash
 npm run dev        # Desarrollo local

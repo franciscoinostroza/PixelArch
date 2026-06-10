@@ -2,7 +2,10 @@ import type { Metadata } from "next"
 import { Syne, DM_Mono } from "next/font/google"
 import { ClerkProvider } from "@clerk/nextjs"
 import { PaddleScript } from "@/components/ui/paddle-script"
+import { registerShutdown } from "@/lib/shutdown"
 import "./globals.css"
+
+registerShutdown()
 
 const syne = Syne({
   variable: "--font-display",

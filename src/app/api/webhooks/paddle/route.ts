@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { paddle } from "@/lib/payments"
 import { sendPaymentReceipt, sendPaymentFailed, sendSubscriptionCanceled } from "@/lib/notifications"
 import { logger } from "@/lib/logger"
+const WEBHOOK_SECRET = process.env.PADDLE_WEBHOOK_SECRET ?? ""
 
 export async function POST(req: Request) {
   try {
@@ -11,13 +12,13 @@ export async function POST(req: Request) {
 
     let event
     try {
-      event = paddle().webhooks.unmarshal(raw, signature)
+      event = await paddle().webhooks.unmarshal(raw, WEBHOOK_SECRET, signature)
     } catch {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
     }
 
     const eventType = event.eventType
-    const data = event.data as Record<string, unknown>
+    const data = event.data as any
     const dataId = (data.id as string) ?? ""
     logger.info("Paddle webhook received", { eventType, dataId })
 

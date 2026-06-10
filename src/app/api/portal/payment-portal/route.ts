@@ -20,11 +20,12 @@ export async function POST() {
   }
 
   try {
-    const session = await paddle().customerSessions.create({
-      customerId: cliente.paddleCustomerId,
-    })
+    const session = await paddle().customerPortalSessions.create(
+      cliente.paddleCustomerId,
+      [],
+    )
     logger.info("Payment portal session created", { clienteId: cliente.id })
-    return NextResponse.json({ url: session.urls?.general?.url })
+    return NextResponse.json({ url: session.urls.general.overview })
   } catch (error) {
     logger.error("Error creando portal session", { error: String(error) })
     return NextResponse.json({ error: "Error creando portal" }, { status: 500 })

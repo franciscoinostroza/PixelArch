@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server"
-import { auth, clerkClient } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 import { resend } from "@/lib/resend"
+import { requireAdmin } from "@/lib/auth"
+import { logger } from "@/lib/logger"
 
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-
-  const clerk = await clerkClient()
-  const user = await clerk.users.getUser(userId)
-  const role = (user.publicMetadata as { role?: string })?.role
-  if (role !== "admin") return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+  const admin = await requireAdmin()
+  if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 })
 
   const { suscripcionId } = await req.json()
 
@@ -22,7 +18,7 @@ export async function POST(req: Request) {
       include: { cliente: true, servicio: true },
     })
   } catch (e) {
-    console.error("Error entregando servicio:", e)
+    logger.error("Error entregando servicio", { error: String(e), suscripcionId })
     return NextResponse.json({ error: "Error al entregar servicio" }, { status: 500 })
   }
 
@@ -30,7 +26,7 @@ export async function POST(req: Request) {
     const r = resend()
     if (r) {
       await r.emails.send({
-        from: "PixelArch <noreply@pixelarch.dev>",
+        from: "PixelArch <hola@pixelarch.dev>",
         to: suscripcion.cliente.email,
         subject: `Tu ${suscripcion.servicio.nombre} esta listo — PixelArch`,
         text: [
@@ -44,9 +40,10 @@ export async function POST(req: Request) {
           `Plan Mantenimiento: $${(suscripcion.servicio.precioMantenimiento / 100).toFixed(0)}/mes — cambios + soporte incluido`,
         ].join("\n"),
       })
+      logger.info("Project ready email sent", { suscripcionId })
     }
   } catch (e) {
-    console.error("Error sending project ready email:", e)
+    logger.error("Error sending project ready email", { error: String(e) })
   }
 
   return NextResponse.json({ ok: true })

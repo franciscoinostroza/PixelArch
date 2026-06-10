@@ -4,8 +4,8 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Shield, Wrench } from "lucide-react"
-import { CheckoutButton } from "@/components/ui/checkout-button"
 import { prisma } from "@/lib/prisma"
+import { CheckoutButton } from "@/components/ui/checkout-button"
 
 const SERVICIO_QUERY = `*[_type == "servicio" && slug.current == $slug][0]{
   titulo,

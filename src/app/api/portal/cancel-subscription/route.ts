@@ -2,8 +2,15 @@ import { NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 import { paddle } from "@/lib/payments"
+import { rateLimit } from "@/lib/rate-limit"
+import { logger } from "@/lib/logger"
 
 export async function POST(req: Request) {
+  const ip = req.headers.get("x-forwarded-for") || "unknown"
+  if (!rateLimit(`cancel-sub:${ip}`, 3, 60_000)) {
+    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 })
+  }
+
   let userId: string | null = null
   try {
     const session = await auth()
@@ -34,9 +41,10 @@ export async function POST(req: Request) {
       where: { id: suscripcionId },
       data: { estado: "CANCELED", canceladoEn: new Date() },
     })
+    logger.info("Subscription canceled by client", { suscripcionId, userId })
     return NextResponse.json({ ok: true })
   } catch (error) {
-    console.error(error)
+    logger.error("Error cancelando suscripcion", { error: String(error), suscripcionId })
     return NextResponse.json({ error: "Error cancelando suscripcion" }, { status: 500 })
   }
 }

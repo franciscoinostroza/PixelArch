@@ -1,19 +1,18 @@
 import { NextResponse } from "next/server"
-import { auth, clerkClient } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 import { paddle } from "@/lib/payments"
+import { requireAdmin } from "@/lib/auth"
+import { rateLimit } from "@/lib/rate-limit"
+import { logger } from "@/lib/logger"
 
 export async function PATCH(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-
-  const clerk = await clerkClient()
-  const user = await clerk.users.getUser(userId)
-  const role = (user.publicMetadata as { role?: string } | undefined)?.role
-
-  if (role !== "admin") {
-    return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+  const ip = req.headers.get("x-forwarded-for") || "unknown"
+  if (!rateLimit(`admin-susc:${ip}`, 10, 60_000)) {
+    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 })
   }
+
+  const admin = await requireAdmin()
+  if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 })
 
   try {
     const { suscripcionId, accion, deploymentId, deploymentPlatform } = await req.json()
@@ -43,9 +42,7 @@ export async function PATCH(req: Request) {
 
     switch (accion) {
       case "pause": {
-        await paddle().subscriptions.pause(subId, {
-          effectiveFrom: "immediately",
-        })
+        await paddle().subscriptions.pause(subId, { effectiveFrom: "immediately" })
         await prisma.suscripcion.update({
           where: { id: suscripcionId },
           data: { estado: "PAUSED" },
@@ -53,9 +50,7 @@ export async function PATCH(req: Request) {
         break
       }
       case "resume": {
-        await paddle().subscriptions.resume(subId, {
-          effectiveFrom: "immediately",
-        })
+        await paddle().subscriptions.resume(subId, { effectiveFrom: "immediately" })
         await prisma.suscripcion.update({
           where: { id: suscripcionId },
           data: { estado: "ACTIVE" },
@@ -66,10 +61,7 @@ export async function PATCH(req: Request) {
         await paddle().subscriptions.cancel(subId)
         await prisma.suscripcion.update({
           where: { id: suscripcionId },
-          data: {
-            estado: "CANCELED",
-            canceladoEn: new Date(),
-          },
+          data: { estado: "CANCELED", canceladoEn: new Date() },
         })
         break
       }
@@ -77,9 +69,10 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ error: "Accion no valida" }, { status: 400 })
     }
 
+    logger.info("Subscription action performed", { suscripcionId, accion, adminId: admin.id })
     return NextResponse.json({ ok: true })
   } catch (error) {
-    console.error("suscripcion action error:", error)
+    logger.error("suscripcion action error", { error: String(error) })
     return NextResponse.json({ error: "Error interno" }, { status: 500 })
   }
 }

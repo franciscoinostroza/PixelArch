@@ -1,12 +1,12 @@
 "use client"
 
-import { initializePaddle } from "@paddle/paddle-js"
+import { initializePaddle, type Paddle } from "@paddle/paddle-js"
 
 const clientToken = typeof window !== "undefined"
   ? process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN
   : ""
 
-export const paddleReady: Promise<any> = clientToken
+export const paddleReady: Promise<Paddle | undefined | null> = clientToken
   ? initializePaddle({
       environment: process.env.NODE_ENV === "production" ? "production" : "sandbox",
       token: clientToken,

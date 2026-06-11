@@ -22,61 +22,78 @@ export async function POST(req: Request) {
     const dataId = (data.id as string) ?? ""
     logger.info("Paddle webhook received", { eventType, dataId })
 
-    switch (eventType) {
-      case "transaction.completed": {
-        const transactionId = dataId
-        const status = data.status as string
-        if (status !== "completed") break
+    async function handleTransaction(
+      transactionId: string,
+      status: string,
+      data: any,
+    ) {
+      if (status !== "completed") return
 
-        const pricing = (data.details?.lineItems?.[0]?.price?.unitPrice as Record<string, unknown>) ?? {}
-        const amount = (pricing.amount as string) ?? "0"
-        const currencyCode = (pricing.currencyCode as string) ?? "usd"
-        const customerId = (data.customer?.id as string) ?? ""
-        const subscriptionId = (data.subscription?.id as string) ?? ""
+      const pricing = (data.details?.lineItems?.[0]?.price?.unitPrice as Record<string, unknown>) ?? {}
+      const amount = (pricing.amount as string) ?? "0"
+      const currencyCode = (pricing.currencyCode as string) ?? "usd"
+      const customerId = (data.customer?.id as string) ?? ""
+      const subscriptionId = (data.subscription?.id as string) ?? ""
 
-        const cliente = await prisma.cliente.findFirst({
-          where: { paddleCustomerId: customerId },
+      const cliente = await prisma.cliente.findFirst({
+        where: { paddleCustomerId: customerId },
+      })
+      if (!cliente) {
+        logger.warn("Cliente no encontrado para paddle customer", { customerId })
+        return
+      }
+
+      const pago = await prisma.pago.create({
+        data: {
+          clienteId: cliente.id,
+          paddleTransactionId: transactionId,
+          monto: Math.round(parseFloat(amount) * 100),
+          moneda: currencyCode,
+          estadoPago: "SUCCEEDED",
+        },
+      })
+
+      let servicioNombre = "servicio"
+
+      if (subscriptionId) {
+        const suscripcion = await prisma.suscripcion.findFirst({
+          where: { paddleSubscriptionId: subscriptionId },
+          include: { servicio: true },
         })
-        if (!cliente) {
-          logger.warn("Cliente no encontrado para paddle customer", { customerId })
-          break
-        }
-
-        const pago = await prisma.pago.create({
-          data: {
-            clienteId: cliente.id,
-            paddleTransactionId: transactionId,
-            monto: Math.round(parseFloat(amount) * 100),
-            moneda: currencyCode,
-            estadoPago: "SUCCEEDED",
-          },
-        })
-
-        let servicioNombre = "servicio"
-
-        if (subscriptionId) {
-          const suscripcion = await prisma.suscripcion.findFirst({
-            where: { paddleSubscriptionId: subscriptionId },
-            include: { servicio: true },
+        if (suscripcion) {
+          await prisma.pago.update({
+            where: { id: pago.id },
+            data: { suscripcionId: suscripcion.id },
           })
-          if (suscripcion) {
-            await prisma.pago.update({
-              where: { id: pago.id },
-              data: { suscripcionId: suscripcion.id },
-            })
-            if (suscripcion.estado === "PENDING") {
-              await prisma.suscripcion.update({
-                where: { id: suscripcion.id },
-                data: { estado: "ACTIVE", proximoPago: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
-              })
-            }
-            servicioNombre = suscripcion.servicio.nombre
-          } else {
-            logger.warn("Suscripcion no encontrada", { paddleSubscriptionId: subscriptionId })
-          }
-        }
 
-        await sendPaymentReceipt(cliente.email, cliente.nombre, Math.round(parseFloat(amount) * 100), currencyCode, servicioNombre)
+          const updates: Record<string, unknown> = { proximoPago: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }
+          if (suscripcion.estado === "PENDING") {
+            updates.estado = "ACTIVE"
+          }
+          if (suscripcion.estado === "PAST_DUE") {
+            updates.estado = "ACTIVE"
+            updates.pastDueEn = null
+          }
+          await prisma.suscripcion.update({
+            where: { id: suscripcion.id },
+            data: updates,
+          })
+
+          servicioNombre = suscripcion.servicio.nombre
+        } else {
+          logger.warn("Suscripcion no encontrada", { paddleSubscriptionId: subscriptionId })
+        }
+      }
+
+      await sendPaymentReceipt(cliente.email, cliente.nombre, Math.round(parseFloat(amount) * 100), currencyCode, servicioNombre)
+    }
+
+    switch (eventType) {
+      case "transaction.completed":
+      case "transaction.paid": {
+        const txId = dataId
+        const txStatus = data.status as string
+        await handleTransaction(txId, txStatus, data)
         break
       }
 
@@ -180,23 +197,6 @@ export async function POST(req: Request) {
         break
       }
 
-      case "subscription.paused": {
-        const subIdPaused = dataId
-        await prisma.suscripcion.updateMany({
-          where: { paddleSubscriptionId: subIdPaused },
-          data: { estado: "PAUSED" },
-        })
-        break
-      }
-
-      case "subscription.resumed": {
-        const subIdResumed = dataId
-        await prisma.suscripcion.updateMany({
-          where: { paddleSubscriptionId: subIdResumed },
-          data: { estado: "ACTIVE" },
-        })
-        break
-      }
     }
 
     return NextResponse.json({ ok: true })

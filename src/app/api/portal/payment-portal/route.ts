@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 import { paddle } from "@/lib/payments"
+import { rateLimit } from "@/lib/rate-limit"
 import { logger } from "@/lib/logger"
 
 export async function POST() {
@@ -13,6 +14,11 @@ export async function POST() {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   }
   if (!userId) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+
+  const ip = "portal-session"
+  if (!rateLimit(`portal-session:${userId}`, 5, 60_000)) {
+    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 })
+  }
 
   const cliente = await prisma.cliente.findUnique({ where: { clerkUserId: userId } })
   if (!cliente?.paddleCustomerId) {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { paddle } from "@/lib/payments"
-import { sendPaymentReceipt, sendPaymentFailed, sendSubscriptionCanceled } from "@/lib/notifications"
+import { sendPaymentFailed, sendSubscriptionCanceled } from "@/lib/notifications"
 import { logger } from "@/lib/logger"
 const WEBHOOK_SECRET = process.env.PADDLE_WEBHOOK_SECRET ?? ""
 
@@ -53,12 +53,9 @@ export async function POST(req: Request) {
         },
       })
 
-      let servicioNombre = "servicio"
-
       if (subscriptionId) {
         const suscripcion = await prisma.suscripcion.findFirst({
           where: { paddleSubscriptionId: subscriptionId },
-          include: { servicio: true },
         })
         if (suscripcion) {
           await prisma.pago.update({
@@ -78,14 +75,10 @@ export async function POST(req: Request) {
             where: { id: suscripcion.id },
             data: updates,
           })
-
-          servicioNombre = suscripcion.servicio.nombre
         } else {
           logger.warn("Suscripcion no encontrada", { paddleSubscriptionId: subscriptionId })
         }
       }
-
-      await sendPaymentReceipt(cliente.email, cliente.nombre, Math.round(parseFloat(amount) * 100), currencyCode, servicioNombre)
     }
 
     switch (eventType) {

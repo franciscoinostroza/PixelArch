@@ -1,9 +1,9 @@
 # PixelArch — Estado del Proyecto
 
 **Ultima actualizacion:** Junio 2026
-**Build:** Excelente | **TypeScript:** 0 errores | **Rutas:** 27 compiladas | **Tests:** 60 pasando
-**Deploy Railway:** Online (commit 5dfe469) | **Nuevo deploy:** BLOQUEADO por infraestructura Railway (incidentes 9 Jun) | **BD:** PostgreSQL sincronizada | **Clerk:** Auth + Webhook svix | **Sanity:** Studio + Schemas + 9 docs | **Paddle:** Productos + Checkout + Webhooks
-**URL:** https://pixelarch-production.up.railway.app
+**Build:** Excelente | **TypeScript:** 0 errores | **Rutas:** 30 compiladas | **Tests:** 60 pasando
+**Deploy Railway:** Online | **BD:** PostgreSQL sincronizada | **Clerk:** Auth + Webhook svix | **Sanity:** Studio + Schemas + 9 docs | **Paddle:** 18 precios + Checkout + Webhooks (6 eventos)
+**URL:** https://pixelarch.dev
 
 ---
 
@@ -34,6 +34,9 @@
 | `/servicios` | Grid de 6 servicios con badge de precio ($30-60/mes) |
 | `/servicios/[slug]` | Detalle con precio + boton "Contratar" (Paddle Checkout overlay) |
 | `/gracias` | Pagina de agradecimiento |
+| `/terminos` | Terminos del servicio |
+| `/privacidad` | Politica de privacidad |
+| `/reembolsos` | Politica de reembolsos |
 | `/studio` | Sanity Studio embebido |
 
 ### Auth (Clerk)
@@ -66,7 +69,7 @@
 |------|--------|-----------|
 | `/api/contact` | POST | Form de contacto (Resend) |
 | `/api/payments/checkout` | POST | Datos para checkout Paddle (priceId + customer) |
-| `/api/webhooks/paddle` | POST | 6 eventos: transaction.completed/paid/payment_failed, subscription.created/updated/canceled/paused |
+| `/api/webhooks/paddle` | POST | 6 eventos: transaction.completed/paid/payment_failed, subscription.created/updated/canceled |
 | `/api/webhooks/clerk` | POST | Sync user.created/updated/deleted + welcome email |
 | `/api/admin/suscripciones` | PATCH | Admin: pause/resume/cancel suscripcion |
 | `/api/portal/cancel-subscription` | POST | Cliente: cancelar su propia suscripcion |
@@ -84,7 +87,7 @@
 | `payments.ts` | Singleton Paddle SDK (sandbox/prod) |
 | `resend.ts` | Singleton Resend (email) |
 | `validations.ts` | `contactSchema` (Zod) |
-| `notifications.ts` | 5 emails transaccionales con plain text fallback |
+| `notifications.ts` | 3 emails transaccionales (bienvenida, fallido, cancelacion) + Paddle receipts |
 | `rate-limit.ts` | Rate limiter en memoria (Map + timestamps) |
 | `logger.ts` | Logger estructurado JSON (niveles debug/info/warn/error) |
 | `env.ts` | Validacion de env vars al startup |
@@ -113,9 +116,9 @@
 ## Lo completado
 
 ### Pagos (Paddle)
-- 6 productos + 12 precios (mensual/anual) creados en Paddle
+- 6 productos + 18 precios (unico + basico + mantenimiento) en Paddle
 - `PADDLE_API_KEY`, `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`, `PADDLE_WEBHOOK_SECRET` en Railway
-- Webhook: 7 eventos configurados
+- Webhook: 6 eventos configurados (transaction.completed/paid/payment_failed, subscription.created/updated/canceled)
 - Checkout: boton "Contratar" en catalogo → Paddle overlay → pago → redirect portal
 - Customer portal: clientes pueden actualizar metodo de pago
 - Admin: pause/resume/cancel suscripciones desde UI
@@ -129,13 +132,13 @@
 - Login/registro con tema oscuro completo (10 variables + 20 elementos)
 - Webhook svix: sync user.created/updated/deleted → BD
 - Roles: admin (publicMetadata.role) vs cliente
-- Middleware: proxy.ts protege /admin, /portal; excluye webhooks, cron, revalidate
+- Middleware: middleware.ts protege /admin, /portal; excluye webhooks, cron, revalidate
 
-### Emails transaccionales (Resend)
-- Bienvenida (user.created)
-- Recibo de pago (transaction.completed)
-- Pago fallido (transaction.payment_failed)
-- Cancelacion (subscription.canceled)
+### Emails transaccionales (Resend + Paddle)
+- Bienvenida (user.created) — Resend
+- Recibo de pago (transaction.completed/paid) — Paddle (automatico)
+- Pago fallido (transaction.payment_failed) — Resend
+- Cancelacion (subscription.canceled) — Resend
 
 ### Automatizacion
 - `GET /api/cron/corte-servicios`: cancela suscripciones PAST_DUE > 30 dias
@@ -153,7 +156,7 @@
 
 ## Pendiente
 
-- [ ] Deploy: Railway bloqued (infra issue, incidentes 9 Jun 2026) — commit 5dfe469 sigue online
+- [ ] Product Website en Paddle apunta a Railway — esperando respuesta de soporte Paddle
 - [ ] Generar iconos PNG reales para PWA (reemplazar SVGs placeholder)
 
 ---
@@ -186,7 +189,7 @@ TypeScript — 0 errores
 Generating static pages (20/20)
 
 27 routes:
-  /, /servicios, /servicios/[slug], /gracias, /studio
+  /, /servicios, /servicios/[slug], /gracias, /studio, /terminos, /privacidad, /reembolsos
   /sign-in, /sign-up
   /portal, /portal/facturacion
   /admin/dashboard, /admin/clientes, /admin/clientes/[id], /admin/servicios, /admin/pagos

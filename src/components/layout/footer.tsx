@@ -25,8 +25,15 @@ export function Footer() {
             </Link>
           </div>
         </div>
-        <div className="mt-8 border-t border-border pt-6 text-center text-xs text-muted font-mono">
-          &copy; {new Date().getFullYear()} PixelArch. Todos los derechos reservados.
+        <div className="mt-8 border-t border-border pt-6 flex flex-col items-center gap-3 md:flex-row md:justify-between">
+          <div className="text-xs text-muted font-mono">
+            &copy; {new Date().getFullYear()} PixelArch. Todos los derechos reservados.
+          </div>
+          <div className="flex gap-4 text-xs text-muted font-mono">
+            <Link href="/terminos" className="hover:text-text transition-colors">Términos</Link>
+            <Link href="/privacidad" className="hover:text-text transition-colors">Privacidad</Link>
+            <Link href="/reembolsos" className="hover:text-text transition-colors">Reembolsos</Link>
+          </div>
         </div>
       </div>
     </footer>

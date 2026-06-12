@@ -33,9 +33,9 @@ model Servicio {
   precioBasico               Int
   precioMantenimiento        Int
 
-  polarProductIdUnico         String    @unique
-  polarProductIdBasico        String    @unique
-  polarProductIdMantenimiento String    @unique
+  polarProductIdUnico         String?   @unique
+  polarProductIdBasico        String?   @unique
+  polarProductIdMantenimiento String?   @unique
 
   activo                     Boolean   @default(true)
   orden                      Int       @default(0)
@@ -88,7 +88,7 @@ model Pago {
   id              String     @id @default(cuid())
   clienteId       String
   suscripcionId   String?
-  polarTransactionId String     @unique
+  polarTransactionId String?     @unique
   monto           Int
   moneda          String     @default("usd")
   estadoPago      EstadoPago

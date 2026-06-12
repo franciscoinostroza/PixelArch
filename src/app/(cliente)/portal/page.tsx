@@ -94,8 +94,12 @@ export default async function PortalPage({
 
               {s.estado === "READY" && (
                 <div className="flex gap-2 mb-3">
-                  <CheckoutButton polarProductId={s.servicio.polarProductIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label={`Basico ${price(s.servicio.precioBasico)}/mes`} />
-                  <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label={`Mant. ${price(s.servicio.precioMantenimiento)}/mes`} />
+                  {s.servicio.polarProductIdBasico && (
+                    <CheckoutButton polarProductId={s.servicio.polarProductIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label={`Basico ${price(s.servicio.precioBasico)}/mes`} />
+                  )}
+                  {s.servicio.polarProductIdMantenimiento && (
+                    <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label={`Mant. ${price(s.servicio.precioMantenimiento)}/mes`} />
+                  )}
                 </div>
               )}
 

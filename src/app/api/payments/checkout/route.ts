@@ -22,6 +22,9 @@ export async function POST(req: Request) {
       if (!servicio?.activo) {
         return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 })
       }
+      if (!servicio.polarProductIdUnico) {
+        return NextResponse.json({ error: "Producto no configurado" }, { status: 500 })
+      }
       productId = servicio.polarProductIdUnico
     }
 

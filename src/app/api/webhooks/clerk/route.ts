@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { Webhook } from "svix"
 import { prisma } from "@/lib/prisma"
 import { sendWelcomeEmail } from "@/lib/notifications"
 import { logger } from "@/lib/logger"
@@ -14,8 +15,12 @@ export async function POST(req: Request) {
     }
 
     const raw = await req.text()
-    const Webhook = require("svix").Webhook
-    const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET!)
+    const secret = process.env.CLERK_WEBHOOK_SECRET
+    if (!secret) {
+      logger.error("CLERK_WEBHOOK_SECRET no configurada")
+      return NextResponse.json({ error: "Error de configuracion" }, { status: 500 })
+    }
+    const wh = new Webhook(secret)
 
     let evt: { type: string; data: Record<string, unknown> }
     try {
@@ -68,11 +73,24 @@ export async function POST(req: Request) {
       case "user.deleted": {
         const clerkId = data.id as string
         try {
-          await prisma.cliente.update({
+          const cliente = await prisma.cliente.findUnique({
             where: { clerkUserId: clerkId },
-            data: { activo: false },
+            include: { suscripciones: { where: { estado: "ACTIVE" } } },
           })
-          logger.info("Cliente desactivado", { clerkUserId: clerkId })
+          if (cliente) {
+            await prisma.suscripcion.updateMany({
+              where: { clienteId: cliente.id, estado: "ACTIVE" },
+              data: { estado: "CANCELED", canceladoEn: new Date() },
+            })
+            await prisma.cliente.update({
+              where: { clerkUserId: clerkId },
+              data: { activo: false },
+            })
+            logger.info("Cliente desactivado y suscripciones canceladas", {
+              clerkUserId: clerkId,
+              subsCanceladas: cliente.suscripciones.length,
+            })
+          }
         } catch (e) {
           logger.error("Error desactivando cliente", { error: String(e), clerkUserId: clerkId })
         }

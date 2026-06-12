@@ -6,6 +6,7 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useUser } from "@clerk/nextjs"
 
 const links = [
   { href: "/", label: "Inicio" },
@@ -16,23 +17,9 @@ const links = [
 const hasClerkKey = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
 function AdminNavLink() {
-  const [isAdmin, setIsAdmin] = useState(false)
-
-  useEffect(() => {
-    const typedWindow = window as unknown as {
-      Clerk?: { user?: { publicMetadata?: { role?: string } } }
-    }
-    const check = setInterval(() => {
-      const role = typedWindow.Clerk?.user?.publicMetadata?.role
-      if (role === "admin") {
-        setIsAdmin(true)
-        clearInterval(check)
-      }
-    }, 500)
-    return () => clearInterval(check)
-  }, [])
-
-  if (!isAdmin) return null
+  const { user } = useUser()
+  const role = (user?.publicMetadata as { role?: string } | undefined)?.role
+  if (role !== "admin") return null
 
   return (
     <Link

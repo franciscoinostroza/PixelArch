@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { paddle } from "@/lib/payments"
+import { polar } from "@/lib/polar"
 import { getCurrentCliente } from "@/lib/auth"
 import { rateLimit } from "@/lib/rate-limit"
 import { logger } from "@/lib/logger"
@@ -12,22 +12,24 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { servicioId, paddlePriceId, successUrl } = await req.json()
+    const { servicioId, polarProductId, tipo } = await req.json()
 
-    let priceId = paddlePriceId as string | undefined
+    let productId = polarProductId as string | undefined
+    let plan: "UNICO" | "BASICO" | "MANTENIMIENTO" = "UNICO"
 
-    if (servicioId && !priceId) {
-      const servicio = await prisma.servicio.findUnique({
-        where: { id: servicioId },
-      })
+    if (servicioId && !productId) {
+      const servicio = await prisma.servicio.findUnique({ where: { id: servicioId } })
       if (!servicio?.activo) {
-        return NextResponse.json({ error: "Servicio no encontrado" }, { status: 404 })
+        return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 })
       }
-      priceId = servicio.paddlePriceIdUnico
+      productId = servicio.polarProductIdUnico
     }
 
-    if (!priceId) {
-      return NextResponse.json({ error: "paddlePriceId requerido" }, { status: 400 })
+    if (tipo === "BASICO") plan = "BASICO"
+    else if (tipo === "MANTENIMIENTO") plan = "MANTENIMIENTO"
+
+    if (!productId) {
+      return NextResponse.json({ error: "polarProductId requerido" }, { status: 400 })
     }
 
     let cliente
@@ -38,30 +40,42 @@ export async function POST(req: Request) {
     }
 
     let customerId: string | undefined
+    let customerEmail: string | undefined
+    let customerName: string | undefined
 
     if (cliente) {
-      if (cliente.paddleCustomerId) {
-        customerId = cliente.paddleCustomerId
+      customerEmail = cliente.email
+      customerName = cliente.nombre ?? undefined
+
+      if (cliente.polarCustomerId) {
+        customerId = cliente.polarCustomerId
       } else {
-        const paddleCustomer = await paddle().customers.create({
-          email: cliente.email,
-          name: cliente.nombre ?? undefined,
-        })
-        await prisma.cliente.update({
-          where: { id: cliente.id },
-          data: { paddleCustomerId: paddleCustomer.id },
-        })
-        customerId = paddleCustomer.id
+        try {
+          const c = await polar().customers.create({
+            email: cliente.email,
+            name: cliente.nombre ?? undefined,
+          })
+          await prisma.cliente.update({
+            where: { id: cliente.id },
+            data: { polarCustomerId: c.id },
+          })
+          customerId = c.id
+        } catch {
+          // Polar might create customer on checkout
+        }
       }
     }
 
-    logger.info("Checkout data generated", { priceId, customerId: !!customerId })
-
-    return NextResponse.json({
-      paddlePriceId: priceId,
-      customerId,
-      successUrl: successUrl ?? `${process.env.NEXT_PUBLIC_URL}/portal?success=true`,
+    const checkout = await polar().checkouts.create({
+      products: [productId],
+      successUrl: `${process.env.NEXT_PUBLIC_URL}/portal?success=true`,
+      ...(customerEmail ? { customerEmail, customerName } : {}),
+      ...(customerId ? { customerId } : {}),
+      metadata: { plan },
     })
+
+    logger.info("Checkout session created", { checkoutId: checkout.id, productId })
+    return NextResponse.json({ url: checkout.url })
   } catch (error) {
     logger.error("Error creando checkout", { error: String(error) })
     return NextResponse.json({ error: "Error creando checkout" }, { status: 500 })

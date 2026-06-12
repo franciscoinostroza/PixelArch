@@ -2,7 +2,7 @@
 
 **Ultima actualizacion:** Junio 2026
 **Build:** Excelente | **TypeScript:** 0 errores | **Rutas:** 30 compiladas | **Tests:** 60 pasando
-**Deploy Railway:** Online | **BD:** PostgreSQL sincronizada | **Clerk:** Auth + Webhook svix | **Sanity:** Studio + Schemas + 9 docs | **Paddle:** 18 precios + Checkout + Webhooks (6 eventos)
+**Deploy Railway:** Online | **BD:** PostgreSQL sincronizada | **Clerk:** Auth + Webhook svix | **Sanity:** Studio + Schemas + 9 docs | **Polar.sh:** 18 productos + Checkout + Webhooks
 **URL:** https://pixelarch.dev
 
 ---
@@ -16,7 +16,7 @@
 | Clerk | v7 | `Show`, `ClerkProvider`, svix webhooks |
 | Prisma | 7 | adapter `@prisma/adapter-pg` |
 | Sanity | v5 | Studio embebido en `/studio` |
-| Paddle | SDK v3 | Pagos internacionales, suscripciones |
+| Polar.sh | SDK v0.48 | Pagos internacionales, suscripciones (MoR) |
 | Resend | v6 | Emails transaccionales |
 | Sentry | 10.57 | Error tracking (condicional a SENTRY_DSN) |
 | Vitest | 3.2.6 | Testing (60 tests) |
@@ -32,7 +32,7 @@
 |------|---------|
 | `/` | Hero + Stats + Services (con precios) + Process + ContactForm |
 | `/productos` | Grid de 6 productos con badge de precio ($30-60/mes) |
-| `/productos/[slug]` | Detalle con precio + boton "Contratar" (Paddle Checkout overlay) |
+| `/productos/[slug]` | Detalle con precio + boton "Contratar" (Polar.sh checkout) |
 | `/gracias` | Pagina de agradecimiento |
 | `/terminos` | Terminos del servicio |
 | `/privacidad` | Politica de privacidad |
@@ -50,7 +50,7 @@
 
 | Ruta | Funcionalidad |
 |------|--------------|
-| `/portal` | Suscripciones activas, banner exito/fallido, cancelar suscripcion, link Paddle portal |
+| `/portal` | Suscripciones activas, banner exito/fallido, cancelar suscripcion, link Polar portal |
 | `/portal/facturacion` | Historial de pagos con paginacion (20/pag) |
 
 ### Admin (requiere rol "admin")
@@ -68,12 +68,12 @@
 | Ruta | Metodo | Proposito |
 |------|--------|-----------|
 | `/api/contact` | POST | Form de contacto (Resend) |
-| `/api/payments/checkout` | POST | Datos para checkout Paddle (priceId + customer) |
-| `/api/webhooks/paddle` | POST | 6 eventos: transaction.completed/paid/payment_failed, subscription.created/updated/canceled |
+| `/api/payments/checkout` | POST | Crea checkout session en Polar.sh |
+| `/api/webhooks/polar` | POST | 7 eventos: order.paid, subscription.* |
 | `/api/webhooks/clerk` | POST | Sync user.created/updated/deleted + welcome email |
 | `/api/admin/suscripciones` | PATCH | Admin: pause/resume/cancel suscripcion |
 | `/api/portal/cancel-subscription` | POST | Cliente: cancelar su propia suscripcion |
-| `/api/portal/payment-portal` | POST | Cliente: sesion del customer portal de Paddle |
+| `/api/portal/payment-portal` | POST | Cliente: sesion del customer portal de Polar |
 | `/api/cron/corte-servicios` | GET | Corte automatico de suscripciones morosas (+30 dias) |
 | `/api/revalidate` | POST | ISR on-demand |
 | `/api/health` | GET | Health check con status de DB |
@@ -84,10 +84,10 @@
 |---------|-----------------|
 | `prisma.ts` | Singleton PrismaClient con adapter Pg |
 | `sanity.ts` | Cliente Sanity + `sanityFetch()` generico |
-| `payments.ts` | Singleton Paddle SDK (sandbox/prod) |
+| `polar.ts` | Singleton Polar SDK |
 | `resend.ts` | Singleton Resend (email) |
 | `validations.ts` | `contactSchema` (Zod) |
-| `notifications.ts` | 3 emails transaccionales (bienvenida, fallido, cancelacion) + Paddle receipts |
+| `notifications.ts` | 3 emails transaccionales (bienvenida, fallido, cancelacion) |
 | `rate-limit.ts` | Rate limiter en memoria (Map + timestamps) |
 | `logger.ts` | Logger estructurado JSON (niveles debug/info/warn/error) |
 | `env.ts` | Validacion de env vars al startup |
@@ -103,11 +103,10 @@
 | `input.tsx` | Input estilizado |
 | `textarea.tsx` | Textarea estilizado |
 | `section-label.tsx` | Label de seccion |
-| `checkout-button.tsx` | Client: abre Paddle.Checkout.open() |
+| `checkout-button.tsx` | Client: redirect a Polar checkout |
 | `cancel-subscription-button.tsx` | Client: cancelar suscripcion con confirmacion |
-| `subscription-actions.tsx` | Client: Pausar/Reanudar/Cancelar (admin) |
-| `payment-portal-link.tsx` | Client: abre customer portal de Paddle |
-| `paddle-script.tsx` | Inicializa Paddle.js con client token |
+| `subscription-actions.tsx` | Client: Pausar/Cancelar (admin) |
+| `payment-portal-link.tsx` | Client: abre customer portal de Polar |
 | `portal-nav.tsx` | Nav del portal con link activo |
 | `portal-user-button.tsx` | UserButton de Clerk en portal |
 
@@ -115,13 +114,13 @@
 
 ## Lo completado
 
-### Pagos (Paddle)
-- 6 productos + 18 precios (unico + basico + mantenimiento) en Paddle
-- `PADDLE_API_KEY`, `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`, `PADDLE_WEBHOOK_SECRET` en Railway
-- Webhook: 6 eventos configurados (transaction.completed/paid/payment_failed, subscription.created/updated/canceled)
-- Checkout: boton "Contratar" en catalogo → Paddle overlay → pago → redirect portal
-- Customer portal: clientes pueden actualizar metodo de pago
-- Admin: pause/resume/cancel suscripciones desde UI
+### Pagos (Polar.sh)
+- 18 productos en Polar.sh (6 servicios × 3 planes)
+- `POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET` en Railway
+- Webhook: 8 eventos (order.paid, subscription.*)
+- Checkout: boton "Contratar" → redirect a Polar checkout → vuelve a /portal
+- Customer portal: Polar customer sessions
+- Admin: cancel suscripciones desde UI
 
 ### Base de datos (Prisma)
 - 4 modelos: Cliente, Servicio, Suscripcion, Pago
@@ -134,11 +133,10 @@
 - Roles: admin (publicMetadata.role) vs cliente
 - Middleware: middleware.ts protege /admin, /portal; excluye webhooks, cron, revalidate
 
-### Emails transaccionales (Resend + Paddle)
+### Emails transaccionales (Resend)
 - Bienvenida (user.created) — Resend
-- Recibo de pago (transaction.completed/paid) — Paddle (automatico)
-- Pago fallido (transaction.payment_failed) — Resend
-- Cancelacion (subscription.canceled) — Resend
+- Pago fallido — Resend
+- Cancelacion — Resend
 
 ### Automatizacion
 - `GET /api/cron/corte-servicios`: cancela suscripciones PAST_DUE > 30 dias
@@ -156,7 +154,7 @@
 
 ## Pendiente
 
-- [ ] Product Website en Paddle apunta a Railway — esperando respuesta de soporte Paddle
+- [ ] Correr `npx tsx src/scripts/seed-polar.ts` con POLAR_ACCESS_TOKEN para crear 18 productos
 - [ ] Generar iconos PNG reales para PWA (reemplazar SVGs placeholder)
 
 ---
@@ -192,7 +190,7 @@ Generating static pages (20/20)
   /, /productos, /productos/[slug], /gracias, /studio, /terminos, /privacidad, /reembolsos
 
   /admin/dashboard, /admin/clientes, /admin/clientes/[id], /admin/servicios, /admin/pagos
-  /api/contact, /api/payments/checkout, /api/webhooks/paddle, /api/webhooks/clerk
+  /api/contact, /api/payments/checkout, /api/webhooks/polar, /api/webhooks/clerk
   /api/admin/suscripciones, /api/portal/cancel-subscription, /api/portal/payment-portal
   /api/cron/corte-servicios, /api/revalidate, /api/health
   /sitemap.xml, /robots.txt

@@ -50,7 +50,7 @@ export default async function ClienteDetalle({
     where: { id },
     include: {
       suscripciones: {
-        include: { servicio: { select: { nombre: true, precioUnico: true, precioBasico: true, precioMantenimiento: true, paddlePriceIdBasico: true, paddlePriceIdMantenimiento: true, paddlePriceIdUnico: true } } },
+        include: { servicio: { select: { nombre: true, precioUnico: true, precioBasico: true, precioMantenimiento: true, polarProductIdBasico: true, polarProductIdMantenimiento: true, polarProductIdUnico: true } } },
         orderBy: { creadoEn: "desc" },
       },
       pagos: {
@@ -98,8 +98,8 @@ export default async function ClienteDetalle({
               <p className="text-text">{new Date(cliente.creadoEn).toLocaleDateString("es-AR")}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.1em] text-[#4a5568] mb-1">Paddle ID</p>
-              <p className="text-muted text-[11px] truncate">{cliente.paddleCustomerId || "—"}</p>
+              <p className="text-[10px] uppercase tracking-[0.1em] text-[#4a5568] mb-1">Polar ID</p>
+              <p className="text-muted text-[11px] truncate">{cliente.polarCustomerId || "—"}</p>
             </div>
           </div>
         </div>

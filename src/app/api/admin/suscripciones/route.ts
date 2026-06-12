@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { paddle } from "@/lib/payments"
+import { polar } from "@/lib/polar"
 import { requireAdmin } from "@/lib/auth"
 import { rateLimit } from "@/lib/rate-limit"
 import { logger } from "@/lib/logger"
@@ -15,50 +15,34 @@ export async function PATCH(req: Request) {
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 })
 
   try {
-    const { suscripcionId, accion, deploymentId, deploymentPlatform } = await req.json()
+    const { suscripcionId, accion } = await req.json()
 
     if (!suscripcionId) {
       return NextResponse.json({ error: "suscripcionId requerido" }, { status: 400 })
     }
 
-    if (accion === "update-deploy") {
-      await prisma.suscripcion.update({
-        where: { id: suscripcionId },
-        data: { deploymentId: deploymentId ?? null, deploymentPlatform: deploymentPlatform ?? null },
-      })
-      return NextResponse.json({ ok: true })
-    }
-
     const suscripcion = await prisma.suscripcion.findUnique({
       where: { id: suscripcionId },
-      select: { paddleSubscriptionId: true },
+      select: { polarSubscriptionId: true },
     })
 
-    if (!suscripcion?.paddleSubscriptionId) {
+    if (!suscripcion?.polarSubscriptionId) {
       return NextResponse.json({ error: "Esta suscripcion no tiene plan mensual" }, { status: 400 })
     }
 
-    const subId = suscripcion.paddleSubscriptionId
+    const subId = suscripcion.polarSubscriptionId
 
     switch (accion) {
       case "pause": {
-        await paddle().subscriptions.pause(subId, { effectiveFrom: "immediately" })
+        await polar().subscriptions.revoke({ id: subId })
         await prisma.suscripcion.update({
           where: { id: suscripcionId },
           data: { estado: "PAUSED" },
         })
         break
       }
-      case "resume": {
-        await paddle().subscriptions.resume(subId, { effectiveFrom: "immediately" })
-        await prisma.suscripcion.update({
-          where: { id: suscripcionId },
-          data: { estado: "ACTIVE" },
-        })
-        break
-      }
       case "cancel": {
-        await paddle().subscriptions.cancel(subId)
+        await polar().subscriptions.revoke({ id: subId })
         await prisma.suscripcion.update({
           where: { id: suscripcionId },
           data: { estado: "CANCELED", canceladoEn: new Date() },

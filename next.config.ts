@@ -2,12 +2,12 @@ import type { NextConfig } from "next"
 
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev https://cdn.paddle.com",
+  "script-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://img.clerk.com https://cdn.sanity.io",
   "font-src 'self'",
-  "connect-src 'self' https://*.clerk.accounts.dev https://*.paddle.com https://*.sanity.io https://api.resend.com",
-  "frame-src 'self' https://*.clerk.accounts.dev https://*.paddle.com",
+  "connect-src 'self' https://*.clerk.accounts.dev https://*.sanity.io https://api.resend.com https://api.polar.sh",
+  "frame-src 'self' https://*.clerk.accounts.dev https://checkout.polar.sh",
   "frame-ancestors 'none'",
   "form-action 'self'",
   "base-uri 'self'",

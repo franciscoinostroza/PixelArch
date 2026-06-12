@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
-import { paddle } from "@/lib/payments"
+import { polar } from "@/lib/polar"
 import { rateLimit } from "@/lib/rate-limit"
 import { logger } from "@/lib/logger"
 
@@ -29,14 +29,14 @@ export async function POST(req: Request) {
   const suscripcion = await prisma.suscripcion.findUnique({
     where: { id: suscripcionId, clienteId: cliente.id },
   })
-  if (!suscripcion?.paddleSubscriptionId) {
+  if (!suscripcion?.polarSubscriptionId) {
     return NextResponse.json({ error: "Esta suscripcion no se puede cancelar por API" }, { status: 400 })
   }
 
-  const subId = suscripcion.paddleSubscriptionId
+  const subId = suscripcion.polarSubscriptionId
 
   try {
-    await paddle().subscriptions.cancel(subId)
+    await polar().subscriptions.revoke({ id: subId })
     await prisma.suscripcion.update({
       where: { id: suscripcionId },
       data: { estado: "CANCELED", canceladoEn: new Date() },

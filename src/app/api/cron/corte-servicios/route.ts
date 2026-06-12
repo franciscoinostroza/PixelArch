@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { resend } from "@/lib/resend"
 import { logger } from "@/lib/logger"
-import { paddle } from "@/lib/payments"
+import { polar } from "@/lib/polar"
 
 export const dynamic = "force-dynamic"
 
@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 
   try {
     const morosos = await prisma.suscripcion.findMany({
-      where: { estado: "PAST_DUE", paddleSubscriptionId: { not: null } },
+      where: { estado: "PAST_DUE", polarSubscriptionId: { not: null } },
       include: { cliente: true, servicio: true },
     })
 
@@ -26,7 +26,7 @@ export async function GET(req: Request) {
         : 0
 
       if (daysSincePastDue >= 30) {
-        await paddle().subscriptions.cancel(sub.paddleSubscriptionId!)
+        await polar().subscriptions.revoke({ id: sub.polarSubscriptionId! })
         await prisma.suscripcion.update({
           where: { id: sub.id },
           data: { estado: "CANCELED", canceladoEn: now },

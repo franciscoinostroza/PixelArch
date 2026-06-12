@@ -1,53 +1,39 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
-import { paddleReady } from "@/components/ui/paddle-script"
 
 type PlanTipo = "UNICO" | "BASICO" | "MANTENIMIENTO"
 
 interface CheckoutButtonProps {
-  paddlePriceId: string
+  polarProductId: string
   servicioNombre: string
   tipo?: PlanTipo
   label?: string
 }
 
-export function CheckoutButton({ paddlePriceId, tipo = "UNICO", label }: CheckoutButtonProps) {
+export function CheckoutButton({ polarProductId, tipo = "UNICO", label }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const openRef = useRef(false)
 
   async function handleCheckout() {
-    if (openRef.current) return
-    openRef.current = true
     setLoading(true)
     setError(null)
     try {
-      const paddle = await paddleReady
-      if (!paddle) { setError("Error de conexion con el procesador de pagos. Recargá la pagina."); setLoading(false); openRef.current = false; return }
-
       const res = await fetch("/api/payments/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paddlePriceId }),
+        body: JSON.stringify({ polarProductId, tipo }),
       })
       const data = await res.json()
-      if (data.error) { console.error(data.error); setError(data.error); return }
-
-      paddle.Checkout.open({
-        items: [{ priceId: data.paddlePriceId, quantity: 1 }],
-        ...(data.customerId ? { customer: { id: data.customerId } } : {}),
-        settings: { displayMode: "overlay", successUrl: data.successUrl },
-        customData: { tipo },
-      })
+      if (data.error) { setError(data.error); return }
+      window.location.href = data.url
     } catch (e) {
       console.error(e)
       setError("Error inesperado. Intenta de nuevo.")
     } finally {
       setLoading(false)
-      openRef.current = false
     }
   }
 

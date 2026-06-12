@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
-import { paddle } from "@/lib/payments"
+import { polar } from "@/lib/polar"
 import { rateLimit } from "@/lib/rate-limit"
 import { logger } from "@/lib/logger"
 
@@ -21,17 +21,16 @@ export async function POST() {
   }
 
   const cliente = await prisma.cliente.findUnique({ where: { clerkUserId: userId } })
-  if (!cliente?.paddleCustomerId) {
-    return NextResponse.json({ error: "Sin cliente en Paddle" }, { status: 400 })
+  if (!cliente?.polarCustomerId) {
+    return NextResponse.json({ error: "Sin cliente en Polar" }, { status: 400 })
   }
 
   try {
-    const session = await paddle().customerPortalSessions.create(
-      cliente.paddleCustomerId,
-      [],
-    )
-    logger.info("Payment portal session created", { clienteId: cliente.id })
-    return NextResponse.json({ url: session.urls.general.overview })
+    const session = await polar().customerSessions.create({
+      customerId: cliente.polarCustomerId,
+    })
+    logger.info("Customer portal session created", { clienteId: cliente.id })
+    return NextResponse.json({ url: session.customerPortalUrl })
   } catch (error) {
     logger.error("Error creando portal session", { error: String(error) })
     return NextResponse.json({ error: "Error creando portal" }, { status: 500 })

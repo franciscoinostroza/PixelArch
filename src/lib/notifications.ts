@@ -17,7 +17,7 @@ export async function sendWelcomeEmail(email: string, nombre: string) {
   await sendEmail(
     email,
     "Bienvenido a PixelArch",
-    `Hola ${nombre},\n\nGracias por registrarte en PixelArch. Ya podes explorar nuestros servicios y contratar el que mejor se adapte a tu negocio.\n\nSaludos,\nEquipo PixelArch`
+    `Hola ${nombre},\n\nGracias por registrarte en PixelArch. Ya podes explorar nuestros productos y contratar el que mejor se adapte a tu negocio.\n\nSaludos,\nEquipo PixelArch`
   )
 }
 
@@ -59,6 +59,6 @@ export async function sendSubscriptionCanceled(
   await sendEmail(
     email,
     `Suscripcion cancelada — ${servicio}`,
-    `Hola ${nombre},\n\nTu suscripcion a ${servicio} fue cancelada. Si fue un error, podes volver a contratarla cuando quieras desde nuestro catalogo.\n\nSaludos,\nEquipo PixelArch`
+    `Hola ${nombre},\n\nTu suscripcion a ${servicio} fue cancelada. Si fue un error, podes volver a contratarla cuando quieras desde nuestro catalogo.\n\nVer productos: ${process.env.NEXT_PUBLIC_URL}/productos\n\nSaludos,\nEquipo PixelArch`
   )
 }

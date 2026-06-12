@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import { Syne, DM_Mono } from "next/font/google"
 import { ClerkProvider } from "@clerk/nextjs"
-import { PaddleScript } from "@/components/ui/paddle-script"
 import { registerShutdown } from "@/lib/shutdown"
 import "./globals.css"
 
@@ -94,7 +93,6 @@ export default function RootLayout({
       className={`${syne.variable} ${dmMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <PaddleScript />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

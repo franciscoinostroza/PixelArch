@@ -81,7 +81,7 @@ export default function RootLayout({
           "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio.",
         potentialAction: {
           "@type": "SearchAction",
-          target: `${baseUrl}/servicios?q={search_term_string}`,
+          target: `${baseUrl}/productos?q={search_term_string}`,
           "query-input": "required name=search_term_string",
         },
       },

@@ -31,8 +31,8 @@
 | Ruta | Funcion |
 |------|---------|
 | `/` | Hero + Stats + Services (con precios) + Process + ContactForm |
-| `/servicios` | Grid de 6 servicios con badge de precio ($30-60/mes) |
-| `/servicios/[slug]` | Detalle con precio + boton "Contratar" (Paddle Checkout overlay) |
+| `/productos` | Grid de 6 productos con badge de precio ($30-60/mes) |
+| `/productos/[slug]` | Detalle con precio + boton "Contratar" (Paddle Checkout overlay) |
 | `/gracias` | Pagina de agradecimiento |
 | `/terminos` | Terminos del servicio |
 | `/privacidad` | Politica de privacidad |
@@ -60,7 +60,7 @@
 | `/admin/dashboard` | 4 metricas (ingresos mes, clientes, suscripciones, vencidos) + ultimos clientes + chart estados |
 | `/admin/clientes` | Lista paginada (20/pag) con busqueda (nombre/email/empresa) |
 | `/admin/clientes/[id]` | Datos cliente + suscripciones con botones Pausar/Reanudar/Cancelar + historial pagos |
-| `/admin/servicios` | Catalogo desde Prisma con precios y estado activo/inactivo |
+| `/admin/servicios` | Catalogo de productos desde Prisma con precios y estado activo/inactivo |
 | `/admin/pagos` | Historial con filtros (estado, rango fechas) + paginacion (20/pag) |
 
 ### API Routes
@@ -189,9 +189,8 @@ TypeScript — 0 errores
 Generating static pages (20/20)
 
 27 routes:
-  /, /servicios, /servicios/[slug], /gracias, /studio, /terminos, /privacidad, /reembolsos
-  /sign-in, /sign-up
-  /portal, /portal/facturacion
+  /, /productos, /productos/[slug], /gracias, /studio, /terminos, /privacidad, /reembolsos
+
   /admin/dashboard, /admin/clientes, /admin/clientes/[id], /admin/servicios, /admin/pagos
   /api/contact, /api/payments/checkout, /api/webhooks/paddle, /api/webhooks/clerk
   /api/admin/suscripciones, /api/portal/cancel-subscription, /api/portal/payment-portal

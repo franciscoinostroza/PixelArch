@@ -17,7 +17,7 @@ const sections = [
     label: "Gestion",
     items: [
       { href: "/admin/clientes", label: "Clientes", icon: Users },
-      { href: "/admin/servicios", label: "Servicios", icon: Wrench },
+      { href: "/admin/servicios", label: "Productos", icon: Wrench },
       { href: "/admin/pagos", label: "Pagos", icon: CreditCard },
     ],
   },

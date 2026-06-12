@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Servicios — PixelArch",
-  description: "Conoce todos nuestros servicios: desarrollo web, chatbots, agentes de IA y mas.",
+  title: "Productos — PixelArch",
+  description: "Conoce todos nuestros productos: desarrollo web, chatbots, agentes de IA y mas.",
 }
 
 const SERVICIOS_QUERY = `*[_type == "servicio" && activo == true] | order(orden asc) {
@@ -31,7 +31,7 @@ function priceLabel(s: { precioUnico: number; precioBasico: number }) {
   return `Desde ${formatPrice(s.precioBasico)}/mes`
 }
 
-export default async function ServiciosPage() {
+export default async function ProductosPage() {
   const servicios = await sanityFetch<
     { titulo: string; slug: string; descripcion: string; icono: string; tags: string[]; precioUnico: number; precioBasico: number; precioMantenimiento: number }[]
   >(SERVICIOS_QUERY)
@@ -39,19 +39,19 @@ export default async function ServiciosPage() {
   return (
     <div className="mx-auto max-w-7xl px-6 py-24">
       <div className="text-center">
-        <SectionLabel>Servicios</SectionLabel>
+        <SectionLabel>Productos</SectionLabel>
         <h1 className="mt-4 text-4xl font-bold text-text font-display md:text-6xl">
           Soluciones a medida
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-muted font-mono">
-          Elegi el servicio que mejor se adapte a tu negocio. Todos incluyen
+          Elegi el producto que mejor se adapte a tu negocio. Todos incluyen
           soporte y mantenimiento.
         </p>
       </div>
 
       <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {servicios?.map((s) => (
-          <Link key={s.slug} href={`/servicios/${s.slug}`}>
+          <Link key={s.slug} href={`/productos/${s.slug}`}>
             <Card className="h-full transition-colors hover:border-accent/30">
               <CardHeader>
                 <span className="text-3xl">{s.icono || "⚡"}</span>

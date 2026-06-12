@@ -19,11 +19,11 @@ export default function WelcomeEmail({ nombre }: WelcomeEmailProps) {
           <Text style={paragraph}>Hola {nombre},</Text>
           <Text style={paragraph}>
             Gracias por registrarte en PixelArch. Ya podes explorar nuestros
-            servicios y contratar el que mejor se adapte a tu negocio.
+            productos y contratar el que mejor se adapte a tu negocio.
           </Text>
           <Section style={btnContainer}>
-            <Link style={button} href={`${baseUrl}/servicios`}>
-              Ver servicios
+            <Link style={button} href={`${baseUrl}/productos`}>
+              Ver productos
             </Link>
           </Section>
           <Hr style={hr} />

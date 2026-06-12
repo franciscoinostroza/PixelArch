@@ -20,7 +20,7 @@ export async function generateMetadata({
 }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
   const s = await sanityFetch<{ titulo: string; descripcion: string } | null>(SERVICIO_QUERY, { slug })
-  if (!s) return { title: "Servicio no encontrado" }
+  if (!s) return { title: "Producto no encontrado" }
   return { title: `${s.titulo} — PixelArch`, description: s.descripcion }
 }
 
@@ -33,7 +33,7 @@ const SLUG_TO_ID: Record<string, string> = {
   "integraciones": "servicio-integraciones",
 }
 
-export default async function ServicioPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ProductoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const [servicioSanity, servicioDB] = await Promise.all([
     sanityFetch<{ titulo: string; slug: string; descripcion: string; icono: string; tags: string[] } | null>(SERVICIO_QUERY, { slug }),
@@ -46,7 +46,7 @@ export default async function ServicioPage({ params }: { params: Promise<{ slug:
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-24">
-      <Link href="/servicios" className="inline-flex items-center gap-2 text-sm text-muted font-mono hover:text-text transition-colors mb-8">
+      <Link href="/productos" className="inline-flex items-center gap-2 text-sm text-muted font-mono hover:text-text transition-colors mb-8">
         <ArrowLeft size={16} /> Volver
       </Link>
 

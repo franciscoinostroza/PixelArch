@@ -6,7 +6,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const entries: MetadataRoute.Sitemap = [
     { url: baseUrl, lastModified: new Date(), changeFrequency: "weekly", priority: 1 },
-    { url: `${baseUrl}/servicios`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/productos`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.8 },
     { url: `${baseUrl}/gracias`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.3 },
     { url: `${baseUrl}/terminos`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.3 },
     { url: `${baseUrl}/privacidad`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.3 },
@@ -20,7 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (slugs) {
     for (const s of slugs) {
       entries.push({
-        url: `${baseUrl}/servicios/${s.slug}`,
+        url: `${baseUrl}/productos/${s.slug}`,
         lastModified: new Date(),
         changeFrequency: "monthly",
         priority: 0.6,

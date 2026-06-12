@@ -65,14 +65,14 @@ export default async function PortalPage({
 
       <div className="mb-5 flex items-center justify-between">
         <p className="font-display text-[0.95rem] font-bold">Mis servicios</p>
-        <Link href="/servicios" className="text-xs font-mono text-accent hover:underline">+ Agregar servicio</Link>
+        <Link href="/productos" className="text-xs font-mono text-accent hover:underline">+ Agregar producto</Link>
       </div>
 
       <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {suscripciones.length === 0 && (
-          <Link href="/servicios" className="col-span-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/40 px-6 py-12 transition-colors hover:border-accent/40 hover:bg-accent/[0.04]">
+          <Link href="/productos" className="col-span-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/40 px-6 py-12 transition-colors hover:border-accent/40 hover:bg-accent/[0.04]">
             <span className="text-2xl text-[#4a5568]">+</span>
-            <span className="text-[13px] text-[#4a5568]">Agregar un<br />nuevo servicio</span>
+            <span className="text-[13px] text-[#4a5568]">Agregar un<br />nuevo producto</span>
           </Link>
         )}
 
@@ -115,9 +115,9 @@ export default async function PortalPage({
         })}
 
         {suscripciones.length > 0 && (
-          <Link href="/servicios" className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/40 px-6 py-3 transition-colors hover:border-accent/40 hover:bg-accent/[0.04]">
+          <Link href="/productos" className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/40 px-6 py-3 transition-colors hover:border-accent/40 hover:bg-accent/[0.04]">
             <span className="text-xl text-[#4a5568]">+</span>
-            <span className="text-[13px] text-[#4a5568] text-center">Agregar un<br />nuevo servicio</span>
+            <span className="text-[13px] text-[#4a5568] text-center">Agregar un<br />nuevo producto</span>
           </Link>
         )}
       </div>

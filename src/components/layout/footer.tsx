@@ -17,8 +17,8 @@ export function Footer() {
             <Link href="/" className="hover:text-text transition-colors">
               Inicio
             </Link>
-            <Link href="/servicios" className="hover:text-text transition-colors">
-              Servicios
+            <Link href="/productos" className="hover:text-text transition-colors">
+              Productos
             </Link>
             <Link href="/#contacto" className="hover:text-text transition-colors">
               Contacto

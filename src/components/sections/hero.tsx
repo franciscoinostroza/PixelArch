@@ -14,7 +14,7 @@ export function Hero({
   titulo = "Impulsa tu negocio con tecnología inteligente",
   subtitulo = "Desarrollamos sitios web, chatbots, agentes de IA y automatizaciones que transforman tu empresa.",
   ctaPrimario = "Comenzar ahora",
-  ctaSecundario = "Ver servicios",
+  ctaSecundario = "Ver productos",
 }: HeroProps) {
   return (
     <section className="relative overflow-hidden px-6 pb-20 pt-32 md:pt-44">
@@ -34,7 +34,7 @@ export function Hero({
             {ctaPrimario} <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
           <Link
-            href="/servicios"
+            href="/productos"
             className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
           >
             {ctaSecundario}

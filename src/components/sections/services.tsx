@@ -20,9 +20,9 @@ interface ServicesProps {
 
 export function Services({ servicios }: ServicesProps) {
   return (
-    <section id="servicios" className="mx-auto max-w-7xl px-6 py-24">
+    <section id="productos" className="mx-auto max-w-7xl px-6 py-24">
       <div className="text-center">
-        <SectionLabel>Servicios</SectionLabel>
+        <SectionLabel>Productos</SectionLabel>
         <h2 className="mt-4 text-3xl font-bold text-text font-display md:text-5xl">
           Soluciones a medida
         </h2>
@@ -34,7 +34,7 @@ export function Services({ servicios }: ServicesProps) {
 
       <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {servicios.map((s) => (
-          <Link key={s.slug} href={`/servicios/${s.slug}`}>
+          <Link key={s.slug} href={`/productos/${s.slug}`}>
             <Card className="h-full transition-colors hover:border-accent/30">
               <CardHeader>
                 <span className="text-3xl">{s.icono || "⚡"}</span>

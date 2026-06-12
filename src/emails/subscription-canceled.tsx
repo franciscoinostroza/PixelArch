@@ -26,8 +26,8 @@ export default function SubscriptionCanceled({
             catalogo.
           </Text>
           <Section style={btnContainer}>
-            <Link style={button} href={`${baseUrl}/servicios`}>
-              Ver servicios
+            <Link style={button} href={`${baseUrl}/productos`}>
+              Ver productos
             </Link>
           </Section>
           <Hr style={hr} />

@@ -38,7 +38,7 @@ export async function GET(req: Request) {
             from: "PixelArch <hola@pixelarch.dev>",
             to: sub.cliente.email,
             subject: `Suscripcion cancelada por falta de pago — ${sub.servicio.nombre}`,
-            text: `Hola ${sub.cliente.nombre},\n\nTu suscripcion a ${sub.servicio.nombre} fue cancelada por falta de pago despues de 30 dias. Si queres recuperarla, podes contratarla nuevamente desde nuestro catalogo.\n\n${process.env.NEXT_PUBLIC_URL}/servicios\n\nEquipo PixelArch`,
+            text: `Hola ${sub.cliente.nombre},\n\nTu suscripcion a ${sub.servicio.nombre} fue cancelada por falta de pago despues de 30 dias. Si queres recuperarla, podes contratarla nuevamente desde nuestro catalogo.\n\n${process.env.NEXT_PUBLIC_URL}/productos\n\nEquipo PixelArch`,
           })
         }
 

@@ -70,6 +70,12 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
               <CheckoutButton polarProductId={servicioDB.polarProductIdUnico} servicioNombre={servicioSanity.titulo} tipo="UNICO" label={`Contratar ${servicioSanity.titulo}`} />
             )}
           </div>
+
+          <div className="mt-4 rounded-xl border border-border/50 bg-bg2/50 p-5 text-[13px] text-muted leading-relaxed">
+            <span className="text-accent font-semibold">ℹ️ Después de la entrega</span>
+            <br />
+            El proyecto se entrega completo con el pago único. Para mantenerlo activo mes a mes con cambios, soporte y actualizaciones, podés activar el plan de mantenimiento desde tu portal. Sin mantenimiento, el servicio no recibe soporte después del primer mes.
+          </div>
         </div>
       )}
     </div>

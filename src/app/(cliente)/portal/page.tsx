@@ -92,21 +92,14 @@ export default async function PortalPage({
               <p className="font-display text-[0.95rem] font-bold mb-1">{s.servicio.nombre}</p>
               <p className="text-xs text-muted leading-relaxed mb-3">{config.descripcion}</p>
 
-              {s.estado === "READY" && (
-                <div className="flex gap-2 mb-3">
-                  {s.servicio.polarProductIdBasico && (
-                    <CheckoutButton polarProductId={s.servicio.polarProductIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label={`Basico ${price(s.servicio.precioBasico)}/mes`} />
-                  )}
-                  {s.servicio.polarProductIdMantenimiento && (
-                    <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label={`Mant. ${price(s.servicio.precioMantenimiento)}/mes`} />
-                  )}
-                </div>
+              {s.estado === "READY" && s.servicio.polarProductIdMantenimiento && (
+                <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label={`Activar Mantenimiento ${price(s.servicio.precioMantenimiento)}/mes`} />
               )}
 
               <div className="mt-auto pt-3 border-t border-border/50 flex items-center justify-between">
                 <p className="font-display text-[0.95rem] font-bold">
-                  {s.estado === "PENDING" ? price(s.servicio.precioUnico) : s.plan === "MANTENIMIENTO" ? price(s.servicio.precioMantenimiento) : price(s.servicio.precioBasico)}
-                  {s.estado !== "PENDING" && <span className="text-[11px] font-normal text-muted">/mes</span>}
+                  {s.estado === "READY" ? price(s.servicio.precioMantenimiento) : s.estado === "PENDING" ? price(s.servicio.precioUnico) : s.plan === "MANTENIMIENTO" ? price(s.servicio.precioMantenimiento) : price(s.servicio.precioBasico)}
+                  {s.estado !== "PENDING" && s.estado !== "READY" && <span className="text-[11px] font-normal text-muted">/mes</span>}
                 </p>
                 {s.proximoPago && (
                   <span className={cn("text-[11px]", s.estado === "PAST_DUE" ? "text-[#fac775]" : "text-muted")}>
@@ -170,7 +163,7 @@ export default async function PortalPage({
 function estadoUI(s: { estado: string; servicio: { nombre: string } }) {
   const maps: Record<string, { label: string; descripcion: string; badgeBg: string; badgeColor: string }> = {
     PENDING: { label: "En desarrollo", descripcion: "Tu proyecto esta en curso. Te avisamos cuando este listo.", badgeBg: "bg-yellow-400/10", badgeColor: "text-yellow-400" },
-    READY: { label: "Listo para activar", descripcion: "Tu proyecto fue entregado. Elegi un plan para mantenerlo activo.", badgeBg: "bg-purple-400/10", badgeColor: "text-purple-400" },
+    READY: { label: "Entregado", descripcion: "Tu proyecto fue entregado. Activa el mantenimiento mensual para mantenerlo activo.", badgeBg: "bg-purple-400/10", badgeColor: "text-purple-400" },
     ACTIVE: { label: "Activo", descripcion: "Tu servicio esta activo.", badgeBg: "bg-accent2/10", badgeColor: "text-accent2" },
     PAST_DUE: { label: "Pago fallido", descripcion: "Tu ultimo pago fallo. Actualiza tu metodo de pago.", badgeBg: "bg-red-500/10", badgeColor: "text-red-300" },
     PAUSED: { label: "Pausado", descripcion: "Servicio pausado por falta de pago. Reactiva eligiendo un plan.", badgeBg: "bg-muted/10", badgeColor: "text-muted" },

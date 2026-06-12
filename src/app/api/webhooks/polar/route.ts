@@ -82,6 +82,20 @@ export async function POST(req: Request) {
           },
         })
 
+        const servicio = await prisma.servicio.findFirst({
+          where: {
+            OR: [
+              { polarProductIdUnico: productId },
+              { polarProductIdBasico: productId },
+              { polarProductIdMantenimiento: productId },
+            ],
+          },
+        })
+        if (!servicio) {
+          logger.warn("Servicio no encontrado para productId", { productId })
+          return
+        }
+
         if (subscriptionId) {
           let suscripcion = await prisma.suscripcion.findFirst({
             where: { polarSubscriptionId: subscriptionId },
@@ -92,9 +106,8 @@ export async function POST(req: Request) {
               where: { id: pago.id },
               data: { suscripcionId: suscripcion.id },
             })
-
             const updates: Record<string, unknown> = { proximoPago: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }
-            if (suscripcion.estado === "PENDING") updates.estado = "ACTIVE"
+            if (suscripcion.estado === "PENDING" || suscripcion.estado === "READY") updates.estado = "ACTIVE"
             if (suscripcion.estado === "PAST_DUE") {
               updates.estado = "ACTIVE"
               updates.pastDueEn = null
@@ -104,17 +117,25 @@ export async function POST(req: Request) {
               data: updates,
             })
           } else {
-            const servicio = await prisma.servicio.findFirst({
-              where: {
-                OR: [
-                  { polarProductIdUnico: productId },
-                  { polarProductIdBasico: productId },
-                  { polarProductIdMantenimiento: productId },
-                ],
-              },
+            const existing = await prisma.suscripcion.findFirst({
+              where: { clienteId: cliente.id, servicioId: servicio.id, plan: "UNICO", estado: "READY" },
             })
-            if (servicio) {
-              suscripcion = await prisma.suscripcion.create({
+            if (existing) {
+              await prisma.suscripcion.update({
+                where: { id: existing.id },
+                data: {
+                  plan: "MANTENIMIENTO",
+                  estado: "ACTIVE",
+                  polarSubscriptionId: subscriptionId,
+                  proximoPago: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                },
+              })
+              await prisma.pago.update({
+                where: { id: pago.id },
+                data: { suscripcionId: existing.id },
+              })
+            } else {
+              const nueva = await prisma.suscripcion.create({
                 data: {
                   clienteId: cliente.id,
                   servicioId: servicio.id,
@@ -126,10 +147,28 @@ export async function POST(req: Request) {
               })
               await prisma.pago.update({
                 where: { id: pago.id },
-                data: { suscripcionId: suscripcion.id },
+                data: { suscripcionId: nueva.id },
               })
             }
           }
+        } else {
+          let sub = await prisma.suscripcion.findFirst({
+            where: { clienteId: cliente.id, servicioId: servicio.id, plan: "UNICO" },
+          })
+          if (!sub) {
+            sub = await prisma.suscripcion.create({
+              data: {
+                clienteId: cliente.id,
+                servicioId: servicio.id,
+                plan: "UNICO",
+                estado: "READY",
+              },
+            })
+          }
+          await prisma.pago.update({
+            where: { id: pago.id },
+            data: { suscripcionId: sub.id },
+          })
         }
       },
 

@@ -22,14 +22,14 @@ export async function POST(req: Request) {
       if (!servicio?.activo) {
         return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 })
       }
-      if (!servicio.polarProductIdUnico) {
+      const tipoLookup = tipo === "MANTENIMIENTO" ? servicio.polarProductIdMantenimiento : servicio.polarProductIdUnico
+      if (!tipoLookup) {
         return NextResponse.json({ error: "Producto no configurado" }, { status: 500 })
       }
-      productId = servicio.polarProductIdUnico
+      productId = tipoLookup
     }
 
-    if (tipo === "BASICO") plan = "BASICO"
-    else if (tipo === "MANTENIMIENTO") plan = "MANTENIMIENTO"
+    if (tipo === "MANTENIMIENTO") plan = "MANTENIMIENTO"
 
     if (!productId) {
       return NextResponse.json({ error: "polarProductId requerido" }, { status: 400 })

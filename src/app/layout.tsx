@@ -133,6 +133,7 @@ export default function RootLayout({
           footerActionText: { color: "#cbd5e1", fontSize: "0.8125rem" },
           footerActionLink: { color: "#7f5af0", fontWeight: 500, fontSize: "0.8125rem" },
           footerMessage: { display: "none" },
+          communityBadge: { display: "none" },
           dividerText: { color: "#cbd5e1", fontSize: "0.75rem" },
           dividerLine: { backgroundColor: "rgba(255,255,255,0.08)" },
           socialButtonsBlockButton: { backgroundColor: "#1e1e36", border: "1px solid rgba(255,255,255,0.2)", color: "#f1f5f9", borderRadius: "8px", transition: "border-color 0.2s, background-color 0.2s", "&:hover": { borderColor: "rgba(255,255,255,0.35)", backgroundColor: "#23234a" } },

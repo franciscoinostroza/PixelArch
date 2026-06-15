@@ -36,7 +36,10 @@ body {
   color: #8895a7 !important;
 }
 
-.cl-footerMessage {
+.cl-footerMessage,
+.cl-communityBadge,
+.cl-badge,
+.cl-footer div:last-of-type {
   display: none !important;
 }
 

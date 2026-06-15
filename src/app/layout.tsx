@@ -124,6 +124,7 @@ export default function RootLayout({
           borderRadius: "10px",
         },
         elements: {
+          // === SignIn / SignUp ===
           card: {
             background: "linear-gradient(145deg, #1a1a30 0%, #14142a 50%, #1a1a30 100%)",
             boxShadow: "0 25px 60px rgba(0,0,0,0.5), 0 0 40px rgba(127,90,240,0.06)",
@@ -160,10 +161,22 @@ export default function RootLayout({
             transition: "all 0.3s ease",
             "&:hover": { backgroundPosition: "right center", transform: "translateY(-2px)", boxShadow: "0 8px 25px rgba(127,90,240,0.3)" },
           },
+          formButtonSecondary: {
+            background: "rgba(255,255,255,0.04)",
+            color: "#94a3b8",
+            border: "1.5px solid rgba(255,255,255,0.08)",
+            borderRadius: "10px",
+            padding: "0.875rem 1rem",
+            fontSize: "0.875rem",
+            fontWeight: 500,
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+            "&:hover": { color: "#f1f5f9", borderColor: "rgba(255,255,255,0.2)" },
+          },
+          backLink: { color: "#94a3b8", fontSize: "0.8125rem", "&:hover": { color: "#f1f5f9" } },
           footerActionText: { color: "#94a3b8", fontSize: "0.8125rem" },
           footerActionLink: { color: "#7f5af0", fontWeight: 600, fontSize: "0.8125rem" },
           footerMessage: { display: "none" },
-          communityBadge: { display: "none" },
           dividerText: { color: "#94a3b8", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" },
           dividerLine: { background: "rgba(255,255,255,0.06)", height: "1px" },
           socialButtonsBlockButton: {
@@ -184,6 +197,8 @@ export default function RootLayout({
           alert: { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px" },
           alertText: { color: "#f1f5f9" },
           developmentModeText: { display: "none" },
+
+          // === UserProfile ===
           userProfileRoot: { borderRadius: "16px", overflow: "hidden" },
           userProfileCard: {
             background: "linear-gradient(145deg, #1a1a30 0%, #14142a 50%, #1a1a30 100%)",
@@ -191,28 +206,72 @@ export default function RootLayout({
             borderRadius: "16px",
             border: "1px solid rgba(127,90,240,0.12)",
           },
-          userProfilePage: { padding: "0 1.5rem 1.5rem" },
+          userProfilePage: { background: "transparent", padding: "1.5rem 1.5rem 1.5rem 0" },
+          header: { padding: "1.5rem 1.5rem 0" },
+          page: { padding: "1.5rem" },
+          navbar: {
+            background: "rgba(0,0,0,0.25)",
+            borderRight: "1px solid rgba(255,255,255,0.06)",
+            borderRadius: "16px 0 0 16px",
+            padding: "1.25rem 0",
+          },
+          navbarButton: {
+            color: "#94a3b8",
+            borderRadius: "8px",
+            margin: "0.125rem 0.75rem",
+            padding: "0.5rem 0.75rem",
+            fontSize: "0.875rem",
+            fontWeight: 500,
+            transition: "all 0.15s",
+            "&:hover": { background: "rgba(127,90,240,0.12)", color: "#f1f5f9" },
+          },
+          navbarButtonIcon: { color: "#535a66" },
+          navbarButtonText: { color: "inherit", fontSize: "0.8125rem" },
           profileSection: {
             padding: "1.5rem",
             borderBottom: "1px solid rgba(255,255,255,0.06)",
           },
           profileSectionTitle: { color: "#f1f5f9", fontWeight: 600, fontSize: "1.125rem" },
-          profileSectionContent: { color: "#94a3b8", fontSize: "0.875rem" },
-          navbar: {
-            background: "rgba(0,0,0,0.2)",
-            borderRight: "1px solid rgba(255,255,255,0.06)",
-            borderRadius: "16px 0 0 16px",
-            padding: "1rem 0",
+          profileSectionContent: { color: "#94a3b8", fontSize: "0.875rem", lineHeight: "1.5" },
+          profileSectionPrimaryButton: {
+            color: "#7f5af0",
+            fontWeight: 500,
+            fontSize: "0.8125rem",
+            "&:hover": { color: "#9370ff" },
           },
-          navbarButton: { color: "#94a3b8", borderRadius: "8px", margin: "0.25rem 0.75rem", padding: "0.5rem 0.75rem", fontSize: "0.875rem", fontWeight: 500, transition: "all 0.15s", "&:hover": { background: "rgba(127,90,240,0.12)", color: "#f1f5f9" } },
-          navbarButtonIcon: { color: "#535a66" },
-          header: { padding: "1.5rem 1.5rem 0" },
-          userButtonBox: { border: "1.5px solid rgba(255,255,255,0.12)", borderRadius: "9999px", transition: "border-color 0.2s", "&:hover": { borderColor: "rgba(127,90,240,0.4)" } },
-          userButtonPopoverCard: { background: "rgba(30,30,54,0.98)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(127,90,240,0.04)", backdropFilter: "blur(20px)" },
+
+          // === UserButton ===
+          userButtonBox: {
+            border: "1.5px solid rgba(255,255,255,0.12)",
+            borderRadius: "9999px",
+            transition: "border-color 0.2s, box-shadow 0.2s",
+            "&:hover": { borderColor: "rgba(127,90,240,0.4)", boxShadow: "0 0 0 3px rgba(127,90,240,0.1)" },
+          },
+          userButtonAvatarBox: { border: "2px solid transparent", borderRadius: "9999px" },
+          userButtonPopoverCard: {
+            background: "#1a1a30",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: "12px",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(127,90,240,0.04)",
+          },
+          userPreview: { padding: "1rem 1rem 0.5rem" },
           userPreviewMainIdentifier: { color: "#f1f5f9", fontWeight: 600, fontSize: "0.875rem" },
           userPreviewSecondaryIdentifier: { color: "#6b7280", fontSize: "0.8125rem" },
-          userButtonPopoverActionButton: { color: "#f1f5f9", borderRadius: "8px", padding: "0.5rem 0.75rem", fontSize: "0.8125rem", transition: "all 0.15s", "&:hover": { background: "rgba(127,90,240,0.15)" } },
+          userButtonPopoverActions: { padding: "0.25rem 0.5rem" },
+          userButtonPopoverActionButton: {
+            color: "#f1f5f9",
+            borderRadius: "8px",
+            padding: "0.5rem 0.75rem",
+            fontSize: "0.8125rem",
+            transition: "all 0.15s",
+            "&:hover": { background: "rgba(127,90,240,0.15)" },
+          },
           userButtonPopoverActionButtonText: { color: "#f1f5f9" },
+          userButtonPopoverFooter: {
+            background: "rgba(0,0,0,0.15)",
+            padding: "0.5rem",
+            borderTop: "1px solid rgba(255,255,255,0.06)",
+          },
         },
       }}
       unsafe_disableDevelopmentModeConsoleWarning={true}

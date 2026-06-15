@@ -44,33 +44,9 @@ body::before {
 
 /* Clerk overrides */
 .cl-formFieldInput::placeholder {
-  color: #8895a7 !important;
-}
-
-.cl-internal-phfxlr,
-.cl-internal-1hp5nqm,
-.cl-internal-communityBadge {
-  display: none !important;
-}
-
-.cl-footer,
-[class*="clFooter"] {
-  position: relative !important;
-}
-
-.cl-footer > div:not(.cl-footerAction) {
-  display: none !important;
-}
-
-.cl-footerAction {
-  display: flex !important;
+  color: #6b7280 !important;
 }
 
 .cl-headerLogo {
-  display: none !important;
-}
-
-.cl-userProfileCard [class*="footer"],
-.cl-userProfileCard [class*="badge"] {
   display: none !important;
 }

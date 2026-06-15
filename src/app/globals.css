@@ -53,6 +53,11 @@ body::before {
   display: none !important;
 }
 
+.cl-footer,
+[class*="clFooter"] {
+  position: relative !important;
+}
+
 .cl-footer > div:not(.cl-footerAction) {
   display: none !important;
 }
@@ -62,5 +67,10 @@ body::before {
 }
 
 .cl-headerLogo {
+  display: none !important;
+}
+
+.cl-userProfileCard [class*="footer"],
+.cl-userProfileCard [class*="badge"] {
   display: none !important;
 }

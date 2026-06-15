@@ -30,3 +30,16 @@ body {
   color: var(--text);
   font-family: var(--font-mono);
 }
+
+/* Clerk overrides */
+.cl-formFieldInput::placeholder {
+  color: #6b7280 !important;
+}
+
+.cl-footerMessage {
+  display: none !important;
+}
+
+.cl-headerLogo {
+  display: none !important;
+}

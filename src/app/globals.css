@@ -33,7 +33,7 @@ body {
 
 /* Clerk overrides */
 .cl-formFieldInput::placeholder {
-  color: #6b7280 !important;
+  color: #8895a7 !important;
 }
 
 .cl-footerMessage {

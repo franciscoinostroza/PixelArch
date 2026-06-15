@@ -109,6 +109,7 @@ export default function RootLayout({
   return (
     <ClerkProvider
       appearance={{
+        layout: { showClerkBranding: false },
         variables: {
           colorPrimary: "#7f5af0",
           colorBackground: "#14142a",

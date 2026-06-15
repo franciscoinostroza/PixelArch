@@ -29,6 +29,17 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-mono);
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(127,90,240,0.08) 0%, transparent 60%),
+              radial-gradient(ellipse 50% 40% at 80% 100%, rgba(127,90,240,0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* Clerk overrides */
@@ -38,8 +49,7 @@ body {
 
 .cl-footerMessage,
 .cl-communityBadge,
-.cl-badge,
-.cl-footer div:last-of-type {
+.cl-badge {
   display: none !important;
 }
 

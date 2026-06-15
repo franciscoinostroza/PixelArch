@@ -128,7 +128,10 @@
 - Busqueda, paginacion (20/pag), filtros por estado y rango de fechas
 
 ### Auth (Clerk)
-- Login/registro con tema oscuro completo (10 variables + 20 elementos)
+- Login/registro con tema oscuro premium (gradient card, glass inputs, glow focus)
+- UserProfile "Manage account" con estilos completos (~40 elementos, modales, badges, switches, avatar upload)
+- "Secured by" oculto en SignIn/SignUp y UserProfile
+- Cliente producción con dominio custom `clerk.pixelarch.dev` + Google OAuth
 - Webhook svix: sync user.created/updated/deleted → BD
 - Roles: admin (publicMetadata.role) vs cliente
 - Middleware: middleware.ts protege /admin, /portal; excluye webhooks, cron, revalidate
@@ -147,6 +150,7 @@
 - Sidebar admin responsive (hamburger en mobile, overlay)
 - Nav portal con link activo resaltado
 - UserButton con cerrar sesion en portal
+- UserProfile completo estilizado con tema dark (Manage account)
 - Banner de exito post-pago en portal
 - Banner de pago fallido con link al customer portal
 
@@ -154,7 +158,6 @@
 
 ## Pendiente
 
-- [ ] Correr `npx tsx src/scripts/seed-polar.ts` con POLAR_ACCESS_TOKEN para crear 18 productos
 - [ ] Generar iconos PNG reales para PWA (reemplazar SVGs placeholder)
 
 ---

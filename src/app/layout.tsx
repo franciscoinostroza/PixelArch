@@ -147,7 +147,9 @@ export default function RootLayout({
           developmentModeText: { display: "none" },
           userButtonBox: { border: "1px solid rgba(255,255,255,0.2)", borderRadius: "9999px" },
           userButtonPopoverCard: { backgroundColor: "#1e1e36", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "8px", boxShadow: "0 8px 32px rgba(0,0,0,0.35)" },
-          userButtonPopoverActionButton: { color: "#f1f5f9", borderRadius: "6px", "&:hover": { backgroundColor: "rgba(127,90,240,0.2)" } },
+          userPreviewMainIdentifier: { color: "#f1f5f9", fontWeight: 500, fontSize: "0.875rem" },
+          userPreviewSecondaryIdentifier: { color: "#8895a7", fontSize: "0.8125rem" },
+          userButtonPopoverActionButton: { color: "#f1f5f9", borderRadius: "6px", padding: "0.5rem 0.75rem", "&:hover": { backgroundColor: "rgba(127,90,240,0.2)" } },
           userButtonPopoverActionButtonText: { color: "#f1f5f9" },
         },
       }}

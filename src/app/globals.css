@@ -47,10 +47,18 @@ body::before {
   color: #8895a7 !important;
 }
 
-.cl-footerMessage,
-.cl-communityBadge,
-.cl-badge {
+.cl-internal-phfxlr,
+.cl-internal-1hp5nqm,
+.cl-internal-communityBadge {
   display: none !important;
+}
+
+.cl-footer > div:not(.cl-footerAction) {
+  display: none !important;
+}
+
+.cl-footerAction {
+  display: flex !important;
 }
 
 .cl-headerLogo {

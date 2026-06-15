@@ -109,7 +109,6 @@ export default function RootLayout({
   return (
     <ClerkProvider
       appearance={{
-        cssLayerName: "clerk",
         variables: {
           colorPrimary: "#7f5af0",
           colorBackground: "#14142a",

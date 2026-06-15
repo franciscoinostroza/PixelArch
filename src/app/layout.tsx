@@ -110,6 +110,7 @@ export default function RootLayout({
     <ClerkProvider
       appearance={{
         layout: { showClerkBranding: false },
+        cssLayerName: "clerk",
         variables: {
           colorPrimary: "#7f5af0",
           colorBackground: "#14142a",
@@ -190,19 +191,22 @@ export default function RootLayout({
             borderRadius: "16px",
             border: "1px solid rgba(127,90,240,0.12)",
           },
+          userProfilePage: { padding: "0 1.5rem 1.5rem" },
           profileSection: {
             padding: "1.5rem",
             borderBottom: "1px solid rgba(255,255,255,0.06)",
           },
           profileSectionTitle: { color: "#f1f5f9", fontWeight: 600, fontSize: "1.125rem" },
-          userProfilePage: { background: "transparent" },
+          profileSectionContent: { color: "#94a3b8", fontSize: "0.875rem" },
           navbar: {
-            background: "rgba(255,255,255,0.03)",
+            background: "rgba(0,0,0,0.2)",
             borderRight: "1px solid rgba(255,255,255,0.06)",
             borderRadius: "16px 0 0 16px",
+            padding: "1rem 0",
           },
-          navbarButton: { color: "#94a3b8", borderRadius: "8px", margin: "0.25rem 0.75rem", transition: "all 0.15s", "&:hover": { background: "rgba(127,90,240,0.1)", color: "#f1f5f9" } },
+          navbarButton: { color: "#94a3b8", borderRadius: "8px", margin: "0.25rem 0.75rem", padding: "0.5rem 0.75rem", fontSize: "0.875rem", fontWeight: 500, transition: "all 0.15s", "&:hover": { background: "rgba(127,90,240,0.12)", color: "#f1f5f9" } },
           navbarButtonIcon: { color: "#535a66" },
+          header: { padding: "1.5rem 1.5rem 0" },
           userButtonBox: { border: "1.5px solid rgba(255,255,255,0.12)", borderRadius: "9999px", transition: "border-color 0.2s", "&:hover": { borderColor: "rgba(127,90,240,0.4)" } },
           userButtonPopoverCard: { background: "rgba(30,30,54,0.98)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(127,90,240,0.04)", backdropFilter: "blur(20px)" },
           userPreviewMainIdentifier: { color: "#f1f5f9", fontWeight: 600, fontSize: "0.875rem" },

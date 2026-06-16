@@ -51,9 +51,9 @@ body::before {
 }
 
 .cl-userProfileRoot [data-color="inherit"] {
-  color: #e2e8f0;
+  color: #e2e8f0 !important;
 }
 
 .cl-userProfileRoot [data-color="secondary"] {
-  color: #94a3b8;
+  color: #cbd5e1 !important;
 }

@@ -207,6 +207,12 @@ export default function RootLayout({
 
           footerItem: { display: "none" },
 
+          scrollBox: { overflowY: "auto", overflowX: "hidden" },
+          cardBox: {
+            borderRadius: "16px",
+            overflow: "hidden",
+          },
+
           // === UserProfile ===
           userProfileRoot: { borderRadius: "16px", overflow: "hidden" },
           userProfileCard: {

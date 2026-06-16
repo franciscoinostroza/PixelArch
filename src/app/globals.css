@@ -54,19 +54,23 @@ body::before {
   display: none;
 }
 
+.cl-scrollBox::-webkit-scrollbar,
 .cl-pageScrollBox::-webkit-scrollbar {
   width: 6px;
 }
 
+.cl-scrollBox::-webkit-scrollbar-track,
 .cl-pageScrollBox::-webkit-scrollbar-track {
   background: transparent;
 }
 
+.cl-scrollBox::-webkit-scrollbar-thumb,
 .cl-pageScrollBox::-webkit-scrollbar-thumb {
   background: rgba(127,90,240,0.3);
   border-radius: 9999px;
 }
 
+.cl-scrollBox::-webkit-scrollbar-thumb:hover,
 .cl-pageScrollBox::-webkit-scrollbar-thumb:hover {
   background: rgba(127,90,240,0.5);
 }

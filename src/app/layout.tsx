@@ -198,6 +198,8 @@ export default function RootLayout({
           alertText: { color: "#f1f5f9" },
           developmentModeText: { display: "none" },
 
+          footerItem: { display: "none" },
+
           // === UserProfile ===
           userProfileRoot: { borderRadius: "16px", overflow: "hidden" },
           userProfileCard: {
@@ -251,7 +253,7 @@ export default function RootLayout({
           profileSectionTitle: { color: "#f1f5f9", fontWeight: 600, fontSize: "1.125rem" },
           profileSectionTitleText: { color: "#f1f5f9", fontWeight: 600 },
           profileSectionSubtitle: { color: "#94a3b8", fontSize: "0.8125rem" },
-          profileSectionContent: { color: "#94a3b8", fontSize: "0.875rem", lineHeight: "1.5" },
+          profileSectionContent: { fontSize: "0.875rem", lineHeight: "1.5" },
           profileSectionPrimaryButton: {
             color: "#7f5af0",
             fontWeight: 500,

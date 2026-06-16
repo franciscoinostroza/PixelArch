@@ -99,6 +99,13 @@ export default function RootLayout({
             __html: JSON.stringify(jsonLd),
           }}
         />
+        <script dangerouslySetInnerHTML={{__html: `
+          document.addEventListener("DOMContentLoaded",function(){
+            new MutationObserver(function(){
+              document.querySelectorAll(".cl-footerItem").forEach(function(e){e.style.display="none"})
+            }).observe(document.body,{childList:true,subtree:true})
+          })
+        `}} />
         {children}
       </body>
     </html>

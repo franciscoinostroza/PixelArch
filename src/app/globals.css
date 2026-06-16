@@ -1,4 +1,4 @@
-@layer theme, base, clerk, components, utilities, overrides;
+@layer theme, base, clerk, components, utilities;
 @import "tailwindcss";
 
 :root {
@@ -42,42 +42,39 @@ body::before {
   z-index: 0;
 }
 
-/* Clerk overrides — in a layer after "clerk" so !important beats Clerk's layered !important */
-@layer overrides {
-  .cl-formFieldInput::placeholder {
-    color: #6b7280 !important;
-  }
+.cl-formFieldInput::placeholder {
+  color: #6b7280;
+}
 
-  .cl-headerLogo {
-    display: none !important;
-  }
+.cl-headerLogo {
+  display: none;
+}
 
-  .cl-footerItem {
-    display: none !important;
-  }
+.cl-footerItem {
+  display: none;
+}
 
-  .cl-userProfileCard .cl-userPreviewSecondaryIdentifier {
-    color: #94a3b8 !important;
-  }
+.cl-userProfileCard .cl-userPreviewSecondaryIdentifier {
+  color: #94a3b8;
+}
 
-  .cl-userProfileCard .cl-profileSectionItem p,
-  .cl-userProfileCard .cl-profileSectionItem span {
-    color: #e2e8f0 !important;
-  }
+.cl-userProfileCard .cl-profileSectionItem p,
+.cl-userProfileCard .cl-profileSectionItem span {
+  color: #e2e8f0;
+}
 
-  .cl-navbar [data-localization-key="userProfile.navbar.title"] {
-    color: #f1f5f9 !important;
-  }
+.cl-navbar [data-localization-key="userProfile.navbar.title"] {
+  color: #f1f5f9;
+}
 
-  .cl-navbar [data-localization-key="userProfile.navbar.description"] {
-    color: #94a3b8 !important;
-  }
+.cl-navbar [data-localization-key="userProfile.navbar.description"] {
+  color: #94a3b8;
+}
 
-  .cl-userProfileCard [data-color="inherit"] {
-    color: #e2e8f0 !important;
-  }
+.cl-userProfileCard [data-color="inherit"] {
+  color: #e2e8f0;
+}
 
-  .cl-userProfileCard [data-color="secondary"] {
-    color: #94a3b8 !important;
-  }
+.cl-userProfileCard [data-color="secondary"] {
+  color: #94a3b8;
 }

@@ -75,27 +75,27 @@ body::before {
   background: rgba(127,90,240,0.5);
 }
 
-.cl-userProfileCard .cl-userPreviewSecondaryIdentifier {
+.cl-userProfileRoot .cl-userPreviewSecondaryIdentifier {
   color: #94a3b8;
 }
 
-.cl-userProfileCard .cl-profileSectionItem p,
-.cl-userProfileCard .cl-profileSectionItem span {
+.cl-userProfileRoot .cl-profileSectionItem p,
+.cl-userProfileRoot .cl-profileSectionItem span {
   color: #e2e8f0;
 }
 
-.cl-navbar [data-localization-key="userProfile.navbar.title"] {
+.cl-userProfileRoot [data-localization-key="userProfile.navbar.title"] {
   color: #f1f5f9;
 }
 
-.cl-navbar [data-localization-key="userProfile.navbar.description"] {
+.cl-userProfileRoot [data-localization-key="userProfile.navbar.description"] {
   color: #94a3b8;
 }
 
-.cl-userProfileCard [data-color="inherit"] {
+.cl-userProfileRoot [data-color="inherit"] {
   color: #e2e8f0;
 }
 
-.cl-userProfileCard [data-color="secondary"] {
+.cl-userProfileRoot [data-color="secondary"] {
   color: #94a3b8;
 }

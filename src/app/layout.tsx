@@ -216,7 +216,7 @@ export default function RootLayout({
             border: "1px solid rgba(127,90,240,0.12)",
           },
           userProfilePage: { background: "transparent", padding: "1.5rem 1.5rem 1.5rem 0" },
-          pageScrollBox: { background: "transparent", overflow: "hidden", width: "100%" },
+          pageScrollBox: { background: "transparent", overflowY: "auto", overflowX: "hidden", width: "100%" },
           header: { padding: "1.5rem 1.5rem 0" },
           headerBackLink: { color: "#94a3b8", "&:hover": { color: "#f1f5f9" } },
           page: {

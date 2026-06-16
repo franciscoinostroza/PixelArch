@@ -54,6 +54,23 @@ body::before {
   display: none;
 }
 
+.cl-pageScrollBox::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cl-pageScrollBox::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cl-pageScrollBox::-webkit-scrollbar-thumb {
+  background: rgba(127,90,240,0.3);
+  border-radius: 9999px;
+}
+
+.cl-pageScrollBox::-webkit-scrollbar-thumb:hover {
+  background: rgba(127,90,240,0.5);
+}
+
 .cl-userProfileCard .cl-userPreviewSecondaryIdentifier {
   color: #94a3b8;
 }

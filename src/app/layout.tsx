@@ -207,22 +207,16 @@ export default function RootLayout({
 
           footerItem: { display: "none" },
 
-          scrollBox: { overflowY: "auto", overflowX: "hidden" },
-          cardBox: {
-            borderRadius: "16px",
-            overflow: "hidden",
-          },
-
           // === UserProfile ===
-          userProfileRoot: { borderRadius: "16px", overflow: "hidden" },
+          userProfileRoot: { width: "100%" },
           userProfileCard: {
             background: "linear-gradient(145deg, #1a1a30 0%, #14142a 50%, #1a1a30 100%)",
             boxShadow: "0 25px 60px rgba(0,0,0,0.5), 0 0 40px rgba(127,90,240,0.06)",
             borderRadius: "16px",
             border: "1px solid rgba(127,90,240,0.12)",
           },
-          userProfilePage: { background: "transparent", padding: "1.5rem 1.5rem 1.5rem 0" },
-          pageScrollBox: { background: "transparent", overflowY: "auto", overflowX: "hidden", width: "100%" },
+          userProfilePage: { background: "transparent", padding: "1.5rem" },
+          pageScrollBox: { background: "transparent" },
           header: { padding: "1.5rem 1.5rem 0" },
           headerBackLink: { color: "#94a3b8", "&:hover": { color: "#f1f5f9" } },
           page: {

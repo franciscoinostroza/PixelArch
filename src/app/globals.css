@@ -1,4 +1,4 @@
-@layer theme, base, clerk, components, utilities;
+@layer theme, base, clerk, components, utilities, overrides;
 @import "tailwindcss";
 
 :root {
@@ -42,60 +42,62 @@ body::before {
   z-index: 0;
 }
 
-.cl-formFieldInput::placeholder {
-  color: #6b7280;
-}
+@layer overrides {
+  .cl-formFieldInput::placeholder {
+    color: #6b7280 !important;
+  }
 
-.cl-headerLogo {
-  display: none;
-}
+  .cl-headerLogo {
+    display: none !important;
+  }
 
-.cl-footerItem {
-  display: none;
-}
+  .cl-footerItem {
+    display: none !important;
+  }
 
-.cl-scrollBox::-webkit-scrollbar,
-.cl-pageScrollBox::-webkit-scrollbar {
-  width: 6px;
-}
+  .cl-scrollBox::-webkit-scrollbar,
+  .cl-pageScrollBox::-webkit-scrollbar {
+    width: 6px;
+  }
 
-.cl-scrollBox::-webkit-scrollbar-track,
-.cl-pageScrollBox::-webkit-scrollbar-track {
-  background: transparent;
-}
+  .cl-scrollBox::-webkit-scrollbar-track,
+  .cl-pageScrollBox::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-.cl-scrollBox::-webkit-scrollbar-thumb,
-.cl-pageScrollBox::-webkit-scrollbar-thumb {
-  background: rgba(127,90,240,0.3);
-  border-radius: 9999px;
-}
+  .cl-scrollBox::-webkit-scrollbar-thumb,
+  .cl-pageScrollBox::-webkit-scrollbar-thumb {
+    background: rgba(127,90,240,0.3);
+    border-radius: 9999px;
+  }
 
-.cl-scrollBox::-webkit-scrollbar-thumb:hover,
-.cl-pageScrollBox::-webkit-scrollbar-thumb:hover {
-  background: rgba(127,90,240,0.5);
-}
+  .cl-scrollBox::-webkit-scrollbar-thumb:hover,
+  .cl-pageScrollBox::-webkit-scrollbar-thumb:hover {
+    background: rgba(127,90,240,0.5);
+  }
 
-.cl-userProfileRoot .cl-userPreviewSecondaryIdentifier {
-  color: #94a3b8;
-}
+  .cl-userProfileRoot .cl-userPreviewSecondaryIdentifier {
+    color: #94a3b8 !important;
+  }
 
-.cl-userProfileRoot .cl-profileSectionItem p,
-.cl-userProfileRoot .cl-profileSectionItem span {
-  color: #e2e8f0;
-}
+  .cl-userProfileRoot .cl-profileSectionItem p,
+  .cl-userProfileRoot .cl-profileSectionItem span {
+    color: #e2e8f0 !important;
+  }
 
-.cl-userProfileRoot [data-localization-key="userProfile.navbar.title"] {
-  color: #f1f5f9;
-}
+  .cl-userProfileRoot [data-localization-key="userProfile.navbar.title"] {
+    color: #f1f5f9 !important;
+  }
 
-.cl-userProfileRoot [data-localization-key="userProfile.navbar.description"] {
-  color: #94a3b8;
-}
+  .cl-userProfileRoot [data-localization-key="userProfile.navbar.description"] {
+    color: #94a3b8 !important;
+  }
 
-.cl-userProfileRoot [data-color="inherit"] {
-  color: #e2e8f0;
-}
+  .cl-userProfileRoot [data-color="inherit"] {
+    color: #e2e8f0 !important;
+  }
 
-.cl-userProfileRoot [data-color="secondary"] {
-  color: #94a3b8;
+  .cl-userProfileRoot [data-color="secondary"] {
+    color: #94a3b8 !important;
+  }
 }

@@ -260,6 +260,7 @@ export default function RootLayout({
           },
           profileSectionButtonGroup: { gap: "0.5rem" },
           userPreview: { padding: "0.5rem 0" },
+          userPreview__userButton: { padding: "1rem 1rem 0.5rem" },
           userPreviewAvatarContainer: { marginRight: "1rem" },
           userPreviewAvatarBox: { borderRadius: "9999px", border: "2px solid rgba(127,90,240,0.2)" },
           userPreviewAvatarImage: { borderRadius: "9999px" },

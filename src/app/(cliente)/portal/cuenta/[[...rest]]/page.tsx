@@ -43,8 +43,8 @@ export default function CuentaPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-xl font-bold text-[#f1f5f9]">Mi cuenta</h1>
-        <p className="mt-1 text-sm text-[#94a3b8]">Información de tu perfil y cuentas conectadas.</p>
+            <h1 className="font-display text-xl font-bold text-white">Mi cuenta</h1>
+        <p className="mt-1 text-sm text-white/70">Información de tu perfil y cuentas conectadas.</p>
       </div>
 
       <div style={cardStyle} className="p-6">
@@ -61,8 +61,8 @@ export default function CuentaPage() {
             </div>
           )}
           <div>
-            <p className="text-base font-semibold text-[#f1f5f9]">{user.fullName}</p>
-            <p className="text-sm text-[#cbd5e1]">{primaryEmail?.emailAddress}</p>
+            <p className="text-base font-semibold text-white">{user.fullName}</p>
+            <p className="text-sm text-white/70">{primaryEmail?.emailAddress}</p>
           </div>
         </div>
       </div>
@@ -70,7 +70,7 @@ export default function CuentaPage() {
       <div style={cardStyle}>
         <div style={sectionBorder} className="flex items-center gap-2 px-6 py-4">
           <Mail className="h-4 w-4 text-[#7f5af0]" />
-          <h2 className="text-sm font-semibold text-[#f1f5f9]">Email addresses</h2>
+          <h2 className="text-sm font-semibold text-white">Email addresses</h2>
         </div>
         <div>
           {user.emailAddresses.map((email, i) => (
@@ -79,7 +79,7 @@ export default function CuentaPage() {
               style={i < user.emailAddresses.length - 1 ? sectionBorder : undefined}
               className="flex items-center justify-between px-6 py-3"
             >
-              <span className="text-sm text-[#e2e8f0]">{email.emailAddress}</span>
+              <span className="text-sm text-white">{email.emailAddress}</span>
               <div className="flex items-center gap-2">
                 {email.id === primaryEmail?.id && (
                   <span className="rounded-full bg-[rgba(127,90,240,0.15)] px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[#7f5af0]">
@@ -101,7 +101,7 @@ export default function CuentaPage() {
         <div style={cardStyle}>
           <div style={sectionBorder} className="flex items-center gap-2 px-6 py-4">
             <ExternalLink className="h-4 w-4 text-[#7f5af0]" />
-            <h2 className="text-sm font-semibold text-[#f1f5f9]">Connected accounts</h2>
+            <h2 className="text-sm font-semibold text-white">Connected accounts</h2>
           </div>
           <div>
             {connectedAccounts.map((acc, i) => (
@@ -111,9 +111,9 @@ export default function CuentaPage() {
                 className="flex items-center justify-between px-6 py-3"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-[#e2e8f0]">{providers[acc.provider] ?? acc.provider}</span>
+                  <span className="text-sm text-white">{providers[acc.provider] ?? acc.provider}</span>
                   {acc.emailAddress && (
-                    <span className="text-sm text-[#cbd5e1]">• {acc.emailAddress}</span>
+                    <span className="text-sm text-white/70">• {acc.emailAddress}</span>
                   )}
                 </div>
                 <span className="text-[11px] text-[#34d399]">✓ Connected</span>
@@ -126,10 +126,10 @@ export default function CuentaPage() {
       <div style={cardStyle}>
         <div style={sectionBorder} className="flex items-center gap-2 px-6 py-4">
           <Shield className="h-4 w-4 text-[#7f5af0]" />
-          <h2 className="text-sm font-semibold text-[#f1f5f9]">Security</h2>
+          <h2 className="text-sm font-semibold text-white">Security</h2>
         </div>
         <div className="px-6 py-4">
-          <p className="text-sm text-[#cbd5e1]">
+          <p className="text-sm text-white/70">
             To change your password or configure two-factor authentication, visit the Clerk security page.
           </p>
         </div>

@@ -104,10 +104,10 @@ export default function RootLayout({
             new MutationObserver(function(){
               document.querySelectorAll(".cl-footerItem").forEach(function(e){e.style.display="none"})
               document.querySelectorAll(".cl-userProfileRoot [data-color='inherit']").forEach(function(e){
-                if(e.style.color!=="#e2e8f0")e.style.color="#e2e8f0"
+                e.style.setProperty("color","#e2e8f0","important")
               })
               document.querySelectorAll(".cl-userProfileRoot [data-color='secondary']").forEach(function(e){
-                if(e.style.color!=="#cbd5e1")e.style.color="#cbd5e1"
+                e.style.setProperty("color","#cbd5e1","important")
               })
             }).observe(document.body,{childList:true,subtree:true})
           })

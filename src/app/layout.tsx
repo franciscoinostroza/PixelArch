@@ -100,28 +100,26 @@ export default function RootLayout({
           }}
         />
         <script dangerouslySetInnerHTML={{__html: `
-          function fixColors(){
-            document.querySelectorAll(".cl-footerItem").forEach(function(e){e.style.display="none"})
-            document.querySelectorAll(
-              ".cl-userProfileRoot [data-color='inherit'],"+
-              ".cl-navbar [data-localization-key='userProfile.navbar.title'],"+
-              ".cl-userButtonPopoverCard [data-color='inherit'],"+
-              ".cl-userButtonPopoverCard .cl-userPreviewMainIdentifier"
-            ).forEach(function(e){e.style.setProperty("color","#f1f5f9","important")})
-            document.querySelectorAll(
-              ".cl-userProfileRoot [data-color='secondary'],"+
-              ".cl-navbar [data-localization-key='userProfile.navbar.description'],"+
-              ".cl-userButtonPopoverCard [data-color='secondary'],"+
-              ".cl-userButtonPopoverCard .cl-userPreviewSecondaryIdentifier"
-            ).forEach(function(e){e.style.setProperty("color","#94a3b8","important")})
-            document.querySelectorAll(".cl-badge[data-color='primary']").forEach(function(e){
-              e.style.setProperty("color","#7f5af0","important")
-              e.style.setProperty("background","rgba(127,90,240,0.15)","important")
-            })
+          function injectClerkOverride(){
+            var s=document.getElementById("clerk-override")
+            if(s)s.remove()
+            s=document.createElement("style")
+            s.id="clerk-override"
+            s.textContent=[
+              ".cl-footerItem{display:none!important}",
+              ".cl-userProfileRoot [data-color='inherit']{color:#f1f5f9!important}",
+              ".cl-userProfileRoot [data-color='secondary']{color:#94a3b8!important}",
+              ".cl-navbar [data-localization-key='userProfile.navbar.title']{color:#f1f5f9!important}",
+              ".cl-navbar [data-localization-key='userProfile.navbar.description']{color:#94a3b8!important}",
+              ".cl-userButtonPopoverCard [data-color='inherit'],.cl-userButtonPopoverCard .cl-userPreviewMainIdentifier{color:#f1f5f9!important}",
+              ".cl-userButtonPopoverCard [data-color='secondary'],.cl-userButtonPopoverCard .cl-userPreviewSecondaryIdentifier{color:#94a3b8!important}",
+              ".cl-badge[data-color='primary']{color:#7f5af0!important;background:rgba(127,90,240,0.15)!important}"
+            ].join("")
+            document.head.appendChild(s)
           }
           document.addEventListener("DOMContentLoaded",function(){
-            new MutationObserver(fixColors).observe(document.body,{childList:true,subtree:true})
-            setInterval(fixColors,500)
+            injectClerkOverride()
+            new MutationObserver(injectClerkOverride).observe(document.head,{childList:true,subtree:true})
           })
         `}} />
         {children}

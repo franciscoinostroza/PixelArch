@@ -235,6 +235,11 @@ export default function RootLayout({
             borderRadius: "12px",
             boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(127,90,240,0.04)",
           },
+          userPreview: { padding: "0.5rem 0" },
+          userPreview__userButton: { padding: "1rem 1rem 0.5rem" },
+          userPreviewMainIdentifier: { color: "#f1f5f9", fontWeight: 600, fontSize: "0.875rem" },
+          userPreviewMainIdentifierText: { color: "#f1f5f9" },
+          userPreviewSecondaryIdentifier: { color: "#94a3b8", fontSize: "0.8125rem" },
           userButtonPopoverActions: { padding: "0.25rem 0.5rem" },
           userButtonPopoverActionButton: {
             color: "#f1f5f9",

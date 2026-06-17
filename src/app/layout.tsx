@@ -100,18 +100,28 @@ export default function RootLayout({
           }}
         />
         <script dangerouslySetInnerHTML={{__html: `
+          function fixColors(){
+            document.querySelectorAll(".cl-footerItem").forEach(function(e){e.style.display="none"})
+            document.querySelectorAll(
+              ".cl-userProfileRoot [data-color='inherit'],"+
+              ".cl-navbar [data-localization-key='userProfile.navbar.title'],"+
+              ".cl-userButtonPopoverCard [data-color='inherit'],"+
+              ".cl-userButtonPopoverCard .cl-userPreviewMainIdentifier"
+            ).forEach(function(e){e.style.setProperty("color","#f1f5f9","important")})
+            document.querySelectorAll(
+              ".cl-userProfileRoot [data-color='secondary'],"+
+              ".cl-navbar [data-localization-key='userProfile.navbar.description'],"+
+              ".cl-userButtonPopoverCard [data-color='secondary'],"+
+              ".cl-userButtonPopoverCard .cl-userPreviewSecondaryIdentifier"
+            ).forEach(function(e){e.style.setProperty("color","#94a3b8","important")})
+            document.querySelectorAll(".cl-badge[data-color='primary']").forEach(function(e){
+              e.style.setProperty("color","#7f5af0","important")
+              e.style.setProperty("background","rgba(127,90,240,0.15)","important")
+            })
+          }
           document.addEventListener("DOMContentLoaded",function(){
-            new MutationObserver(function(){
-              document.querySelectorAll(".cl-footerItem").forEach(function(e){e.style.display="none"})
-              ;[".cl-userProfileRoot",".cl-userButtonPopoverCard"].forEach(function(s){
-                document.querySelectorAll(s+" [data-color='inherit'],"+s+" .cl-userPreviewMainIdentifier").forEach(function(e){
-                  e.style.setProperty("color","#f1f5f9","important")
-                })
-                document.querySelectorAll(s+" [data-color='secondary'],"+s+" .cl-userPreviewSecondaryIdentifier").forEach(function(e){
-                  e.style.setProperty("color","#94a3b8","important")
-                })
-              })
-            }).observe(document.body,{childList:true,subtree:true})
+            new MutationObserver(fixColors).observe(document.body,{childList:true,subtree:true})
+            setInterval(fixColors,500)
           })
         `}} />
         {children}

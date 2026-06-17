@@ -1,26 +1,34 @@
 "use client"
 
-import { useEffect, useState } from "react"
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ClerkComponents = { UserButton: any } | null
+import { useState } from "react"
+import { useUser } from "@clerk/nextjs"
+import { AccountModal } from "@/components/ui/account-modal"
 
 export function PortalUserButton() {
-  const [ClerkComponents, setClerkComponents] = useState<ClerkComponents>(null)
-  const [error, setError] = useState(false)
+  const { user, isLoaded } = useUser()
+  const [open, setOpen] = useState(false)
 
-  useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) return
-    import("@clerk/nextjs")
-      .then((mod) => setClerkComponents({ UserButton: mod.UserButton }))
-      .catch(() => setError(true))
-  }, [])
-
-  if (error || !ClerkComponents) {
+  if (!isLoaded || !user) {
     return <div className="h-8 w-8 rounded-full bg-bg border border-border" />
   }
 
-  const { UserButton } = ClerkComponents
+  const initials = ((user.firstName?.[0] ?? "") + (user.lastName?.[0] ?? "")).toUpperCase() || "?"
 
-  return <UserButton afterSignOutUrl="/" />
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="h-8 w-8 overflow-hidden rounded-full border-2 border-[rgba(127,90,240,0.2)] transition-colors hover:border-[#7f5af0]"
+      >
+        {user.imageUrl ? (
+          <img src={user.imageUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-[rgba(127,90,240,0.2)] text-xs font-bold text-[#7f5af0]">
+            {initials}
+          </div>
+        )}
+      </button>
+      <AccountModal isOpen={open} onClose={() => setOpen(false)} />
+    </>
+  )
 }

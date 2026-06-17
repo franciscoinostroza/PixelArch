@@ -50,10 +50,10 @@ body::before {
   display: none;
 }
 
-.cl-userProfileRoot [data-color="inherit"] {
+.cl-userProfileRoot .cl-profileSection [data-color="inherit"] {
   color: #e2e8f0 !important;
 }
 
-.cl-userProfileRoot [data-color="secondary"] {
+.cl-userProfileRoot .cl-profileSection [data-color="secondary"] {
   color: #cbd5e1 !important;
 }

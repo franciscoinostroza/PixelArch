@@ -6,6 +6,7 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { PortalUserButton } from "@/components/ui/portal-user-button"
 import { useUser } from "@clerk/nextjs"
 
 const links = [
@@ -77,7 +78,7 @@ function ClerkAuthSection() {
             Portal
           </Link>
           <AdminNavLink />
-          <UserButton />
+          <PortalUserButton />
         </div>
       </Show>
     </>

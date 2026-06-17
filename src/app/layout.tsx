@@ -103,16 +103,7 @@ export default function RootLayout({
           document.addEventListener("DOMContentLoaded",function(){
             var s=document.createElement("style")
             s.id="clerk-override"
-            s.textContent=[
-              ".cl-footerItem{display:none!important}",
-              ".cl-userProfileRoot [data-color='inherit']{color:#f1f5f9!important}",
-              ".cl-userProfileRoot [data-color='secondary']{color:#94a3b8!important}",
-              ".cl-navbar [data-localization-key='userProfile.navbar.title']{color:#f1f5f9!important}",
-              ".cl-navbar [data-localization-key='userProfile.navbar.description']{color:#94a3b8!important}",
-              ".cl-userButtonPopoverCard [data-color='inherit'],.cl-userButtonPopoverCard .cl-userPreviewMainIdentifier{color:#f1f5f9!important}",
-              ".cl-userButtonPopoverCard [data-color='secondary'],.cl-userButtonPopoverCard .cl-userPreviewSecondaryIdentifier{color:#94a3b8!important}",
-              ".cl-badge[data-color='primary']{color:#7f5af0!important;background:rgba(127,90,240,0.15)!important}"
-            ].join("")
+            s.textContent=".cl-footerItem{display:none!important}"
             document.head.appendChild(s)
           })
         `}} />

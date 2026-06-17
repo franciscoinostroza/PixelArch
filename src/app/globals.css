@@ -49,15 +49,3 @@ body::before {
 .cl-footerItem {
   display: none;
 }
-
-html .cl-userProfileRoot [data-color="inherit"],
-html .cl-profileSectionTitleText {
-  color: #f1f5f9 !important;
-}
-html .cl-userProfileRoot [data-color="secondary"],
-html .cl-navbar [data-localization-key="userProfile.navbar.description"] {
-  color: #94a3b8 !important;
-}
-html .cl-navbar [data-localization-key="userProfile.navbar.title"] {
-  color: #f1f5f9 !important;
-}

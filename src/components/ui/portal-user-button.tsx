@@ -22,5 +22,5 @@ export function PortalUserButton() {
 
   const { UserButton } = ClerkComponents
 
-  return <UserButton afterSignOutUrl="/" />
+  return <UserButton afterSignOutUrl="/" userProfileMode="navigation" userProfileUrl="/portal/cuenta" />
 }

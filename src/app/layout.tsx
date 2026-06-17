@@ -100,10 +100,8 @@ export default function RootLayout({
           }}
         />
         <script dangerouslySetInnerHTML={{__html: `
-          function injectClerkOverride(){
-            var s=document.getElementById("clerk-override")
-            if(s)s.remove()
-            s=document.createElement("style")
+          document.addEventListener("DOMContentLoaded",function(){
+            var s=document.createElement("style")
             s.id="clerk-override"
             s.textContent=[
               ".cl-footerItem{display:none!important}",
@@ -116,10 +114,6 @@ export default function RootLayout({
               ".cl-badge[data-color='primary']{color:#7f5af0!important;background:rgba(127,90,240,0.15)!important}"
             ].join("")
             document.head.appendChild(s)
-          }
-          document.addEventListener("DOMContentLoaded",function(){
-            injectClerkOverride()
-            new MutationObserver(injectClerkOverride).observe(document.head,{childList:true,subtree:true})
           })
         `}} />
         {children}

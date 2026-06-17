@@ -103,11 +103,13 @@ export default function RootLayout({
           document.addEventListener("DOMContentLoaded",function(){
             new MutationObserver(function(){
               document.querySelectorAll(".cl-footerItem").forEach(function(e){e.style.display="none"})
-              document.querySelectorAll(".cl-userProfileRoot [data-color='inherit']").forEach(function(e){
-                e.style.setProperty("color","#e2e8f0","important")
-              })
-              document.querySelectorAll(".cl-userProfileRoot [data-color='secondary']").forEach(function(e){
-                e.style.setProperty("color","#cbd5e1","important")
+              ;[".cl-userProfileRoot",".cl-userButtonPopoverCard"].forEach(function(s){
+                document.querySelectorAll(s+" [data-color='inherit'],"+s+" .cl-userPreviewMainIdentifier").forEach(function(e){
+                  e.style.setProperty("color","#f1f5f9","important")
+                })
+                document.querySelectorAll(s+" [data-color='secondary'],"+s+" .cl-userPreviewSecondaryIdentifier").forEach(function(e){
+                  e.style.setProperty("color","#94a3b8","important")
+                })
               })
             }).observe(document.body,{childList:true,subtree:true})
           })

@@ -50,10 +50,14 @@ body::before {
   display: none;
 }
 
-.cl-userProfileRoot .cl-profileSection [data-color="inherit"] {
-  color: #e2e8f0 !important;
+html .cl-userProfileRoot [data-color="inherit"],
+html .cl-profileSectionTitleText {
+  color: #f1f5f9 !important;
 }
-
-.cl-userProfileRoot .cl-profileSection [data-color="secondary"] {
-  color: #cbd5e1 !important;
+html .cl-userProfileRoot [data-color="secondary"],
+html .cl-navbar [data-localization-key="userProfile.navbar.description"] {
+  color: #94a3b8 !important;
+}
+html .cl-navbar [data-localization-key="userProfile.navbar.title"] {
+  color: #f1f5f9 !important;
 }

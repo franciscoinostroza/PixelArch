@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react"
 import { useUser, useClerk } from "@clerk/nextjs"
-import { X, Mail, ExternalLink, Shield, LogOut, ChevronRight, Plus, Trash2, Star, Camera } from "lucide-react"
+import { X, Mail, ExternalLink, LogOut, ChevronRight, Plus, Trash2, Star, Camera } from "lucide-react"
 
 const c = {
   bg: "linear-gradient(145deg, #1a1a30 0%, #14142a 50%, #1a1a30 100%)",
@@ -31,7 +31,7 @@ interface Props { isOpen: boolean; onClose: () => void }
 
 export function AccountModal({ isOpen, onClose }: Props) {
   const { user, isLoaded } = useUser()
-  const { signOut, openUserProfile } = useClerk()
+  const { signOut } = useClerk()
   const [editingName, setEditingName] = useState(false)
   const [firstName, setFirstName] = useState(user?.firstName ?? "")
   const [lastName, setLastName] = useState(user?.lastName ?? "")
@@ -176,12 +176,6 @@ export function AccountModal({ isOpen, onClose }: Props) {
               ))}
             </div>
           )}
-
-          {/* Security */}
-          <button onClick={() => openUserProfile()} className="flex w-full items-center gap-2 rounded-xl px-4 py-3 text-sm transition-colors hover:brightness-150" style={{ border: c.border, background: c.bg, color: c.w60, cursor: "pointer" }}>
-            <Shield size={16} style={{ color: c.accent }} />
-            Seguridad (contraseña, MFA)
-          </button>
 
           {/* Sign out */}
           <button onClick={() => signOut({ redirectUrl: "/" })} className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors hover:brightness-125" style={{ border: "1px solid rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.08)", color: c.red, cursor: "pointer" }}>

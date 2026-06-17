@@ -55,12 +55,12 @@ export function AccountModal({ isOpen, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-50"
       style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
       onClick={onClose}
     >
       <div
-        className="animate-[modalFadeIn_0.2s_ease-out] relative flex max-h-[85vh] w-full max-w-lg min-h-0 flex-col overflow-y-auto rounded-2xl shadow-2xl"
+        className="animate-[modalFadeIn_0.2s_ease-out] absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex max-h-[85vh] w-full max-w-lg min-h-0 flex-col overflow-y-auto rounded-2xl shadow-2xl"
         style={{ background: c.bg, border: c.border, boxShadow: "0 25px 60px rgba(0,0,0,0.5)" }}
         onClick={e => e.stopPropagation()}
       >

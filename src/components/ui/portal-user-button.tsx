@@ -1,12 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { useUser } from "@clerk/nextjs"
 import { AccountModal } from "@/components/ui/account-modal"
 
 export function PortalUserButton() {
   const { user, isLoaded } = useUser()
   const [open, setOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   if (!isLoaded || !user) {
     return <div className="h-8 w-8 rounded-full bg-bg border border-border" />
@@ -28,7 +31,10 @@ export function PortalUserButton() {
           </div>
         )}
       </button>
-      <AccountModal isOpen={open} onClose={() => setOpen(false)} />
+      {open && mounted && createPortal(
+        <AccountModal isOpen={open} onClose={() => setOpen(false)} />,
+        document.body
+      )}
     </>
   )
 }

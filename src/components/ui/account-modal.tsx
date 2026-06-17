@@ -56,6 +56,7 @@ export function AccountModal({ isOpen, onClose }: AccountModalProps) {
   const accounts = user.externalAccounts
 
   async function saveName() {
+    if (!user) return
     setSaving(true)
     setError("")
     try {
@@ -68,7 +69,7 @@ export function AccountModal({ isOpen, onClose }: AccountModalProps) {
   }
 
   async function addEmail() {
-    if (!newEmail.trim()) return
+    if (!user || !newEmail.trim()) return
     setSaving(true)
     setError("")
     try {
@@ -82,6 +83,7 @@ export function AccountModal({ isOpen, onClose }: AccountModalProps) {
   }
 
   async function removeEmail(emailId: string) {
+    if (!user) return
     setSaving(true)
     setError("")
     try {
@@ -94,6 +96,7 @@ export function AccountModal({ isOpen, onClose }: AccountModalProps) {
   }
 
   async function setPrimary(emailId: string) {
+    if (!user) return
     setSaving(true)
     setError("")
     try {

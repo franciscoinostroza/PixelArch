@@ -60,7 +60,7 @@ export function AccountModal({ isOpen, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="animate-[modalFadeIn_0.2s_ease-out] relative flex max-h-[85vh] w-full max-w-lg flex-col overflow-y-auto rounded-2xl shadow-2xl"
+        className="animate-[modalFadeIn_0.2s_ease-out] relative flex max-h-[85vh] w-full max-w-lg min-h-0 flex-col overflow-y-auto rounded-2xl shadow-2xl"
         style={{ background: c.bg, border: c.border, boxShadow: "0 25px 60px rgba(0,0,0,0.5)" }}
         onClick={e => e.stopPropagation()}
       >
@@ -166,12 +166,12 @@ export function AccountModal({ isOpen, onClose }: Props) {
                 <h2 className="text-sm font-semibold" style={{ color: c.white }}>Connected accounts</h2>
               </div>
               {user.externalAccounts.map((acc, i) => (
-                <div key={acc.id} className="flex items-center justify-between px-6 py-3" style={{ borderBottom: i < user.externalAccounts.length - 1 ? c.divider : undefined }}>
+                <div key={acc.id} className="flex items-center px-6 py-3" style={{ borderBottom: i < user.externalAccounts.length - 1 ? c.divider : undefined }}>
                   <div className="flex min-w-0 items-center gap-2">
                     <span className="truncate text-sm" style={{ color: c.white }}>{providers[acc.provider] ?? acc.provider}</span>
                     {acc.emailAddress && <span className="truncate text-sm" style={{ color: c.w60 }}>• {acc.emailAddress}</span>}
                   </div>
-                  <span className="shrink-0 text-[11px] font-medium" style={{ color: c.green }}>Connected</span>
+                  <span className="ml-auto shrink-0 pl-3 text-[11px] font-medium" style={{ color: c.green }}>Connected</span>
                 </div>
               ))}
             </div>

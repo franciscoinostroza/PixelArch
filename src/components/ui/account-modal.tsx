@@ -4,9 +4,19 @@ import { useState, useRef } from "react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { X, Mail, ExternalLink, Shield, LogOut, ChevronRight, Plus, Trash2, Star, Camera } from "lucide-react"
 
-const cardBg = "linear-gradient(145deg, #1a1a30 0%, #14142a 50%, #1a1a30 100%)"
-const border = "1px solid rgba(127,90,240,0.12)"
-const divider = "1px solid rgba(127,90,240,0.08)"
+const s = {
+  cardBg: "linear-gradient(145deg, #1a1a30 0%, #14142a 50%, #1a1a30 100%)",
+  border: "1px solid rgba(127,90,240,0.12)",
+  divider: "1px solid rgba(127,90,240,0.08)",
+  white: "#ffffff",
+  white70: "rgba(255,255,255,0.7)",
+  white60: "rgba(255,255,255,0.6)",
+  white50: "rgba(255,255,255,0.5)",
+  white40: "rgba(255,255,255,0.4)",
+  accent: "#7f5af0",
+  green: "#34d399",
+  red: "#ef4444",
+}
 
 const providers: Record<string, string> = {
   google: "Google",
@@ -17,289 +27,125 @@ const providers: Record<string, string> = {
   linkedin: "LinkedIn",
 }
 
-function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
-  return (
-    <div className="flex items-center gap-2 px-6 py-4" style={{ borderBottom: divider }}>
-      <span className="text-[#7f5af0]">{icon}</span>
-      <h2 className="text-sm font-semibold text-white">{title}</h2>
-    </div>
-  )
-}
-
-interface AccountModalProps {
+interface Props {
   isOpen: boolean
   onClose: () => void
 }
 
-export function AccountModal({ isOpen, onClose }: AccountModalProps) {
+export function AccountModal({ isOpen, onClose }: Props) {
   const { user, isLoaded } = useUser()
   const { signOut, openUserProfile } = useClerk()
 
   const [editingName, setEditingName] = useState(false)
   const [firstName, setFirstName] = useState(user?.firstName ?? "")
   const [lastName, setLastName] = useState(user?.lastName ?? "")
-
   const [addingEmail, setAddingEmail] = useState(false)
   const [newEmail, setNewEmail] = useState("")
-
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
-
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   if (!isOpen) return null
   if (!isLoaded || !user) return null
 
   const initials = ((user.firstName?.[0] ?? "") + (user.lastName?.[0] ?? "")).toUpperCase() || "?"
   const primaryEmail = user.primaryEmailAddress
-  const otherEmails = user.emailAddresses.filter(e => e.id !== primaryEmail?.id)
-  const accounts = user.externalAccounts
 
-  async function saveName() {
-    if (!user) return
-    setSaving(true)
-    setError("")
-    try {
-      await user.update({ firstName: firstName.trim(), lastName: lastName.trim() })
-      setEditingName(false)
-    } catch {
-      setError("Error al guardar")
-    }
-    setSaving(false)
-  }
+  async function saveName() { if (!user) return; setSaving(true); setError(""); try { await user.update({ firstName: firstName.trim(), lastName: lastName.trim() }); setEditingName(false) } catch { setError("Error al guardar") }; setSaving(false) }
+  async function addEmail() { if (!user || !newEmail.trim()) return; setSaving(true); setError(""); try { await user.createEmailAddress({ email: newEmail.trim() }); setNewEmail(""); setAddingEmail(false) } catch { setError("Error al agregar email") }; setSaving(false) }
+  async function removeEmail(id: string) { if (!user) return; setSaving(true); setError(""); try { const e = user.emailAddresses.find(x => x.id === id); if (e) await e.destroy() } catch { setError("Error al eliminar email") }; setSaving(false) }
+  async function setPrimary(id: string) { if (!user) return; setSaving(true); setError(""); try { await user.update({ primaryEmailAddressId: id }) } catch { setError("Error al cambiar primary") }; setSaving(false) }
+  async function handleAvatar(e: React.ChangeEvent<HTMLInputElement>) { if (!user) return; const f = e.target.files?.[0]; if (!f) return; setSaving(true); setError(""); try { await user.setProfileImage({ file: f }) } catch { setError("Error al actualizar avatar") }; setSaving(false) }
 
-  async function addEmail() {
-    if (!user || !newEmail.trim()) return
-    setSaving(true)
-    setError("")
-    try {
-      await user.createEmailAddress({ email: newEmail.trim() })
-      setNewEmail("")
-      setAddingEmail(false)
-    } catch {
-      setError("Error al agregar email")
-    }
-    setSaving(false)
-  }
-
-  async function removeEmail(emailId: string) {
-    if (!user) return
-    setSaving(true)
-    setError("")
-    try {
-      const email = user.emailAddresses.find(e => e.id === emailId)
-      if (email) await email.destroy()
-    } catch {
-      setError("Error al eliminar email")
-    }
-    setSaving(false)
-  }
-
-  async function setPrimary(emailId: string) {
-    if (!user) return
-    setSaving(true)
-    setError("")
-    try {
-      await user.update({ primaryEmailAddressId: emailId })
-    } catch {
-      setError("Error al cambiar primary")
-    }
-    setSaving(false)
-  }
-
-  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!user) return
-    const file = e.target.files?.[0]
-    if (!file) return
-    setSaving(true)
-    setError("")
-    try {
-      await user.setProfileImage({ file })
-    } catch {
-      setError("Error al actualizar avatar")
-    }
-    setSaving(false)
-  }
+  const T = (color: string) => ({ color }) as const
+  const Td = (color: string, display?: string) => ({ color, display } as const)
+  const Bg = (bg: string) => ({ background: bg } as const)
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
-      onClick={onClose}
-    >
-      <div
-        className="relative max-h-[85vh] w-full max-w-lg overflow-y-auto"
-        style={{ background: cardBg, border, borderRadius: "16px", boxShadow: "0 25px 60px rgba(0,0,0,0.5)" }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4" style={{ background: cardBg, borderBottom: divider }}>
-          <h1 className="font-display text-lg font-bold text-white">Mi cuenta</h1>
-          <button
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-white/50 transition-colors hover:bg-white/5 hover:text-white"
-          >
-            <X className="h-4 w-4" />
+    <div style={{ ...Bg("rgba(0,0,0,0.6)"), backdropFilter: "blur(4px)", position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
+      <div style={{ ...Bg(s.cardBg), border: s.border, borderRadius: "16px", boxShadow: "0 25px 60px rgba(0,0,0,0.5)", position: "relative", maxHeight: "85vh", width: "100%", maxWidth: "28rem", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{ ...Bg(s.cardBg), borderBottom: s.divider, position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1rem 1.5rem" }}>
+          <h1 style={{ ...T(s.white), fontWeight: 700, fontSize: "1.125rem" }}>Mi cuenta</h1>
+          <button onClick={onClose} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "2rem", height: "2rem", borderRadius: "0.5rem", border: "none", cursor: "pointer", ...Bg("transparent"), ...T(s.white50), transition: "all 0.15s" }}>
+            <X size={16} />
           </button>
         </div>
 
-        {/* Error */}
-        {error && (
-          <div className="mx-6 mt-4 rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400">
-            {error}
-          </div>
-        )}
+        {error && <div style={{ margin: "1rem 1.5rem 0", padding: "0.5rem 1rem", borderRadius: "0.5rem", ...Bg("rgba(239,68,68,0.1)"), ...T("rgb(248 113 113)"), fontSize: "0.875rem" }}>{error}</div>}
 
-        <div className="space-y-1 p-6">
-          {/* Avatar + nombre */}
-          <div className="flex items-center gap-4 pb-4" style={{ borderBottom: divider }}>
-            <div className="relative">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarChange}
-              />
+        <div style={{ padding: "1.5rem" }}>
+          {/* Avatar + name */}
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem", paddingBottom: "1rem", borderBottom: s.divider }}>
+            <div style={{ position: "relative" }}>
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleAvatar} />
               {user.imageUrl ? (
-                <img
-                  src={user.imageUrl}
-                  alt={user.fullName ?? ""}
-                  className="h-14 w-14 cursor-pointer rounded-full border-2 border-[rgba(127,90,240,0.25)] object-cover transition-opacity hover:opacity-80"
-                  onClick={() => fileInputRef.current?.click()}
-                />
+                <img src={user.imageUrl} alt="" onClick={() => fileRef.current?.click()} style={{ width: "3.5rem", height: "3.5rem", borderRadius: "9999px", border: "2px solid rgba(127,90,240,0.25)", objectFit: "cover", cursor: "pointer" }} />
               ) : (
-                <div
-                  className="flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-[rgba(127,90,240,0.2)] font-display text-lg font-bold text-[#7f5af0] transition-opacity hover:opacity-80"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {initials}
-                </div>
+                <div onClick={() => fileRef.current?.click()} style={{ width: "3.5rem", height: "3.5rem", borderRadius: "9999px", ...Bg("rgba(127,90,240,0.2)"), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", ...T(s.accent), fontWeight: 700, fontSize: "1.125rem" }}>{initials}</div>
               )}
-              <div
-                className="absolute bottom-0 right-0 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-[#7f5af0] text-white"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Camera className="h-3 w-3" />
+              <div onClick={() => fileRef.current?.click()} style={{ position: "absolute", bottom: 0, right: 0, width: "1.25rem", height: "1.25rem", borderRadius: "9999px", ...Bg(s.accent), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", ...T(s.white) }}>
+                <Camera size={12} />
               </div>
             </div>
             {editingName ? (
-              <div className="flex-1 space-y-2">
-                <div className="flex gap-2">
-                  <input
-                    value={firstName}
-                    onChange={e => setFirstName(e.target.value)}
-                    placeholder="Nombre"
-                    className="flex-1 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-3 py-1.5 text-sm text-white outline-none transition-colors focus:border-[#7f5af0]"
-                  />
-                  <input
-                    value={lastName}
-                    onChange={e => setLastName(e.target.value)}
-                    placeholder="Apellido"
-                    className="flex-1 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-3 py-1.5 text-sm text-white outline-none transition-colors focus:border-[#7f5af0]"
-                  />
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Nombre" style={{ flex: 1, padding: "0.375rem 0.75rem", borderRadius: "0.5rem", border: "1px solid rgba(255,255,255,0.1)", ...Bg("rgba(255,255,255,0.04)"), ...T(s.white), fontSize: "0.875rem", outline: "none" }} />
+                  <input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Apellido" style={{ flex: 1, padding: "0.375rem 0.75rem", borderRadius: "0.5rem", border: "1px solid rgba(255,255,255,0.1)", ...Bg("rgba(255,255,255,0.04)"), ...T(s.white), fontSize: "0.875rem", outline: "none" }} />
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={saveName}
-                    disabled={saving}
-                    className="rounded-lg bg-[#7f5af0] px-3 py-1 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                  >
-                    {saving ? "Guardando..." : "Guardar"}
-                  </button>
-                  <button
-                    onClick={() => setEditingName(false)}
-                    className="rounded-lg bg-white/5 px-3 py-1 text-xs font-medium text-white/60 transition-colors hover:bg-white/10 hover:text-white"
-                  >
-                    Cancelar
-                  </button>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <button onClick={saveName} disabled={saving} style={{ padding: "0.25rem 0.75rem", borderRadius: "0.5rem", border: "none", cursor: "pointer", ...Bg(s.accent), ...T(s.white), fontSize: "0.75rem", fontWeight: 500, opacity: saving ? 0.5 : 1 }}>{saving ? "Guardando..." : "Guardar"}</button>
+                  <button onClick={() => setEditingName(false)} style={{ padding: "0.25rem 0.75rem", borderRadius: "0.5rem", border: "none", cursor: "pointer", ...Bg("rgba(255,255,255,0.05)"), ...T(s.white60), fontSize: "0.75rem", fontWeight: 500 }}>Cancelar</button>
                 </div>
               </div>
             ) : (
-              <div className="flex-1">
-                <p className="text-base font-semibold text-white">{user.fullName}</p>
-                <p className="text-sm text-white/70">{primaryEmail?.emailAddress}</p>
+              <div style={{ flex: 1 }}>
+                <p style={{ ...T(s.white), fontWeight: 600, fontSize: "1rem" }}>{user.fullName}</p>
+                <p style={{ ...T(s.white70), fontSize: "0.875rem" }}>{primaryEmail?.emailAddress}</p>
               </div>
             )}
           </div>
 
-          {/* Editar nombre */}
           {!editingName && (
-            <button
-              onClick={() => { setFirstName(user.firstName ?? ""); setLastName(user.lastName ?? ""); setEditingName(true) }}
-              className="group flex w-full items-center gap-2 px-0 py-2 text-sm text-white/50 transition-colors hover:text-white"
-            >
-              <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            <button onClick={() => { setFirstName(user.firstName ?? ""); setLastName(user.lastName ?? ""); setEditingName(true) }} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0", border: "none", cursor: "pointer", ...Bg("transparent"), ...T(s.white50), fontSize: "0.875rem", transition: "color 0.15s" }}>
+              <ChevronRight size={14} />
               Editar perfil
             </button>
           )}
 
-          {/* Email addresses */}
-          <div style={{ borderRadius: "12px", border, background: cardBg }} className="mt-4">
-            <SectionHeader icon={<Mail className="h-4 w-4" />} title="Email addresses" />
+          {/* Emails */}
+          <div style={{ marginTop: "1rem", borderRadius: "12px", border: s.border, ...Bg(s.cardBg) }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "1rem 1.5rem", borderBottom: s.divider }}>
+              <Mail size={16} style={{ ...T(s.accent) }} />
+              <h2 style={{ ...T(s.white), fontWeight: 600, fontSize: "0.875rem" }}>Email addresses</h2>
+            </div>
             <div>
-              {[primaryEmail, ...otherEmails].filter(Boolean).map((email, i) => (
-                <div
-                  key={email!.id}
-                  className="flex items-center justify-between px-6 py-3"
-                  style={i < user.emailAddresses.length - 1 ? { borderBottom: divider } : undefined}
-                >
-                  <span className="text-sm text-white">{email!.emailAddress}</span>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {email!.id === primaryEmail?.id && (
-                      <span className="rounded-full bg-[rgba(127,90,240,0.15)] px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[#7f5af0]">
-                        Primary
-                      </span>
+              {user.emailAddresses.map((email, i) => (
+                <div key={email.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.75rem 1.5rem", borderBottom: i < user.emailAddresses.length - 1 ? s.divider : undefined }}>
+                  <span style={{ ...T(s.white), fontSize: "0.875rem" }}>{email.emailAddress}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
+                    {email.id === primaryEmail?.id && (
+                      <span style={{ ...T(s.accent), ...Bg("rgba(127,90,240,0.15)"), padding: "0.125rem 0.625rem", borderRadius: "9999px", fontSize: "0.6875rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Primary</span>
                     )}
-                    {email!.id !== primaryEmail?.id && (
-                      <button
-                        onClick={() => setPrimary(email!.id)}
-                        className="text-white/40 transition-colors hover:text-[#7f5af0]"
-                        title="Set as primary"
-                      >
-                        <Star className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                    {email!.id !== primaryEmail?.id && (
-                      <button
-                        onClick={() => removeEmail(email!.id)}
-                        className="text-white/40 transition-colors hover:text-red-400"
-                        title="Remove"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                    {email.id !== primaryEmail?.id && (
+                      <>
+                        <button onClick={() => setPrimary(email.id)} style={{ border: "none", cursor: "pointer", ...Bg("transparent"), ...T(s.white40), fontSize: "0.875rem" }} title="Set as primary"><Star size={14} /></button>
+                        <button onClick={() => removeEmail(email.id)} style={{ border: "none", cursor: "pointer", ...Bg("transparent"), ...T(s.white40), fontSize: "0.875rem" }} title="Remove"><Trash2 size={14} /></button>
+                      </>
                     )}
                   </div>
                 </div>
               ))}
               {addingEmail ? (
-                <div className="flex items-center gap-2 px-6 py-3">
-                  <input
-                    value={newEmail}
-                    onChange={e => setNewEmail(e.target.value)}
-                    placeholder="nuevo@email.com"
-                    className="flex-1 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-3 py-1.5 text-sm text-white outline-none transition-colors focus:border-[#7f5af0]"
-                  />
-                  <button
-                    onClick={addEmail}
-                    disabled={saving || !newEmail.trim()}
-                    className="rounded-lg bg-[#7f5af0] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                  >
-                    {saving ? "..." : "Add"}
-                  </button>
-                  <button
-                    onClick={() => { setAddingEmail(false); setNewEmail("") }}
-                    className="rounded-lg bg-white/5 px-3 py-1.5 text-xs font-medium text-white/60 transition-colors hover:bg-white/10 hover:text-white"
-                  >
-                    Cancel
-                  </button>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1.5rem" }}>
+                  <input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="nuevo@email.com" style={{ flex: 1, padding: "0.375rem 0.75rem", borderRadius: "0.5rem", border: "1px solid rgba(255,255,255,0.1)", ...Bg("rgba(255,255,255,0.04)"), ...T(s.white), fontSize: "0.875rem", outline: "none" }} />
+                  <button onClick={addEmail} disabled={saving || !newEmail.trim()} style={{ padding: "0.375rem 0.75rem", borderRadius: "0.5rem", border: "none", cursor: "pointer", ...Bg(s.accent), ...T(s.white), fontSize: "0.75rem", fontWeight: 500, opacity: saving || !newEmail.trim() ? 0.5 : 1 }}>{saving ? "..." : "Add"}</button>
+                  <button onClick={() => { setAddingEmail(false); setNewEmail("") }} style={{ padding: "0.375rem 0.75rem", borderRadius: "0.5rem", border: "none", cursor: "pointer", ...Bg("rgba(255,255,255,0.05)"), ...T(s.white60), fontSize: "0.75rem", fontWeight: 500 }}>Cancel</button>
                 </div>
               ) : (
-                <button
-                  onClick={() => setAddingEmail(true)}
-                  className="flex w-full items-center gap-2 px-6 py-3 text-sm text-white/50 transition-colors hover:text-white"
-                  style={{ borderTop: divider }}
-                >
-                  <Plus className="h-3.5 w-3.5" />
+                <button onClick={() => setAddingEmail(true)} style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%", padding: "0.75rem 1.5rem", border: "none", cursor: "pointer", ...Bg("transparent"), ...T(s.white50), fontSize: "0.875rem", borderTop: s.divider }}>
+                  <Plus size={14} />
                   Add email address
                 </button>
               )}
@@ -307,45 +153,33 @@ export function AccountModal({ isOpen, onClose }: AccountModalProps) {
           </div>
 
           {/* Connected accounts */}
-          {accounts.length > 0 && (
-            <div style={{ borderRadius: "12px", border, background: cardBg }} className="mt-4">
-              <SectionHeader icon={<ExternalLink className="h-4 w-4" />} title="Connected accounts" />
-              <div>
-                {accounts.map((acc, i) => (
-                  <div
-                    key={acc.id}
-                    className="flex items-center justify-between px-6 py-3"
-                    style={i < accounts.length - 1 ? { borderBottom: divider } : undefined}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-sm text-white">{providers[acc.provider] ?? acc.provider}</span>
-                      {acc.emailAddress && (
-                        <span className="text-sm text-white/60">• {acc.emailAddress}</span>
-                      )}
-                    </div>
-                    <span className="text-[11px] text-[#34d399] font-medium">Connected</span>
-                  </div>
-                ))}
+          {user.externalAccounts.length > 0 && (
+            <div style={{ marginTop: "1rem", borderRadius: "12px", border: s.border, ...Bg(s.cardBg) }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "1rem 1.5rem", borderBottom: s.divider }}>
+                <ExternalLink size={16} style={{ ...T(s.accent) }} />
+                <h2 style={{ ...T(s.white), fontWeight: 600, fontSize: "0.875rem" }}>Connected accounts</h2>
               </div>
+              {user.externalAccounts.map((acc, i) => (
+                <div key={acc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.75rem 1.5rem", borderBottom: i < user.externalAccounts.length - 1 ? s.divider : undefined }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
+                    <span style={{ ...T(s.white), fontSize: "0.875rem" }}>{providers[acc.provider] ?? acc.provider}</span>
+                    {acc.emailAddress && <span style={{ ...T(s.white60), fontSize: "0.875rem" }}>• {acc.emailAddress}</span>}
+                  </div>
+                  <span style={{ ...T(s.green), fontSize: "0.6875rem", fontWeight: 500, flexShrink: 0 }}>Connected</span>
+                </div>
+              ))}
             </div>
           )}
 
-          {/* Seguridad */}
-          <button
-            onClick={() => openUserProfile()}
-            className="flex w-full items-center gap-2 px-4 py-3 text-sm text-white/60 transition-colors hover:text-white"
-            style={{ borderRadius: "12px", border, background: cardBg }}
-          >
-            <Shield className="h-4 w-4 text-[#7f5af0]" />
+          {/* Security */}
+          <button onClick={() => openUserProfile()} style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%", padding: "0.75rem 1rem", marginTop: "1rem", borderRadius: "12px", border: s.border, ...Bg(s.cardBg), cursor: "pointer", ...T(s.white60), fontSize: "0.875rem", transition: "color 0.15s" }}>
+            <Shield size={16} style={{ ...T(s.accent) }} />
             Seguridad (contraseña, MFA)
           </button>
 
-          {/* Cerrar sesion */}
-          <button
-            onClick={() => signOut({ redirectUrl: "/" })}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-[rgba(239,68,68,0.2)] bg-[rgba(239,68,68,0.08)] px-4 py-3 text-sm font-medium text-[#ef4444] transition-colors hover:bg-[rgba(239,68,68,0.15)]"
-          >
-            <LogOut className="h-4 w-4" />
+          {/* Sign out */}
+          <button onClick={() => signOut({ redirectUrl: "/" })} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", width: "100%", padding: "0.75rem 1rem", marginTop: "1rem", borderRadius: "12px", border: "1px solid rgba(239,68,68,0.2)", ...Bg("rgba(239,68,68,0.08)"), cursor: "pointer", ...T(s.red), fontWeight: 500, fontSize: "0.875rem" }}>
+            <LogOut size={16} />
             Cerrar sesion
           </button>
         </div>

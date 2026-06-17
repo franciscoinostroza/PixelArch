@@ -77,7 +77,7 @@ function ClerkAuthSection() {
             Portal
           </Link>
           <AdminNavLink />
-          <UserButton userProfileMode="navigation" userProfileUrl="/portal/cuenta" />
+          <UserButton />
         </div>
       </Show>
     </>

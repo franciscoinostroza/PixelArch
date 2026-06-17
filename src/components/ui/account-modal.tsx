@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react"
 import { useUser, useClerk } from "@clerk/nextjs"
-import { X, Mail, ExternalLink, Shield, LogOut, ChevronDown, ChevronRight, Plus, Trash2, Star, Camera } from "lucide-react"
+import { X, Mail, ExternalLink, Shield, LogOut, ChevronRight, Plus, Trash2, Star, Camera } from "lucide-react"
 
 const cardBg = "linear-gradient(145deg, #1a1a30 0%, #14142a 50%, #1a1a30 100%)"
 const border = "1px solid rgba(127,90,240,0.12)"
@@ -108,6 +108,7 @@ export function AccountModal({ isOpen, onClose }: AccountModalProps) {
   }
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!user) return
     const file = e.target.files?.[0]
     if (!file) return
     setSaving(true)
@@ -331,7 +332,7 @@ export function AccountModal({ isOpen, onClose }: AccountModalProps) {
 
           {/* Seguridad */}
           <button
-            onClick={() => openUserProfile({ routing: "modal" })}
+            onClick={() => openUserProfile()}
             className="flex w-full items-center gap-2 px-4 py-3 text-sm text-white/60 transition-colors hover:text-white"
             style={{ borderRadius: "12px", border, background: cardBg }}
           >

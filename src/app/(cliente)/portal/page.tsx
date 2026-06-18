@@ -2,6 +2,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server"
 import { cn } from "@/lib/utils"
 import { AlertTriangle, CheckCircle2 } from "lucide-react"
 import { prisma } from "@/lib/prisma"
+import { logger } from "@/lib/logger"
 import Link from "next/link"
 import { CancelSubscriptionButton } from "@/components/ui/cancel-subscription-button"
 import { PaymentPortalLink } from "@/components/ui/payment-portal-link"
@@ -24,15 +25,36 @@ export default async function PortalPage({
   })
 
   if (!cliente) {
-    const clerk = await clerkClient()
-    const user = await clerk.users.getUser(userId)
-    const email = user.emailAddresses[0]?.emailAddress ?? ""
-    const nombre = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || email
+    try {
+      const clerk = await clerkClient()
+      const user = await clerk.users.getUser(userId)
+      const email = user.emailAddresses[0]?.emailAddress ?? ""
+      const nombre = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || email
 
-    cliente = await prisma.cliente.create({
-      data: { clerkUserId: userId, email, nombre },
-      select: { id: true, nombre: true },
-    })
+      if (email) {
+        cliente = await prisma.cliente.findUnique({
+          where: { email },
+          select: { id: true, nombre: true },
+        })
+        if (cliente) {
+          await prisma.cliente.update({
+            where: { id: cliente.id },
+            data: { clerkUserId: userId },
+          })
+          logger.info("Cliente vinculado por email", { clerkUserId: userId, email, clienteId: cliente.id })
+        }
+      }
+
+      if (!cliente) {
+        cliente = await prisma.cliente.create({
+          data: { clerkUserId: userId, email: email || `cliente-${userId}@pixelarch.local`, nombre },
+          select: { id: true, nombre: true },
+        })
+        logger.info("Cliente auto-creado desde portal", { clerkUserId: userId, email })
+      }
+    } catch (e) {
+      logger.error("Error auto-creando cliente en portal", { error: String(e), clerkUserId: userId })
+    }
   }
 
   const [suscripciones, ultimosPagos, tienePagoFallido] = await Promise.all([

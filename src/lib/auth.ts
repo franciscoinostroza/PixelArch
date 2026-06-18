@@ -20,7 +20,9 @@ export async function requireAdmin() {
 
   if (role !== "admin") return null
 
-  return prisma.cliente.findUnique({
+  const cliente = await prisma.cliente.findUnique({
     where: { clerkUserId: userId },
   })
+
+  return cliente ?? { id: userId, clerkUserId: userId, nombre: "Admin", email: "", activo: true }
 }

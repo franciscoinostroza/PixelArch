@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server"
+import { auth, clerkClient } from "@clerk/nextjs/server"
 import { cn } from "@/lib/utils"
 import { AlertTriangle, CheckCircle2 } from "lucide-react"
 import { prisma } from "@/lib/prisma"
@@ -18,10 +18,22 @@ export default async function PortalPage({
     return <div className="rounded-xl border border-border bg-bg2 p-12 text-center text-muted font-mono text-sm">Inicia sesion para ver tus servicios.</div>
   }
 
-  const cliente = await prisma.cliente.findUnique({
+  let cliente = await prisma.cliente.findUnique({
     where: { clerkUserId: userId },
     select: { id: true, nombre: true },
   })
+
+  if (!cliente) {
+    const clerk = await clerkClient()
+    const user = await clerk.users.getUser(userId)
+    const email = user.emailAddresses[0]?.emailAddress ?? ""
+    const nombre = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || email
+
+    cliente = await prisma.cliente.create({
+      data: { clerkUserId: userId, email, nombre },
+      select: { id: true, nombre: true },
+    })
+  }
 
   const [suscripciones, ultimosPagos, tienePagoFallido] = await Promise.all([
     cliente ? prisma.suscripcion.findMany({

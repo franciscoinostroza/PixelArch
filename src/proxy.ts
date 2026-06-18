@@ -1,43 +1,35 @@
 import { clerkClient, clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 
-const isPublicRoute = createRouteMatcher([
-  "/",
-  "/productos(.*)",
-  "/sign-in(.*)",
-  "/sign-up(.*)",
-  "/gracias",
-  "/terminos",
-  "/privacidad",
-  "/reembolsos",
-  "/studio(.*)",
-])
+const ROUTES = {
+  public: ["/", "/productos(.*)", "/sign-in(.*)", "/sign-up(.*)", "/gracias", "/terminos", "/privacidad", "/reembolsos", "/studio(.*)"],
+  admin: ["/admin(.*)"],
+  client: ["/portal(.*)"],
+}
 
-const isAdminRoute = createRouteMatcher(["/admin(.*)"])
-const isClientRoute = createRouteMatcher(["/portal(.*)"])
+const isPublic = createRouteMatcher(ROUTES.public)
+const isAdmin = createRouteMatcher(ROUTES.admin)
+const isClient = createRouteMatcher(ROUTES.client)
+
+async function redirect(url: string, req: Request) {
+  return NextResponse.redirect(new URL(url, req.url))
+}
 
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth()
 
-  if (isPublicRoute(req)) return NextResponse.next()
-  if (!userId) {
-    const signInUrl = new URL("/sign-in", req.url)
-    return NextResponse.redirect(signInUrl)
-  }
+  if (isPublic(req)) return NextResponse.next()
+  if (!userId) return redirect("/sign-in", req)
 
-  if (isAdminRoute(req)) {
+  if (isAdmin(req)) {
     const clerk = await clerkClient()
     const user = await clerk.users.getUser(userId)
     const role = (user.publicMetadata as { role?: string })?.role
-    if (role !== "admin") {
-      const portalUrl = new URL("/portal", req.url)
-      return NextResponse.redirect(portalUrl)
-    }
+    if (role !== "admin") return redirect("/portal", req)
     return NextResponse.next()
   }
 
-  if (isClientRoute(req)) return NextResponse.next()
-
+  if (isClient(req)) return NextResponse.next()
   return NextResponse.next()
 })
 

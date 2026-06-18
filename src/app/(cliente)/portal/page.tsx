@@ -6,6 +6,7 @@ import Link from "next/link"
 import { CancelSubscriptionButton } from "@/components/ui/cancel-subscription-button"
 import { PaymentPortalLink } from "@/components/ui/payment-portal-link"
 import { CheckoutButton } from "@/components/ui/checkout-button"
+import { ApplyDiscount } from "@/components/ui/apply-discount"
 
 export default async function PortalPage({
   searchParams,
@@ -90,6 +91,7 @@ export default async function PortalPage({
                 )}
               </div>
               <p className="font-display text-[0.95rem] font-bold mb-1">{s.servicio.nombre}</p>
+              {s.estado === "ACTIVE" && <ApplyDiscount suscripcionId={s.id} />}
               <p className="text-xs text-muted leading-relaxed mb-3">{config.descripcion}</p>
 
               {s.estado === "READY" && s.servicio.polarProductIdMantenimiento && (
@@ -166,7 +168,7 @@ function estadoUI(s: { estado: string; servicio: { nombre: string } }) {
     READY: { label: "Entregado", descripcion: "Tu proyecto fue entregado. Activa el mantenimiento mensual para mantenerlo activo.", badgeBg: "bg-purple-400/10", badgeColor: "text-purple-400" },
     ACTIVE: { label: "Activo", descripcion: "Tu servicio esta activo.", badgeBg: "bg-accent2/10", badgeColor: "text-accent2" },
     PAST_DUE: { label: "Pago fallido", descripcion: "Tu ultimo pago fallo. Actualiza tu metodo de pago.", badgeBg: "bg-red-500/10", badgeColor: "text-red-300" },
-    PAUSED: { label: "Pausado", descripcion: "Servicio pausado por falta de pago. Reactiva eligiendo un plan.", badgeBg: "bg-muted/10", badgeColor: "text-muted" },
+    PAUSED: { label: "Pausado", descripcion: "Suscripcion pausada. Contacta a soporte para reactivar.", badgeBg: "bg-muted/10", badgeColor: "text-muted" },
     CANCELED: { label: "Cancelado", descripcion: "Suscripcion cancelada.", badgeBg: "bg-muted/10", badgeColor: "text-muted" },
   }
   return maps[s.estado] ?? { label: s.estado, descripcion: "", badgeBg: "bg-muted/10", badgeColor: "text-muted" }

@@ -72,12 +72,17 @@ export async function POST(req: Request) {
           return
         }
 
+        const polarDiscountId = order.discount_id ?? null
+        const discountAmount = order.discount_amount ?? null
+
         const pago = await prisma.pago.create({
           data: {
             clienteId: cliente.id,
             polarTransactionId: order.id,
             monto: Math.round(parseFloat(String(amount)) * 100),
             moneda: currency,
+            polarDiscountId,
+            discountAmount,
             estadoPago: "SUCCEEDED",
           },
         })
@@ -174,9 +179,10 @@ export async function POST(req: Request) {
 
       "subscription.active": async (sub: any) => {
         const subId = sub.id ?? ""
+        const polarDiscountId = sub.discount_id ?? null
         await prisma.suscripcion.updateMany({
           where: { polarSubscriptionId: subId },
-          data: { estado: "ACTIVE" },
+          data: { estado: "ACTIVE", polarDiscountId },
         })
       },
 
@@ -232,10 +238,11 @@ export async function POST(req: Request) {
         const subId = sub.id ?? ""
         const status = sub.status ?? ""
         const estado = status === "active" ? "ACTIVE" : status === "past_due" ? "PAST_DUE" : undefined
+        const polarDiscountId = sub.discount_id ?? null
         if (estado) {
           await prisma.suscripcion.updateMany({
             where: { polarSubscriptionId: subId },
-            data: { estado },
+            data: { estado, polarDiscountId },
           })
         }
       },

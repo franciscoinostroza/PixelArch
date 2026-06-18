@@ -46,10 +46,17 @@ export async function POST(req: Request) {
           await prisma.cliente.create({
             data: { clerkUserId: clerkId, email, nombre },
           })
-          await sendWelcomeEmail(email, nombre)
-          logger.info("Cliente creado y welcome email enviado", { clerkUserId: clerkId, email })
+          logger.info("Cliente creado desde webhook", { clerkUserId: clerkId, email })
         } catch (e) {
           logger.error("Error creando cliente desde webhook", { error: String(e), clerkUserId: clerkId })
+          throw e
+        }
+
+        try {
+          await sendWelcomeEmail(email, nombre)
+          logger.info("Welcome email enviado", { email })
+        } catch (e) {
+          logger.error("Error enviando welcome email", { error: String(e), email })
         }
         break
       }
@@ -64,8 +71,10 @@ export async function POST(req: Request) {
             where: { clerkUserId: clerkId },
             data: { email: updatedEmail, nombre: updatedNombre },
           })
+          logger.info("Cliente actualizado desde webhook", { clerkUserId: clerkId })
         } catch (e) {
           logger.error("Error actualizando cliente", { error: String(e), clerkUserId: clerkId })
+          throw e
         }
         break
       }
@@ -93,6 +102,7 @@ export async function POST(req: Request) {
           }
         } catch (e) {
           logger.error("Error desactivando cliente", { error: String(e), clerkUserId: clerkId })
+          throw e
         }
         break
       }

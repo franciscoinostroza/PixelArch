@@ -1,6 +1,12 @@
 const store = new Map<string, { count: number; resetAt: number }>()
+const MAX_ENTRIES = 10_000
 
 export function rateLimit(key: string, limit: number, windowMs: number): boolean {
+  if (store.size >= MAX_ENTRIES) {
+    const oldest = store.entries().next().value
+    if (oldest) store.delete(oldest[0])
+  }
+
   const now = Date.now()
   const entry = store.get(key)
 

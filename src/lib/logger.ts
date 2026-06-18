@@ -1,9 +1,11 @@
 const LOG_LEVELS = { debug: 0, info: 1, warn: 2, error: 3 } as const
 type LogLevel = keyof typeof LOG_LEVELS
 
+const rawLevel = process.env.LOG_LEVEL
 const currentLevel: LogLevel =
-  process.env.LOG_LEVEL as LogLevel ||
-  (process.env.NODE_ENV === "production" ? "info" : "debug")
+  rawLevel && rawLevel in LOG_LEVELS
+    ? (rawLevel as LogLevel)
+    : process.env.NODE_ENV === "production" ? "info" : "debug"
 
 function log(level: LogLevel, message: string, meta?: Record<string, unknown>) {
   if (LOG_LEVELS[level] < LOG_LEVELS[currentLevel]) return

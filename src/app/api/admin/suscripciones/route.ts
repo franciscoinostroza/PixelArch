@@ -33,19 +33,25 @@ export async function PATCH(req: Request) {
     const subId = suscripcion.polarSubscriptionId
 
     switch (accion) {
-      case "pause": {
-        await polar().subscriptions.revoke({ id: subId })
+      case "cancel": {
+        await polar().subscriptions.update({
+          id: subId,
+          subscriptionUpdate: { cancelAtPeriodEnd: true },
+        })
         await prisma.suscripcion.update({
           where: { id: suscripcionId },
-          data: { estado: "PAUSED" },
+          data: { cancelAtPeriodEnd: true },
         })
         break
       }
-      case "cancel": {
-        await polar().subscriptions.revoke({ id: subId })
+      case "uncancel": {
+        await polar().subscriptions.update({
+          id: subId,
+          subscriptionUpdate: { cancelAtPeriodEnd: false },
+        })
         await prisma.suscripcion.update({
           where: { id: suscripcionId },
-          data: { estado: "CANCELED", canceladoEn: new Date() },
+          data: { cancelAtPeriodEnd: false },
         })
         break
       }

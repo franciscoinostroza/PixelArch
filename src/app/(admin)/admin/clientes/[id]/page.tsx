@@ -4,13 +4,13 @@ import { DeployConfig } from "@/components/ui/deploy-config"
 import { EntregarButton } from "@/components/ui/entregar-button"
 import { SubscriptionActions } from "@/components/ui/subscription-actions"
 import { cn } from "@/lib/utils"
+import { AsignarProductoButton } from "@/components/ui/asignar-producto-button"
 
 const mapEstado = (e: string) => {
   switch (e) {
     case "ACTIVE": return "active"
     case "PAST_DUE": return "past_due"
     case "CANCELED": return "paused"
-    case "PAUSED": return "paused"
     case "PENDING": return "pending"
     case "READY": return "active"
     default: return "paused"
@@ -22,7 +22,6 @@ const mapLabel = (e: string) => {
     case "ACTIVE": return "Activo"
     case "PAST_DUE": return "Vencido"
     case "CANCELED": return "Cancelado"
-    case "PAUSED": return "Pausado"
     case "PENDING": return "En desarrollo"
     case "READY": return "Entregado"
     default: return e
@@ -62,14 +61,18 @@ export default async function ClienteDetalle({
 
   if (!cliente) notFound()
 
+  const servicios = await prisma.servicio.findMany({ where: { activo: true }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } })
+
   return (
     <div>
-      <div className="mb-7 flex items-center justify-between">
+        <div className="mb-7 flex items-center justify-between">
         <div>
           <h1 className="font-display text-xl font-extrabold">{cliente.nombre}</h1>
           <p className="mt-0.5 text-xs text-muted">{cliente.email}</p>
         </div>
-        <span
+        <div className="flex items-center gap-3">
+          <AsignarProductoButton clienteId={cliente.id} servicios={servicios} />
+          <span
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px]",
             cliente.activo
@@ -80,6 +83,7 @@ export default async function ClienteDetalle({
           <span className={cn("w-[5px] h-[5px] rounded-full", cliente.activo ? "bg-accent2" : "bg-muted")} />
           {cliente.activo ? "Cliente activo" : "Inactivo"}
         </span>
+      </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">
@@ -155,8 +159,13 @@ export default async function ClienteDetalle({
                           )}
                         />
                         {mapLabel(s.estado)}
+                        {s.polarDiscountId && (
+                          <span className="ml-1 rounded-full bg-accent/10 px-1.5 py-px text-[10px] text-accent font-mono">
+                            Dto.
+                          </span>
+                        )}
                       </span>
-                      {s.estado !== "PENDING" && <SubscriptionActions suscripcionId={s.id} estado={s.estado} />}
+                      {s.estado !== "PENDING" && <SubscriptionActions suscripcionId={s.id} estado={s.estado} cancelAtPeriodEnd={s.cancelAtPeriodEnd} />}
                     </div>
                   </div>
                   {s.estado === "PENDING" && (
@@ -164,7 +173,7 @@ export default async function ClienteDetalle({
                       <EntregarButton suscripcionId={s.id} />
                     </div>
                   )}
-                  {(s.estado === "ACTIVE" || s.estado === "PAST_DUE" || s.estado === "PAUSED") && (
+                  {(s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
                     <DeployConfig
                       suscripcionId={s.id}
                       deploymentId={s.deploymentId}

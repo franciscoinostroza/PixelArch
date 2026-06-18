@@ -7,6 +7,7 @@ type Env = {
   POLAR_WEBHOOK_SECRET: string
   RESEND_API_KEY: string
   NEXT_PUBLIC_URL: string
+  CONTACT_EMAIL: string
 }
 
 export function validateEnv(): Env {
@@ -19,6 +20,7 @@ export function validateEnv(): Env {
     "POLAR_WEBHOOK_SECRET",
     "RESEND_API_KEY",
     "NEXT_PUBLIC_URL",
+    "CONTACT_EMAIL",
   ] as const
 
   const missing: string[] = []

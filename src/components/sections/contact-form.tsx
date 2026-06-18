@@ -66,41 +66,53 @@ export function ContactForm() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-12 space-y-5">
         <div>
+          <label htmlFor="contact-nombre" className="sr-only">Tu nombre</label>
           <Input
+            id="contact-nombre"
             placeholder="Tu nombre"
+            aria-invalid={!!errors.nombre}
+            aria-describedby={errors.nombre ? "error-nombre" : undefined}
             {...register("nombre")}
             className={errors.nombre ? "border-red-500/50" : ""}
           />
           {errors.nombre && (
-            <p className="mt-1 text-xs text-red-400 font-mono">
+            <p id="error-nombre" className="mt-1 text-xs text-red-400 font-mono" role="alert">
               {errors.nombre.message}
             </p>
           )}
         </div>
 
         <div>
+          <label htmlFor="contact-email" className="sr-only">tu@email.com</label>
           <Input
+            id="contact-email"
             type="email"
             placeholder="tu@email.com"
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? "error-email" : undefined}
             {...register("email")}
             className={errors.email ? "border-red-500/50" : ""}
           />
           {errors.email && (
-            <p className="mt-1 text-xs text-red-400 font-mono">
+            <p id="error-email" className="mt-1 text-xs text-red-400 font-mono" role="alert">
               {errors.email.message}
             </p>
           )}
         </div>
 
         <div>
+          <label htmlFor="contact-mensaje" className="sr-only">Contanos sobre tu proyecto...</label>
           <Textarea
+            id="contact-mensaje"
             placeholder="Contanos sobre tu proyecto..."
             rows={5}
+            aria-invalid={!!errors.mensaje}
+            aria-describedby={errors.mensaje ? "error-mensaje" : undefined}
             {...register("mensaje")}
             className={errors.mensaje ? "border-red-500/50" : ""}
           />
           {errors.mensaje && (
-            <p className="mt-1 text-xs text-red-400 font-mono">
+            <p id="error-mensaje" className="mt-1 text-xs text-red-400 font-mono" role="alert">
               {errors.mensaje.message}
             </p>
           )}

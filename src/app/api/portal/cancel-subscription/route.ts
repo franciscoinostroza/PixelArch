@@ -20,7 +20,13 @@ export async function POST(req: Request) {
   }
   if (!userId) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
-  const { suscripcionId } = await req.json()
+  let suscripcionId: string | undefined
+  try {
+    const body = await req.json()
+    suscripcionId = body.suscripcionId
+  } catch {
+    return NextResponse.json({ error: "JSON invalido" }, { status: 400 })
+  }
   if (!suscripcionId) return NextResponse.json({ error: "suscripcionId requerido" }, { status: 400 })
 
   const cliente = await prisma.cliente.findUnique({ where: { clerkUserId: userId } })
@@ -36,11 +42,11 @@ export async function POST(req: Request) {
   const subId = suscripcion.polarSubscriptionId
 
   try {
-    await polar().subscriptions.revoke({ id: subId })
     await prisma.suscripcion.update({
       where: { id: suscripcionId },
       data: { estado: "CANCELED", canceladoEn: new Date() },
     })
+    await polar().subscriptions.revoke({ id: subId })
     logger.info("Subscription canceled by client", { suscripcionId, userId })
     return NextResponse.json({ ok: true })
   } catch (error) {

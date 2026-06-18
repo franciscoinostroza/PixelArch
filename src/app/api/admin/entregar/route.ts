@@ -8,18 +8,20 @@ export async function POST(req: Request) {
   const admin = await requireAdmin()
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 })
 
-  const { suscripcionId } = await req.json()
-
   let suscripcion
+  let suscripcionId: string | undefined
   try {
+    const body = await req.json()
+    suscripcionId = body.suscripcionId
     suscripcion = await prisma.suscripcion.update({
       where: { id: suscripcionId },
       data: { estado: "READY", entregadoEn: new Date() },
       include: { cliente: true, servicio: true },
     })
   } catch (e) {
+    const msg = e instanceof SyntaxError ? "JSON invalido" : "Error al entregar servicio"
     logger.error("Error entregando servicio", { error: String(e), suscripcionId })
-    return NextResponse.json({ error: "Error al entregar servicio" }, { status: 500 })
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 
   try {

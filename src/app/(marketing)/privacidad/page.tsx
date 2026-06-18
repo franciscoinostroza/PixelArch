@@ -14,7 +14,7 @@ export default function PrivacidadPage() {
       <div className="mt-10 space-y-6 text-sm text-text/80 leading-relaxed">
         <section>
           <h2 className="mb-3 text-lg font-semibold text-text font-display">1. Información que Recopilamos</h2>
-          <p>Recopilamos la información que nos proporciona directamente, como nombre, correo electrónico, empresa y teléfono al registrarse o contactarnos. También recopilamos información de pago a través de nuestro procesador Paddle, quien almacena de forma segura los datos de facturación.</p>
+          <p>Recopilamos la información que nos proporciona directamente, como nombre, correo electrónico, empresa y teléfono al registrarse o contactarnos. También recopilamos información de pago a través de nuestro procesador Polar.sh, quien almacena de forma segura los datos de facturación.</p>
         </section>
 
         <section>
@@ -26,7 +26,7 @@ export default function PrivacidadPage() {
           <h2 className="mb-3 text-lg font-semibold text-text font-display">3. Servicios de Terceros</h2>
           <p>Utilizamos los siguientes servicios de terceros que pueden procesar su información:</p>
           <ul className="mt-2 list-disc pl-6 space-y-1">
-            <li><strong>Paddle</strong> — Procesamiento de pagos y suscripciones</li>
+            <li><strong>Polar.sh</strong> — Procesamiento de pagos y suscripciones</li>
             <li><strong>Clerk</strong> — Autenticación y gestión de usuarios</li>
             <li><strong>Resend</strong> — Envío de correos electrónicos transaccionales</li>
             <li><strong>Sanity</strong> — CMS para contenido del sitio</li>

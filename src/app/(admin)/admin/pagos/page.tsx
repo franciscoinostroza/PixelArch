@@ -146,6 +146,11 @@ export default async function AdminPagos({
                   </td>
                   <td className="px-5 py-3 text-xs text-text font-mono font-medium">
                     ${(p.monto / 100).toFixed(2)} {p.moneda.toUpperCase()}
+                    {p.discountAmount ? (
+                      <span className="ml-1 text-[10px] text-accent">
+                        (-${(p.discountAmount / 100).toFixed(0)})
+                      </span>
+                    ) : null}
                   </td>
                   <td className="px-5 py-3 text-right">
                     <span

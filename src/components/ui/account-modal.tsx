@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { X, Mail, ExternalLink, LogOut, ChevronRight, Plus, Trash2, Star, Camera } from "lucide-react"
 
@@ -41,6 +41,35 @@ export function AccountModal({ isOpen, onClose }: Props) {
   const [saving, setSaving] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    if (!isOpen) return
+    const prev = document.activeElement as HTMLElement | null
+    const modal = document.getElementById("account-modal-dialog")
+    const focusable = modal?.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )
+    const first = focusable?.[0]
+    const last = focusable?.[focusable.length - 1]
+    first?.focus()
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") { onClose(); return }
+      if (e.key !== "Tab" || !focusable?.length) return
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last?.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first?.focus()
+      }
+    }
+    document.addEventListener("keydown", onKeyDown)
+    return () => {
+      document.removeEventListener("keydown", onKeyDown)
+      prev?.focus()
+    }
+  }, [isOpen])
+
   if (!isOpen) return null
   if (!isLoaded || !user) return null
 
@@ -60,13 +89,17 @@ export function AccountModal({ isOpen, onClose }: Props) {
       onClick={onClose}
     >
       <div
+        id="account-modal-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="account-modal-title"
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex max-h-[85vh] w-full max-w-lg min-h-0 flex-col overflow-y-auto rounded-2xl shadow-2xl"
         style={{ background: c.bg, border: c.border, boxShadow: "0 25px 60px rgba(0,0,0,0.5)" }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between border-b px-6 py-4" style={{ background: c.bg, borderColor: "rgba(127,90,240,0.08)" }}>
-          <h1 className="font-display text-lg font-bold" style={{ color: c.white }}>Mi cuenta</h1>
+          <h1 id="account-modal-title" className="font-display text-lg font-bold" style={{ color: c.white }}>Mi cuenta</h1>
           <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-white/10" style={{ color: c.w50 }}>
             <X size={16} />
           </button>

@@ -24,20 +24,11 @@ export async function generateMetadata({
   return { title: `${s.titulo} — PixelArch`, description: s.descripcion }
 }
 
-const SLUG_TO_ID: Record<string, string> = {
-  "desarrollo-web": "servicio-desarrollo-web",
-  "chatbot": "servicio-chatbot",
-  "agentes-ia": "servicio-agentes-ia",
-  "landing-pages": "servicio-landing-pages",
-  "automatizaciones": "servicio-automatizaciones",
-  "integraciones": "servicio-integraciones",
-}
-
 export default async function ProductoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const [servicioSanity, servicioDB] = await Promise.all([
     sanityFetch<{ titulo: string; slug: string; descripcion: string; icono: string; tags: string[] } | null>(SERVICIO_QUERY, { slug }),
-    prisma.servicio.findUnique({ where: { id: SLUG_TO_ID[slug] ?? "" } }),
+    prisma.servicio.findFirst({ where: { OR: [{ slug }, { id: `servicio-${slug}` }] } }),
   ])
 
   if (!servicioSanity) notFound()

@@ -18,7 +18,7 @@ const dmMono = DM_Mono({
   weight: ["300", "400", "500"],
 })
 
-const baseUrl = process.env.NEXT_PUBLIC_URL || "https://pixelarch.com"
+const baseUrl = process.env.NEXT_PUBLIC_URL || "https://pixelarch.dev"
 
 export const metadata: Metadata = {
   title: "PixelArch — Desarrollo Web · Chatbots · Agentes IA",
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
       "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio.",
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: "/icon-192.svg",
     apple: "/apple-touch-icon.png",
   },
   manifest: "/manifest.json",

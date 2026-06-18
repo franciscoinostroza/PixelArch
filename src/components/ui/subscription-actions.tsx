@@ -3,14 +3,15 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Pause, Play, X, Loader2 } from "lucide-react"
+import { X, Undo2, Loader2 } from "lucide-react"
 
 interface SubscriptionActionsProps {
   suscripcionId: string
   estado: string
+  cancelAtPeriodEnd?: boolean
 }
 
-export function SubscriptionActions({ suscripcionId, estado }: SubscriptionActionsProps) {
+export function SubscriptionActions({ suscripcionId, estado, cancelAtPeriodEnd }: SubscriptionActionsProps) {
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState("")
   const router = useRouter()
@@ -32,41 +33,32 @@ export function SubscriptionActions({ suscripcionId, estado }: SubscriptionActio
     router.refresh()
   }
 
+  if (estado !== "ACTIVE" && estado !== "PAST_DUE") return null
+
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1">
-        {estado === "ACTIVE" || estado === "PAST_DUE" ? (
-          <>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => action("pause")}
-              disabled={!!loading}
-              title="Pausar"
-            >
-              {loading === "pause" ? <Loader2 size={14} className="animate-spin" /> : <Pause size={14} />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => action("cancel")}
-              disabled={!!loading}
-              title="Cancelar"
-            >
-              {loading === "cancel" ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
-            </Button>
-          </>
-        ) : estado === "PAUSED" ? (
+        {cancelAtPeriodEnd ? (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => action("resume")}
+            onClick={() => action("uncancel")}
             disabled={!!loading}
-            title="Reanudar"
+            title="Revertir cancelacion"
           >
-            {loading === "resume" ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+            {loading === "uncancel" ? <Loader2 size={14} className="animate-spin" /> : <Undo2 size={14} />}
           </Button>
-        ) : null}
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => action("cancel")}
+            disabled={!!loading}
+            title="Cancelar al final del periodo"
+          >
+            {loading === "cancel" ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+          </Button>
+        )}
       </div>
       {error && <p className="text-xs text-red-400">{error}</p>}
     </div>

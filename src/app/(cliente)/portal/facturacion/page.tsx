@@ -95,10 +95,15 @@ export default async function FacturacionPage({
                     </p>
                     <Badge
                       variant={
-                        p.estadoPago === "SUCCEEDED" ? "accent2" : "accent"
+                        p.estadoPago === "SUCCEEDED" ? "accent2"
+                        : p.estadoPago === "FAILED" ? "destructive"
+                        : "accent"
                       }
                     >
-                      {p.estadoPago === "SUCCEEDED" ? "Pagado" : p.estadoPago}
+                      {p.estadoPago === "SUCCEEDED" ? "Pagado"
+                      : p.estadoPago === "FAILED" ? "Fallido"
+                      : p.estadoPago === "REFUNDED" ? "Reembolsado"
+                      : p.estadoPago}
                     </Badge>
                   </div>
                 </div>

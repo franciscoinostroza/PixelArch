@@ -22,7 +22,10 @@ export async function POST(req: Request) {
       if (!servicio?.activo) {
         return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 })
       }
-      const tipoLookup = tipo === "MANTENIMIENTO" ? servicio.polarProductIdMantenimiento : servicio.polarProductIdUnico
+      const tipoLookup =
+        tipo === "MANTENIMIENTO" ? servicio.polarProductIdMantenimiento
+        : tipo === "BASICO" ? servicio.polarProductIdBasico
+        : servicio.polarProductIdUnico
       if (!tipoLookup) {
         return NextResponse.json({ error: "Producto no configurado" }, { status: 500 })
       }
@@ -30,6 +33,7 @@ export async function POST(req: Request) {
     }
 
     if (tipo === "MANTENIMIENTO") plan = "MANTENIMIENTO"
+    else if (tipo === "BASICO") plan = "BASICO"
 
     if (!productId) {
       return NextResponse.json({ error: "polarProductId requerido" }, { status: 400 })
@@ -71,6 +75,7 @@ export async function POST(req: Request) {
 
     const checkout = await polar().checkouts.create({
       products: [productId],
+      allowDiscountCodes: true,
       successUrl: `${process.env.NEXT_PUBLIC_URL}/portal?success=true`,
       ...(customerEmail ? { customerEmail, customerName } : {}),
       ...(customerId ? { customerId } : {}),

@@ -56,7 +56,6 @@ export default async function AdminDashboard() {
     switch (e) {
       case "ACTIVE": return "active"
       case "PAST_DUE": return "past_due"
-      case "PAUSED": return "paused"
       case "CANCELED": return "paused"
       case "TRIALING": return "active"
       default: return "paused"
@@ -67,7 +66,6 @@ export default async function AdminDashboard() {
     switch (e) {
       case "ACTIVE": return "Activo"
       case "PAST_DUE": return "Vencido"
-      case "PAUSED": return "Pausado"
       case "CANCELED": return "Cancelado"
       case "TRIALING": return "Prueba"
       default: return e

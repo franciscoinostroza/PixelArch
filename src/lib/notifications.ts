@@ -1,4 +1,5 @@
 import { resend } from "@/lib/resend"
+import { logger } from "@/lib/logger"
 
 const FROM = "PixelArch <noreply@pixelarch.dev>"
 
@@ -8,7 +9,7 @@ async function sendEmail(to: string, subject: string, text: string) {
   try {
     await r.emails.send({ from: FROM, to, subject, text })
   } catch (e) {
-    console.error("Error sending email:", e)
+    logger.error("Error sending email", { error: String(e) })
   }
 }
 

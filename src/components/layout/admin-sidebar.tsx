@@ -27,18 +27,10 @@ interface SidebarProps {
   alertasActivas?: number
 }
 
-export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
+function SidebarNav({ onNavClick }: { onNavClick?: () => void }) {
   const pathname = usePathname()
-  const [open, setOpen] = useState(false)
-
-  const sidebar = (
-    <div className="flex h-full flex-col">
-      <Link href="/admin/dashboard" className="px-4 pt-6 pb-4">
-        <p className="font-display text-lg font-bold text-text">
-          Pixel<span className="text-accent">Arch</span>
-        </p>
-      </Link>
-
+  return (
+    <>
       {sections.map((sec) => (
         <div key={sec.label} className="mt-2">
           <p className="px-4 pt-2 pb-1 text-[10px] uppercase tracking-[0.12em] text-[#4a5568] font-mono">
@@ -50,7 +42,7 @@ export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
               <Link
                 key={href}
                 href={href}
-                onClick={() => setOpen(false)}
+                onClick={onNavClick}
                 className={cn(
                   "mx-2 flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] font-mono transition-colors",
                   isActive
@@ -60,28 +52,27 @@ export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
               >
                 <Icon size={15} className="w-[18px] text-center shrink-0" aria-hidden="true" />
                 <span className="flex-1">{label}</span>
-                {href === "/admin/pagos" && alertasActivas > 0 && (
-                  <span className="rounded-full bg-red-500/20 px-1.5 py-px text-[10px] text-red-300 font-mono">
-                    {alertasActivas}
-                  </span>
-                )}
               </Link>
             )
           })}
         </div>
       ))}
-
       <div className="mt-auto border-t border-border pt-3 pb-4 px-2">
         <Link
           href="/portal"
+          onClick={onNavClick}
           className="mx-2 mt-1 flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-muted hover:bg-card-bg hover:text-text transition-colors font-mono"
         >
           <ExternalLink size={13} />
           Portal Cliente
         </Link>
       </div>
-    </div>
+    </>
   )
+}
+
+export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
+  const [open, setOpen] = useState(false)
 
   return (
     <>
@@ -95,7 +86,14 @@ export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
       </button>
 
       <aside className="hidden lg:flex h-screen w-[220px] flex-col border-r border-border bg-bg2 shrink-0">
-        {sidebar}
+        <div className="flex h-full flex-col">
+          <Link href="/admin/dashboard" className="px-4 pt-6 pb-4">
+            <p className="font-display text-lg font-bold text-text">
+              Pixel<span className="text-accent">Arch</span>
+            </p>
+          </Link>
+          <SidebarNav />
+        </div>
       </aside>
 
       {open && (
@@ -110,7 +108,9 @@ export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
                 <X size={18} aria-hidden="true" />
               </button>
             </div>
-            {sidebar.props.children.slice(1)}
+            <div className="flex h-full flex-col">
+              <SidebarNav onNavClick={() => setOpen(false)} />
+            </div>
           </aside>
         </>
       )}

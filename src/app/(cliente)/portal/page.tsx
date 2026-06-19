@@ -128,8 +128,15 @@ export default async function PortalPage({
               {s.estado === "ACTIVE" && <ApplyDiscount suscripcionId={s.id} />}
               <p className="text-xs text-muted leading-relaxed mb-3">{config.descripcion}</p>
 
-              {s.estado === "READY" && s.servicio.polarProductIdMantenimiento && (
-                <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label={`Activar Mantenimiento ${price(s.servicio.precioMantenimiento)}/mes`} />
+              {s.estado === "READY" && (
+                <div className="flex gap-2 mb-3">
+                  {s.servicio.polarProductIdBasico && (
+                    <CheckoutButton polarProductId={s.servicio.polarProductIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label={`Basico ${price(s.servicio.precioBasico)}/mes`} size="sm" />
+                  )}
+                  {s.servicio.polarProductIdMantenimiento && (
+                    <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label={`Mantenimiento ${price(s.servicio.precioMantenimiento)}/mes`} size="sm" />
+                  )}
+                </div>
               )}
 
               <div className="mt-auto pt-3 border-t border-border/50 flex items-center justify-between">

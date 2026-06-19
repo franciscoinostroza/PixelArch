@@ -12,9 +12,10 @@ interface CheckoutButtonProps {
   tipo?: PlanTipo
   label?: string
   size?: "default" | "sm" | "lg" | "icon"
+  className?: string
 }
 
-export function CheckoutButton({ polarProductId, tipo = "UNICO", label, size = "default" }: CheckoutButtonProps) {
+export function CheckoutButton({ polarProductId, tipo = "UNICO", label, size = "default", className }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -40,7 +41,7 @@ export function CheckoutButton({ polarProductId, tipo = "UNICO", label, size = "
 
   return (
     <div>
-      <Button size={size} onClick={handleCheckout} disabled={loading}>
+      <Button size={size} className={className} onClick={handleCheckout} disabled={loading}>
         {loading && <Loader2 size={16} className="animate-spin mr-2" />}
         {label || "Contratar"}
       </Button>

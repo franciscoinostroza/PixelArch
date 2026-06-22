@@ -2,9 +2,15 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { resend } from "@/lib/resend"
 import { requireAdmin } from "@/lib/auth"
+import { rateLimit } from "@/lib/rate-limit"
 import { logger } from "@/lib/logger"
 
 export async function POST(req: Request) {
+  const ip = req.headers.get("x-forwarded-for") || "unknown"
+  if (!rateLimit(`admin-entregar:${ip}`, 10, 60_000)) {
+    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 })
+  }
+
   const admin = await requireAdmin()
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 })
 

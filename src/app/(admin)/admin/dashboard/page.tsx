@@ -1,10 +1,12 @@
-import { auth } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/auth"
+import { redirect } from "next/navigation"
 import Link from "next/link"
 import { ArrowUpRight, ArrowDownRight, AlertTriangle } from "lucide-react"
 
 export default async function AdminDashboard() {
-  const { userId } = await auth()
+  const admin = await requireAdmin()
+  if (!admin) redirect("/sign-in")
 
   const now = new Date()
   const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1)

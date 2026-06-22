@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/auth"
+import { redirect } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 export default async function AdminServicios() {
+  const admin = await requireAdmin()
+  if (!admin) redirect("/sign-in")
   const servicios = await prisma.servicio.findMany({
     orderBy: { nombre: "asc" },
   })

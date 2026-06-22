@@ -2,6 +2,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/auth"
+import { redirect } from "next/navigation"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
@@ -12,6 +14,9 @@ export default async function AdminPagos({
 }: {
   searchParams: Promise<{ page?: string; estado?: string; desde?: string; hasta?: string }>
 }) {
+  const admin = await requireAdmin()
+  if (!admin) redirect("/sign-in")
+
   const { page, estado, desde, hasta } = await searchParams
   const currentPage = Math.max(1, parseInt(page ?? "1"))
 

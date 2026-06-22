@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
-import { notFound } from "next/navigation"
+import { requireAdmin } from "@/lib/auth"
+import { notFound, redirect } from "next/navigation"
 import { DeployConfig } from "@/components/ui/deploy-config"
 import { EntregarButton } from "@/components/ui/entregar-button"
 import { SubscriptionActions } from "@/components/ui/subscription-actions"
@@ -58,6 +59,9 @@ export default async function ClienteDetalle({
       },
     },
   })
+
+  const admin = await requireAdmin()
+  if (!admin) redirect("/sign-in")
 
   if (!cliente) notFound()
 

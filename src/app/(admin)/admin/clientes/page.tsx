@@ -3,6 +3,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/auth"
+import { redirect } from "next/navigation"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
@@ -14,6 +16,9 @@ export default async function AdminClientes({
 }: {
   searchParams: Promise<{ q?: string; page?: string }>
 }) {
+  const admin = await requireAdmin()
+  if (!admin) redirect("/sign-in")
+
   const { q, page } = await searchParams
   const currentPage = Math.max(1, parseInt(page ?? "1"))
 

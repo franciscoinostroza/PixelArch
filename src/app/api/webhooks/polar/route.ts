@@ -74,6 +74,7 @@ export async function POST(req: Request) {
 
         const polarDiscountId = order.discount_id ?? null
         const discountAmount = order.discount_amount ?? null
+        const currentPeriodEnd = order.subscription?.current_period_end ?? null
 
         const pago = await prisma.pago.create({
           data: {
@@ -111,7 +112,9 @@ export async function POST(req: Request) {
               where: { id: pago.id },
               data: { suscripcionId: suscripcion.id },
             })
-            const updates: Record<string, unknown> = { proximoPago: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) }
+            const updates: Record<string, unknown> = {
+              proximoPago: currentPeriodEnd ? new Date(currentPeriodEnd) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            }
             if (suscripcion.estado === "PENDING" || suscripcion.estado === "READY") updates.estado = "ACTIVE"
             if (suscripcion.estado === "PAST_DUE") {
               updates.estado = "ACTIVE"
@@ -132,7 +135,7 @@ export async function POST(req: Request) {
                   plan: "MANTENIMIENTO",
                   estado: "ACTIVE",
                   polarSubscriptionId: subscriptionId,
-                  proximoPago: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                  proximoPago: currentPeriodEnd ? new Date(currentPeriodEnd) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
                 },
               })
               await prisma.pago.update({
@@ -147,7 +150,7 @@ export async function POST(req: Request) {
                   plan: extractPlan(productName),
                   estado: "ACTIVE",
                   polarSubscriptionId: subscriptionId,
-                  proximoPago: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                  proximoPago: currentPeriodEnd ? new Date(currentPeriodEnd) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
                 },
               })
               await prisma.pago.update({
@@ -180,9 +183,14 @@ export async function POST(req: Request) {
       "subscription.active": async (sub: any) => {
         const subId = sub.id ?? ""
         const polarDiscountId = sub.discount_id ?? null
+        const currentPeriodEnd = sub.current_period_end
         await prisma.suscripcion.updateMany({
           where: { polarSubscriptionId: subId },
-          data: { estado: "ACTIVE", polarDiscountId },
+          data: {
+            estado: "ACTIVE",
+            polarDiscountId,
+            proximoPago: currentPeriodEnd ? new Date(currentPeriodEnd) : undefined,
+          },
         })
       },
 
@@ -239,10 +247,14 @@ export async function POST(req: Request) {
         const status = sub.status ?? ""
         const estado = status === "active" ? "ACTIVE" : status === "past_due" ? "PAST_DUE" : undefined
         const polarDiscountId = sub.discount_id ?? null
-        if (estado) {
+        const currentPeriodEnd = sub.current_period_end
+        const data: Record<string, unknown> = { polarDiscountId }
+        if (estado) data.estado = estado
+        if (currentPeriodEnd) data.proximoPago = new Date(currentPeriodEnd)
+        if (Object.keys(data).length) {
           await prisma.suscripcion.updateMany({
             where: { polarSubscriptionId: subId },
-            data: { estado, polarDiscountId },
+            data,
           })
         }
       },

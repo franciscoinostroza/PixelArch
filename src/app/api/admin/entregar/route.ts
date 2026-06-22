@@ -38,8 +38,8 @@ export async function POST(req: Request) {
           "Para mantenerlo activo, elegi un plan de mantenimiento desde tu portal:",
           `${process.env.NEXT_PUBLIC_URL}/portal`,
           "",
-          `Plan Basico: $${(suscripcion.servicio.precioBasico / 100).toFixed(0)}/mes — servicio activo sin cambios`,
-          `Plan Mantenimiento: $${(suscripcion.servicio.precioMantenimiento / 100).toFixed(0)}/mes — cambios + soporte incluido`,
+          `Plan Basico: $${(suscripcion.servicio.precioBasico / 100).toFixed(0)}/mes — servicio online con hosting incluido, sin cambios`,
+          `Plan Mantenimiento: $${(suscripcion.servicio.precioMantenimiento / 100).toFixed(0)}/mes — servicio online + cambios + soporte`,
         ].join("\n"),
       })
       logger.info("Project ready email sent", { suscripcionId })

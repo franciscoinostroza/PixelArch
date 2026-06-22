@@ -23,12 +23,18 @@ export default function TerminosPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold text-text font-display">3. Facturación y Pagos</h2>
+          <h2 className="mb-3 text-lg font-semibold text-text font-display">3. Planes Mensuales y Hosting</h2>
+          <p>Los planes mensuales (Básico y Mantenimiento) incluyen el hosting del servicio como parte del valor. El plan Básico mantiene el servicio online y funcionando, sin cambios ni soporte. El plan Mantenimiento incluye además cambios mensuales y soporte prioritario.</p>
+          <p className="mt-2">Si el cliente no renueva su plan mensual, el servicio se dará de baja a los 7 días posteriores al vencimiento del pago. PixelArch se reserva el derecho de suspender el acceso al servicio hasta que se regularice el pago.</p>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-lg font-semibold text-text font-display">4. Facturación y Pagos</h2>
           <p>Los precios se especifican en cada plan y pueden ser de pago único o recurrente mensual. Los pagos recurrentes se facturarán al inicio de cada período. El cliente es responsable de mantener actualizada su información de pago.</p>
         </section>
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold text-text font-display">4. Cancelaciones y Reembolsos</h2>
+          <h2 className="mb-3 text-lg font-semibold text-text font-display">6. Cancelaciones y Reembolsos</h2>
           <p>Las cancelaciones de suscripciones mensuales se procesan de inmediato y el servicio continúa hasta el final del período facturado. No se realizan reembolsos parciales por tiempo no utilizado, excepto cuando corresponda según nuestra Política de Reembolsos.</p>
         </section>
 
@@ -38,22 +44,22 @@ export default function TerminosPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold text-text font-display">6. Propiedad Intelectual</h2>
+          <h2 className="mb-3 text-lg font-semibold text-text font-display">7. Propiedad Intelectual</h2>
           <p>El código y los activos desarrollados por PixelArch para proyectos de pago único se transfieren al cliente. PixelArch conserva el derecho de mostrar el trabajo en su portafolio, salvo acuerdo en contrario.</p>
         </section>
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold text-text font-display">7. Limitación de Responsabilidad</h2>
+          <h2 className="mb-3 text-lg font-semibold text-text font-display">8. Limitación de Responsabilidad</h2>
           <p>PixelArch no será responsable por daños indirectos, incidentales o consecuentes derivados del uso o la imposibilidad de usar los servicios. La responsabilidad total se limita al monto pagado por el servicio en los últimos 12 meses.</p>
         </section>
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold text-text font-display">8. Modificaciones</h2>
+          <h2 className="mb-3 text-lg font-semibold text-text font-display">9. Modificaciones</h2>
           <p>Nos reservamos el derecho de modificar estos términos en cualquier momento. Los cambios serán notificados a través de nuestro sitio web. El uso continuado de los servicios después de las modificaciones constituye la aceptación de los nuevos términos.</p>
         </section>
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold text-text font-display">9. Contacto</h2>
+          <h2 className="mb-3 text-lg font-semibold text-text font-display">10. Contacto</h2>
           <p>Para consultas sobre estos términos, puede contactarnos a través de nuestro formulario de contacto o enviando un correo a contacto@pixelarch.dev.</p>
         </section>
       </div>

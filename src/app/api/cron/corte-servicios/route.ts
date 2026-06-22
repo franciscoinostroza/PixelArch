@@ -37,8 +37,8 @@ export async function GET(req: Request) {
           await r.emails.send({
             from: "PixelArch <hola@pixelarch.dev>",
             to: sub.cliente.email,
-            subject: `Suscripcion cancelada por falta de pago — ${sub.servicio.nombre}`,
-            text: `Hola ${sub.cliente.nombre},\n\nTu suscripcion a ${sub.servicio.nombre} fue cancelada por falta de pago despues de 30 dias. Si queres recuperarla, podes contratarla nuevamente desde nuestro catalogo.\n\n${process.env.NEXT_PUBLIC_URL}/productos\n\nEquipo PixelArch`,
+            subject: `Suscripcion cancelada — ${sub.servicio.nombre}`,
+            text: `Hola ${sub.cliente.nombre},\n\nTu suscripcion a ${sub.servicio.nombre} fue cancelada por falta de pago. El servicio ya no esta online.\n\nSi queres recuperarlo, podes contratarlo nuevamente desde nuestro catalogo.\n\n${process.env.NEXT_PUBLIC_URL}/productos\n\nEquipo PixelArch`,
           })
         }
 
@@ -50,12 +50,24 @@ export async function GET(req: Request) {
           await r.emails.send({
             from: "PixelArch <hola@pixelarch.dev>",
             to: sub.cliente.email,
-            subject: `Tu suscripcion esta por cancelarse — ${sub.servicio.nombre}`,
-            text: `Hola ${sub.cliente.nombre},\n\nTu suscripcion a ${sub.servicio.nombre} tiene un pago pendiente. Si no actualizas tu metodo de pago en los proximos 7 dias, el servicio sera cancelado.\n\nActualiza tu metodo: ${process.env.NEXT_PUBLIC_URL}/portal/facturacion\n\nEquipo PixelArch`,
+            subject: `Ultimo aviso — ${sub.servicio.nombre}`,
+            text: `Hola ${sub.cliente.nombre},\n\nTu suscripcion a ${sub.servicio.nombre} tiene un pago pendiente. Si no actualizas tu metodo de pago en los proximos 7 dias, el servicio sera cancelado y dejara de estar online.\n\nActualiza tu metodo: ${process.env.NEXT_PUBLIC_URL}/portal/facturacion\n\nEquipo PixelArch`,
           })
         }
 
-        results.push(`Aviso: ${sub.id} (${daysSincePastDue} dias, quedan ${30 - daysSincePastDue})`)
+        results.push(`Ultimo aviso: ${sub.id} (${daysSincePastDue} dias, quedan ${30 - daysSincePastDue})`)
+      } else if (daysSincePastDue >= 7) {
+        const r = resend()
+        if (r) {
+          await r.emails.send({
+            from: "PixelArch <hola@pixelarch.dev>",
+            to: sub.cliente.email,
+            subject: `Aviso de vencimiento — ${sub.servicio.nombre}`,
+            text: `Hola ${sub.cliente.nombre},\n\nTu suscripcion a ${sub.servicio.nombre} tiene un pago pendiente. Actualiza tu metodo de pago para evitar la suspension del servicio.\n\nActualiza tu metodo: ${process.env.NEXT_PUBLIC_URL}/portal/facturacion\n\nEquipo PixelArch`,
+          })
+        }
+
+        results.push(`Aviso: ${sub.id} (${daysSincePastDue} dias vencido)`)
       }
     }
 

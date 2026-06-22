@@ -9,11 +9,10 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 
 const servicios = [
   { id: "servicio-desarrollo-web",    nombre: "Desarrollo Web",        unico: 100000, basico: 2500,  mantenimiento: 20000 },
-  { id: "servicio-chatbot",           nombre: "Chatbot Inteligente",    unico: 50000,  basico: 2000,  mantenimiento: 10000 },
-  { id: "servicio-agentes-ia",        nombre: "Agentes de IA",          unico: 150000, basico: 3500,  mantenimiento: 20000 },
-  { id: "servicio-landing-pages",     nombre: "Landing Pages",          unico: 30000,  basico: 1500,  mantenimiento: 10000 },
-  { id: "servicio-automatizaciones",   nombre: "Automatizaciones",       unico: 80000,  basico: 4500,  mantenimiento: 15000 },
-  { id: "servicio-integraciones",     nombre: "Integraciones",          unico: 50000,  basico: 3500,  mantenimiento: 10000 },
+  { id: "servicio-chatbot",           nombre: "Chatbot Inteligente",    unico: 50000,  basico: 3000,  mantenimiento: 10000 },
+  { id: "servicio-agentes-ia",        nombre: "Agentes de IA",          unico: 150000, basico: 4000,  mantenimiento: 20000 },
+  { id: "servicio-automatizaciones",   nombre: "Automatizaciones",       unico: 80000,  basico: 3500,  mantenimiento: 15000 },
+  { id: "servicio-integraciones",     nombre: "Integraciones",          unico: 50000,  basico: 3000,  mantenimiento: 10000 },
 ]
 
 function toSnake(v: string): string {

@@ -52,21 +52,52 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
       )}
 
       {servicioDB && (
-        <div className="mt-16">
-          <div className="rounded-xl border-2 border-accent/30 bg-bg2 p-8 text-center">
-            <p className="text-xs uppercase tracking-[0.12em] text-[#4a5568] font-mono mb-3">Pago unico</p>
-            <p className="font-display text-4xl font-extrabold tracking-[-0.04em]">{price(servicioDB.precioUnico)}</p>
-            <p className="text-sm text-muted mt-2 mb-6">Incluye la entrega completa del proyecto</p>
+        <div className="mt-16 grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl border border-border/50 bg-bg2 p-6 text-center">
+            <p className="text-xs uppercase tracking-wider text-muted font-mono mb-2">Pago Unico</p>
+            <p className="font-display text-3xl font-extrabold">{price(servicioDB.precioUnico)}</p>
+            <p className="text-xs text-muted mt-2 mb-4">Desarrollo y entrega del proyecto</p>
+            <div className="text-[11px] text-left space-y-1.5 border-t border-border/50 pt-3 mb-5">
+              <p>✅ Codigo y activos incluidos</p>
+              <p>❌ Sin hosting incluido</p>
+              <p>❌ Sin soporte continuo</p>
+            </div>
             {servicioDB.polarProductIdUnico && (
-              <CheckoutButton polarProductId={servicioDB.polarProductIdUnico} servicioNombre={servicioSanity.titulo} tipo="UNICO" label={`Contratar ${servicioSanity.titulo}`} />
+              <CheckoutButton polarProductId={servicioDB.polarProductIdUnico} servicioNombre={servicioSanity.titulo} tipo="UNICO" label={`Contratar ${servicioSanity.titulo}`} size="sm" className="w-full" />
             )}
           </div>
 
-          <div className="mt-4 rounded-xl border border-border/50 bg-bg2/50 p-5 text-[13px] text-muted leading-relaxed">
-            <span className="text-accent font-semibold">ℹ️ Después de la entrega</span>
-            <br />
-            El proyecto se entrega completo con el pago único. Para mantenerlo activo mes a mes con cambios, soporte y actualizaciones, podés activar el plan de mantenimiento desde tu portal. Sin mantenimiento, el servicio no recibe soporte después del primer mes.
+          <div className="rounded-xl border-2 border-accent/30 bg-bg2 p-6 text-center">
+            <p className="text-xs uppercase tracking-wider text-accent font-mono mb-2">Plan Basico</p>
+            <p className="font-display text-3xl font-extrabold">{price(servicioDB.precioBasico)}<span className="text-sm font-normal text-muted">/mes</span></p>
+            <p className="text-xs text-muted mt-2 mb-4">Servicio online, hosting incluido</p>
+            <div className="text-[11px] text-left space-y-1.5 border-t border-border/50 pt-3 mb-5">
+              <p>✅ Hosting incluido</p>
+              <p>✅ SSL y monitoreo</p>
+              <p>❌ Sin cambios ni soporte</p>
+            </div>
+            {servicioDB.polarProductIdBasico && (
+              <CheckoutButton polarProductId={servicioDB.polarProductIdBasico} servicioNombre={servicioSanity.titulo} tipo="BASICO" label={`Activar Basico`} size="sm" className="w-full" />
+            )}
           </div>
+
+          <div className="rounded-xl border border-border/50 bg-bg2 p-6 text-center">
+            <p className="text-xs uppercase tracking-wider text-muted font-mono mb-2">Plan Mantenimiento</p>
+            <p className="font-display text-3xl font-extrabold">{price(servicioDB.precioMantenimiento)}<span className="text-sm font-normal text-muted">/mes</span></p>
+            <p className="text-xs text-muted mt-2 mb-4">Hosting + cambios + soporte</p>
+            <div className="text-[11px] text-left space-y-1.5 border-t border-border/50 pt-3 mb-5">
+              <p>✅ Todo lo del Basico</p>
+              <p>✅ Cambios mensuales</p>
+              <p>✅ Soporte prioritario</p>
+            </div>
+            {servicioDB.polarProductIdMantenimiento && (
+              <CheckoutButton polarProductId={servicioDB.polarProductIdMantenimiento} servicioNombre={servicioSanity.titulo} tipo="MANTENIMIENTO" label={`Activar Mantenimiento`} size="sm" className="w-full" />
+            )}
+          </div>
+
+          <p className="md:col-span-3 text-[13px] text-muted text-center border-t border-border/50 pt-4">
+            Sin un plan mensual, el servicio deja de estar online. Cancelacion con 7 dias de aviso.
+          </p>
         </div>
       )}
     </div>

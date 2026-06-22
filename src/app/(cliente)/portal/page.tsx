@@ -131,10 +131,10 @@ export default async function PortalPage({
               {s.estado === "READY" && (
                 <div className="flex flex-col gap-1.5 mb-3">
                   {s.servicio.polarProductIdBasico && (
-                    <CheckoutButton polarProductId={s.servicio.polarProductIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label={`Basico ${price(s.servicio.precioBasico)}/mes`} size="sm" className="w-full" />
+                    <CheckoutButton polarProductId={s.servicio.polarProductIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label={`Basico ${price(s.servicio.precioBasico)}/mes — mantener online`} size="sm" className="w-full" />
                   )}
                   {s.servicio.polarProductIdMantenimiento && (
-                    <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label={`Mantenimiento ${price(s.servicio.precioMantenimiento)}/mes`} size="sm" className="w-full" />
+                    <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label={`Mantenimiento ${price(s.servicio.precioMantenimiento)}/mes — online + cambios`} size="sm" className="w-full" />
                   )}
                 </div>
               )}
@@ -206,11 +206,11 @@ export default async function PortalPage({
 function estadoUI(s: { estado: string; servicio: { nombre: string } }) {
   const maps: Record<string, { label: string; descripcion: string; badgeBg: string; badgeColor: string }> = {
     PENDING: { label: "En desarrollo", descripcion: "Tu proyecto esta en curso. Te avisamos cuando este listo.", badgeBg: "bg-yellow-400/10", badgeColor: "text-yellow-400" },
-    READY: { label: "Entregado", descripcion: "Tu proyecto fue entregado. Activa el mantenimiento mensual para mantenerlo activo.", badgeBg: "bg-purple-400/10", badgeColor: "text-purple-400" },
-    ACTIVE: { label: "Activo", descripcion: "Tu servicio esta activo.", badgeBg: "bg-accent2/10", badgeColor: "text-accent2" },
-    PAST_DUE: { label: "Pago fallido", descripcion: "Tu ultimo pago fallo. Actualiza tu metodo de pago.", badgeBg: "bg-red-500/10", badgeColor: "text-red-300" },
+    READY: { label: "Entregado", descripcion: "Proyecto entregado. Elegi un plan mensual para mantenerlo online.", badgeBg: "bg-purple-400/10", badgeColor: "text-purple-400" },
+    ACTIVE: { label: "Activo", descripcion: "Tu servicio esta online y funcionando.", badgeBg: "bg-accent2/10", badgeColor: "text-accent2" },
+    PAST_DUE: { label: "Pago fallido", descripcion: "Tu ultimo pago fallo. Actualiza tu metodo de pago para evitar la suspension del servicio.", badgeBg: "bg-red-500/10", badgeColor: "text-red-300" },
     PAUSED: { label: "Pausado", descripcion: "Suscripcion pausada. Contacta a soporte para reactivar.", badgeBg: "bg-muted/10", badgeColor: "text-muted" },
-    CANCELED: { label: "Cancelado", descripcion: "Suscripcion cancelada.", badgeBg: "bg-muted/10", badgeColor: "text-muted" },
+    CANCELED: { label: "Cancelado", descripcion: "Suscripcion cancelada. El servicio ya no esta online.", badgeBg: "bg-muted/10", badgeColor: "text-muted" },
   }
   return maps[s.estado] ?? { label: s.estado, descripcion: "", badgeBg: "bg-muted/10", badgeColor: "text-muted" }
 }

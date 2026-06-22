@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server"
+import { redirect } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
@@ -18,17 +19,7 @@ export default async function FacturacionPage({
   const { page } = await searchParams
   const currentPage = Math.max(1, parseInt(page ?? "1"))
 
-  if (!userId) {
-    return (
-      <div>
-        <Card>
-          <CardContent className="py-12 text-center text-muted font-mono text-sm">
-            Inicia sesion para ver tu historial.
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  if (!userId) redirect("/sign-in")
 
   const cliente = await prisma.cliente.findUnique({
     where: { clerkUserId: userId },

@@ -99,14 +99,7 @@ export default function RootLayout({
             __html: JSON.stringify(jsonLd),
           }}
         />
-        <script dangerouslySetInnerHTML={{__html: `
-          document.addEventListener("DOMContentLoaded",function(){
-            var s=document.createElement("style")
-            s.id="clerk-override"
-            s.textContent=".cl-footerItem{display:none!important}"
-            document.head.appendChild(s)
-          })
-        `}} />
+        <style id="clerk-override">{`.cl-footerItem{display:none!important}`}</style>
         {children}
       </body>
     </html>

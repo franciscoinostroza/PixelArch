@@ -1,4 +1,5 @@
 import { auth, clerkClient } from "@clerk/nextjs/server"
+import { redirect } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { AlertTriangle, CheckCircle2 } from "lucide-react"
 import { prisma } from "@/lib/prisma"
@@ -15,9 +16,7 @@ export default async function PortalPage({
   const { userId } = await auth()
   const { success } = await searchParams
 
-  if (!userId) {
-    return <div className="rounded-xl border border-border bg-bg2 p-12 text-center text-muted font-mono text-sm">Inicia sesion para ver tus servicios.</div>
-  }
+  if (!userId) redirect("/sign-in")
 
   let cliente = await prisma.cliente.findUnique({
     where: { clerkUserId: userId },

@@ -1,7 +1,15 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CheckCircle } from "lucide-react"
+
+export const metadata: Metadata = {
+  title: "Gracias por contactarnos — PixelArch",
+  description: "Hemos recibido tu mensaje. Te responderemos en las próximas 24 horas.",
+  robots: { index: false },
+  alternates: { canonical: "/gracias" },
+}
 
 export default function GraciasPage() {
   return (

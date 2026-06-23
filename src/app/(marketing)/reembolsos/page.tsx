@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 export const metadata: Metadata = {
   title: "Política de Reembolsos | PixelArch",
   description: "Política de reembolsos y cancelaciones de PixelArch",
+  alternates: { canonical: "/reembolsos" },
 }
 
 export default function ReembolsosPage() {

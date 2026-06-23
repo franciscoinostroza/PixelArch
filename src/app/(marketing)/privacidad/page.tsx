@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 export const metadata: Metadata = {
   title: "Política de Privacidad | PixelArch",
   description: "Política de privacidad de PixelArch",
+  alternates: { canonical: "/privacidad" },
 }
 
 export default function PrivacidadPage() {

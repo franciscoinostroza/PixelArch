@@ -8,6 +8,7 @@ import type { Metadata } from "next"
 export const metadata: Metadata = {
   title: "Productos — PixelArch",
   description: "Conoce todos nuestros productos: desarrollo web, chatbots, agentes de IA y mas.",
+  alternates: { canonical: "/productos" },
 }
 
 const SERVICIOS_QUERY = `*[_type == "servicio" && activo == true] | order(orden asc) {

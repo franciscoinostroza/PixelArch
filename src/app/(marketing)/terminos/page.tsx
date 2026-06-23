@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 export const metadata: Metadata = {
   title: "Términos del Servicio | PixelArch",
   description: "Términos y condiciones del servicio de PixelArch",
+  alternates: { canonical: "/terminos" },
 }
 
 export default function TerminosPage() {

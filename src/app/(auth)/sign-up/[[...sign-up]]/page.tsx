@@ -1,4 +1,11 @@
+import type { Metadata } from "next"
 import { SignUp } from "@clerk/nextjs"
+
+export const metadata: Metadata = {
+  title: "Crear Cuenta — PixelArch",
+  robots: { index: false },
+  alternates: { canonical: "/sign-up" },
+}
 
 export default function SignUpPage() {
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {

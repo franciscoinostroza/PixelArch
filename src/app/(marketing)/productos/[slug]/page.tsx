@@ -21,7 +21,11 @@ export async function generateMetadata({
   const { slug } = await params
   const s = await sanityFetch<{ titulo: string; descripcion: string } | null>(SERVICIO_QUERY, { slug })
   if (!s) return { title: "Producto no encontrado" }
-  return { title: `${s.titulo} — PixelArch`, description: s.descripcion }
+  return {
+    title: `${s.titulo} — PixelArch`,
+    description: s.descripcion,
+    alternates: { canonical: `/productos/${slug}` },
+  }
 }
 
 export default async function ProductoPage({ params }: { params: Promise<{ slug: string }> }) {

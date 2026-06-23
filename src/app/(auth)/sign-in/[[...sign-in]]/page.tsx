@@ -1,4 +1,11 @@
+import type { Metadata } from "next"
 import { SignIn } from "@clerk/nextjs"
+
+export const metadata: Metadata = {
+  title: "Iniciar Sesión — PixelArch",
+  robots: { index: false },
+  alternates: { canonical: "/sign-in" },
+}
 
 export default function SignInPage() {
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {

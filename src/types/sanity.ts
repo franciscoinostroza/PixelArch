@@ -2,6 +2,9 @@ export interface ServicioFields {
   titulo: string
   slug: string
   descripcion: string
+  meta_title?: string
+  meta_description?: string
+  og_image?: { asset: { url: string } }
   icono: string
   tags: string[]
   precioUnico: number

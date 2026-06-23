@@ -10,6 +10,9 @@ const SERVICIO_QUERY = `*[_type == "servicio" && slug.current == $slug][0]{
   titulo,
   "slug": slug.current,
   descripcion,
+  meta_title,
+  meta_description,
+  "og_image_url": og_image.asset->url,
   icono,
   tags
 }`
@@ -18,19 +21,22 @@ export async function generateMetadata({
   params,
 }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
-  const s = await sanityFetch<{ titulo: string; descripcion: string } | null>(SERVICIO_QUERY, { slug })
+  const s = await sanityFetch<{ titulo: string; descripcion: string; meta_title?: string; meta_description?: string; og_image_url?: string } | null>(SERVICIO_QUERY, { slug })
   if (!s) return { title: "Producto no encontrado" }
   return {
-    title: `${s.titulo} — PixelArch`,
-    description: s.descripcion,
+    title: s.meta_title ? `${s.meta_title} — PixelArch` : `${s.titulo} — PixelArch`,
+    description: s.meta_description || s.descripcion,
     alternates: { canonical: `/productos/${slug}` },
+    openGraph: s.og_image_url ? {
+      images: [{ url: s.og_image_url }],
+    } : undefined,
   }
 }
 
 export default async function ProductoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const [servicioSanity, servicioDB] = await Promise.all([
-    sanityFetch<{ titulo: string; slug: string; descripcion: string; icono: string; tags: string[] } | null>(SERVICIO_QUERY, { slug }),
+    sanityFetch<{ titulo: string; slug: string; descripcion: string; meta_title?: string; meta_description?: string; og_image_url?: string; icono: string; tags: string[] } | null>(SERVICIO_QUERY, { slug }),
     prisma.servicio.findFirst({ where: { OR: [{ slug }, { id: `servicio-${slug}` }] } }),
   ])
 
@@ -43,7 +49,7 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
     "@type": "Product",
     name: servicioSanity.titulo,
     description: servicioSanity.descripcion,
-    image: undefined,
+    image: servicioSanity.og_image_url || undefined,
     offers: [
       ...(servicioDB.polarProductIdUnico ? [{
         "@type": "Offer",

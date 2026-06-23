@@ -1,9 +1,8 @@
 import { sanityFetch } from "@/lib/sanity"
 import { Badge } from "@/components/ui/badge"
+import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { CheckoutButton } from "@/components/ui/checkout-button"
 
@@ -79,9 +78,7 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
         />
       )}
       <div className="mx-auto max-w-4xl px-6 py-24">
-      <Link href="/productos" className="inline-flex items-center gap-2 text-sm text-muted font-mono hover:text-text transition-colors mb-8">
-        <ArrowLeft size={16} /> Volver
-      </Link>
+      <Breadcrumbs items={[{ name: "Inicio", href: "/" }, { name: "Productos", href: "/productos" }, { name: servicioSanity.titulo }]} />
 
       <span className="text-5xl">{servicioSanity.icono || "⚡"}</span>
       <h1 className="mt-4 text-4xl font-bold text-text font-display md:text-5xl">{servicioSanity.titulo}</h1>

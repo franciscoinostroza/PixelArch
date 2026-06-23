@@ -3,6 +3,7 @@ import Link from "next/link"
 import { SectionLabel } from "@/components/ui/section-label"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -39,6 +40,7 @@ export default async function ProductosPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-24">
+      <Breadcrumbs items={[{ name: "Inicio", href: "/" }, { name: "Productos" }]} />
       <div className="text-center">
         <SectionLabel>Productos</SectionLabel>
         <h1 className="mt-4 text-4xl font-bold text-text font-display md:text-6xl">

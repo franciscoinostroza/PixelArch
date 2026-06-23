@@ -1,3 +1,4 @@
+import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
 export default function PrivacidadPage() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-20">
+      <Breadcrumbs items={[{ name: "Inicio", href: "/" }, { name: "Política de Privacidad" }]} />
       <h1 className="text-3xl font-bold text-text font-display md:text-4xl">Política de Privacidad</h1>
       <p className="mt-2 text-xs text-muted">Última actualización: Junio 2026</p>
 

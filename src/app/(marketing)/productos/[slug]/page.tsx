@@ -35,8 +35,46 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
 
   const price = (cents: number) => `$${(cents / 100).toFixed(0)}`
 
+  const jsonLd = servicioDB ? {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: servicioSanity.titulo,
+    description: servicioSanity.descripcion,
+    image: undefined,
+    offers: [
+      ...(servicioDB.polarProductIdUnico ? [{
+        "@type": "Offer",
+        name: "Pago Único",
+        price: (servicioDB.precioUnico / 100).toFixed(0),
+        priceCurrency: "USD",
+        availability: "https://schema.org/OnlineOnly",
+      }] : []),
+      ...(servicioDB.polarProductIdBasico ? [{
+        "@type": "Offer",
+        name: "Plan Básico",
+        price: (servicioDB.precioBasico / 100).toFixed(0),
+        priceCurrency: "USD",
+        priceType: "https://schema.org/MonthlyRateSubscription",
+      }] : []),
+      ...(servicioDB.polarProductIdMantenimiento ? [{
+        "@type": "Offer",
+        name: "Plan Mantenimiento",
+        price: (servicioDB.precioMantenimiento / 100).toFixed(0),
+        priceCurrency: "USD",
+        priceType: "https://schema.org/MonthlyRateSubscription",
+      }] : []),
+    ],
+  } : null
+
   return (
-    <div className="mx-auto max-w-4xl px-6 py-24">
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      <div className="mx-auto max-w-4xl px-6 py-24">
       <Link href="/productos" className="inline-flex items-center gap-2 text-sm text-muted font-mono hover:text-text transition-colors mb-8">
         <ArrowLeft size={16} /> Volver
       </Link>
@@ -101,5 +139,6 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
         </div>
       )}
     </div>
+    </>
   )
 }

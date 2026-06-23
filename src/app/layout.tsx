@@ -2,6 +2,8 @@ import type { Metadata } from "next"
 import { Syne, DM_Mono } from "next/font/google"
 import { ClerkProvider } from "@clerk/nextjs"
 import { registerShutdown } from "@/lib/shutdown"
+import { sanityFetch } from "@/lib/sanity"
+import type { SeoFields } from "@/types/sanity"
 import "./globals.css"
 
 registerShutdown()
@@ -20,49 +22,54 @@ const dmMono = DM_Mono({
 
 const baseUrl = process.env.NEXT_PUBLIC_URL || "https://pixelarch.dev"
 
-export const metadata: Metadata = {
+const SEO_QUERY = `*[_type == "seo"][0]{ titulo_sitio, descripcion, "og_image_url": og_image.asset->url, keywords }`
+
+const DEFAULTS = {
   title: "PixelArch — Desarrollo Web · Chatbots · Agentes IA",
   description:
     "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio.",
-  metadataBase: new URL(baseUrl),
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    title: "PixelArch — Desarrollo Web · Chatbots · Agentes IA",
-    description:
-      "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio.",
-    url: baseUrl,
-    siteName: "PixelArch",
-    locale: "es_AR",
-    type: "website",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1536,
-        height: 1024,
-        alt: "PixelArch — Desarrollo Web · Chatbots · Agentes IA",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "PixelArch — Desarrollo Web · Chatbots · Agentes IA",
-    description:
-      "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio.",
-    images: ["/og-image.png"],
-  },
-  icons: {
-    icon: "/icon-192.svg",
-    apple: "/apple-touch-icon.png",
-  },
-  manifest: "/manifest.json",
-  other: {
-    "theme-color": "#0a0a0f",
-  },
 }
 
-export default function RootLayout({
+async function getSeo() {
+  return sanityFetch<SeoFields>(SEO_QUERY)
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await getSeo()
+  const title = seo?.titulo_sitio || DEFAULTS.title
+  const description = seo?.descripcion || DEFAULTS.description
+  const ogImage = seo?.og_image_url || "/og-image.png"
+
+  return {
+    title,
+    description,
+    metadataBase: new URL(baseUrl),
+    alternates: { canonical: "/" },
+    openGraph: {
+      title,
+      description,
+      url: baseUrl,
+      siteName: "PixelArch",
+      locale: "es_AR",
+      type: "website",
+      images: [{ url: ogImage, width: 1536, height: 1024, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
+    icons: {
+      icon: "/icon-192.svg",
+      apple: "/apple-touch-icon.png",
+    },
+    manifest: "/manifest.json",
+    other: { "theme-color": "#0a0a0f" },
+  }
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
@@ -71,6 +78,25 @@ export default function RootLayout({
     !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY !== ""
 
+  const seo = await getSeo()
+  const description =
+    seo?.descripcion ||
+    "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio."
+  const website: Record<string, unknown> = {
+    "@type": "WebSite",
+    url: baseUrl,
+    name: "PixelArch",
+    description,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${baseUrl}/productos?q={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  }
+  if (seo?.keywords?.length) {
+    website.keywords = seo.keywords.join(", ")
+  }
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -78,21 +104,9 @@ export default function RootLayout({
         "@type": "Organization",
         name: "PixelArch",
         url: baseUrl,
-        description:
-          "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio.",
+        description,
       },
-      {
-        "@type": "WebSite",
-        url: baseUrl,
-        name: "PixelArch",
-        description:
-          "Creamos sitios web, chatbots inteligentes, agentes de IA y automatizaciones para impulsar tu negocio.",
-        potentialAction: {
-          "@type": "SearchAction",
-          target: `${baseUrl}/productos?q={search_term_string}`,
-          "query-input": "required name=search_term_string",
-        },
-      },
+      website,
     ],
   }
 

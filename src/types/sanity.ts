@@ -24,10 +24,10 @@ export interface LandingFields {
 }
 
 export interface SeoFields {
-  titulo_sitio: string
-  descripcion: string
-  og_image: string
-  keywords: string[]
+  titulo_sitio?: string
+  descripcion?: string
+  og_image_url?: string
+  keywords?: string[]
 }
 
 export interface ContactoFields {

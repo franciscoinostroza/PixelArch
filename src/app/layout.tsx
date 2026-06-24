@@ -116,6 +116,14 @@ export default async function RootLayout({
       className={`${syne.variable} ${dmMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <link rel="preconnect" href="https://cdn.sanity.io" />
+        <link rel="preconnect" href="https://clerk.pixelarch.dev" />
+        <link rel="preconnect" href="https://api.polar.sh" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://cdn.sanity.io" />
+        <link rel="dns-prefetch" href="https://clerk.pixelarch.dev" />
+        <link rel="dns-prefetch" href="https://api.polar.sh" />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

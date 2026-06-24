@@ -61,7 +61,7 @@ export async function generateMetadata(): Promise<Metadata> {
       images: [ogImage],
     },
     icons: {
-      icon: "/icon-192.svg",
+      icon: "/favicon.png",
       apple: "/apple-touch-icon.png",
     },
     manifest: "/manifest.json",

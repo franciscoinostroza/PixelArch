@@ -3,12 +3,12 @@
 import { motion } from "framer-motion"
 
 const paises = [
-  { flag: "🇨🇱", nombre: "Chile" },
-  { flag: "🇦🇷", nombre: "Argentina" },
-  { flag: "🇲🇽", nombre: "México" },
-  { flag: "🇵🇪", nombre: "Perú" },
-  { flag: "🇨🇴", nombre: "Colombia" },
-  { flag: "🇪🇸", nombre: "España" },
+  { code: "cl", nombre: "Chile" },
+  { code: "ar", nombre: "Argentina" },
+  { code: "mx", nombre: "México" },
+  { code: "pe", nombre: "Perú" },
+  { code: "co", nombre: "Colombia" },
+  { code: "es", nombre: "España" },
 ]
 
 const container = {
@@ -50,7 +50,7 @@ export function Presencia() {
               whileHover={{ scale: 1.15, transition: { duration: 0.2 } }}
               className="flex flex-col items-center gap-1.5"
             >
-              <span className="text-3xl md:text-4xl" style={{ fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif' }}>{p.flag}</span>
+              <img src={`https://flagcdn.com/w40/${p.code}.png`} alt={p.nombre} className="h-10 w-auto rounded-sm shadow-lg" loading="lazy" />
               <span className="text-sm text-text font-mono">{p.nombre}</span>
             </motion.div>
           ))}

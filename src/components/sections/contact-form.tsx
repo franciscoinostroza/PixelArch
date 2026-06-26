@@ -1,5 +1,6 @@
 "use client"
 
+import { motion } from "framer-motion"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { SectionLabel } from "@/components/ui/section-label"
@@ -53,7 +54,14 @@ export function ContactForm() {
   }
 
   return (
-    <section id="contacto" className="mx-auto max-w-xl px-6 py-24">
+    <motion.section
+      id="contacto"
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6 }}
+      className="mx-auto max-w-xl px-6 py-24"
+    >
       <div className="text-center">
         <SectionLabel>Contacto</SectionLabel>
         <h2 className="mt-4 text-3xl font-bold text-text font-display md:text-5xl">
@@ -129,6 +137,6 @@ export function ContactForm() {
           </p>
         )}
       </form>
-    </section>
+    </motion.section>
   )
 }

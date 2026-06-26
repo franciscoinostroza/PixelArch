@@ -1,3 +1,6 @@
+"use client"
+
+import { motion } from "framer-motion"
 import Link from "next/link"
 import { SectionLabel } from "@/components/ui/section-label"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -18,6 +21,18 @@ interface ServicesProps {
   servicios: ServiceItem[]
 }
 
+const container = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.1 },
+  },
+}
+
+const item = {
+  hidden: { opacity: 0, y: 30 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" as const } },
+}
+
 export function Services({ servicios }: ServicesProps) {
   return (
     <section id="productos" className="mx-auto max-w-7xl px-6 py-24">
@@ -32,36 +47,44 @@ export function Services({ servicios }: ServicesProps) {
         </p>
       </div>
 
-      <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <motion.div
+        variants={container}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-100px" }}
+        className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+      >
         {servicios.map((s) => (
-          <Link key={s.slug} href={`/productos/${s.slug}`}>
-            <Card className="h-full transition-colors hover:border-accent/30">
-              <CardHeader>
-                <span className="text-3xl">{s.icono || "⚡"}</span>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="mt-3">{s.titulo}</CardTitle>
-                  {s.precioBasico > 0 && (
-                    <Badge variant="accent2" className="text-xs">
-                      Desde ${(s.precioBasico / 100).toFixed(0)}/mes
-                    </Badge>
-                  )}
+          <motion.div key={s.slug} variants={item}>
+            <Link href={`/productos/${s.slug}`}>
+              <Card className="group h-full border-border/50 bg-bg2/50 backdrop-blur-sm transition-all duration-500 hover:border-accent/40 hover:shadow-[0_0_30px_rgba(127,90,240,0.1)] hover:-translate-y-1">
+                <CardHeader>
+                  <span className="text-3xl">{s.icono || "⚡"}</span>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="mt-3">{s.titulo}</CardTitle>
+                    {s.precioBasico > 0 && (
+                      <Badge variant="accent2" className="text-xs">
+                        Desde ${(s.precioBasico / 100).toFixed(0)}/mes
+                      </Badge>
+                    )}
+                  </div>
+                  <CardDescription>{s.descripcion}</CardDescription>
+                </CardHeader>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {s.tags?.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-border bg-bg2 px-2 py-0.5 text-[10px] text-muted font-mono"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                 </div>
-                <CardDescription>{s.descripcion}</CardDescription>
-              </CardHeader>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {s.tags?.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full border border-border bg-bg2 px-2 py-0.5 text-[10px] text-muted font-mono"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </Card>
-          </Link>
+              </Card>
+            </Link>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </section>
   )
 }

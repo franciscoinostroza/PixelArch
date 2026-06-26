@@ -1,3 +1,6 @@
+"use client"
+
+import { motion } from "framer-motion"
 import { SectionLabel } from "@/components/ui/section-label"
 
 interface PasoItem {
@@ -7,6 +10,18 @@ interface PasoItem {
 
 interface ProcessProps {
   pasos: PasoItem[]
+}
+
+const container = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.15 },
+  },
+}
+
+const item = {
+  hidden: { opacity: 0, x: -30 },
+  show: { opacity: 1, x: 0, transition: { duration: 0.5, ease: "easeOut" as const } },
 }
 
 export function Process({ pasos }: ProcessProps) {
@@ -22,9 +37,15 @@ export function Process({ pasos }: ProcessProps) {
           </h2>
         </div>
 
-        <div className="mt-16 grid gap-8 md:grid-cols-3">
+        <motion.div
+          variants={container}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-50px" }}
+          className="mt-16 grid gap-8 md:grid-cols-3"
+        >
           {pasos.map((p, i) => (
-            <div key={i} className="relative text-center">
+            <motion.div key={i} variants={item} className="relative text-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-lg font-bold text-accent font-display">
                 {i + 1}
               </div>
@@ -32,9 +53,9 @@ export function Process({ pasos }: ProcessProps) {
                 {p.titulo}
               </h3>
               <p className="mt-2 text-sm text-muted font-mono">{p.descripcion}</p>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   )

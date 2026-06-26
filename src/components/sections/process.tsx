@@ -12,16 +12,17 @@ interface ProcessProps {
   pasos: PasoItem[]
 }
 
+const variants = [
+  { hidden: { opacity: 0, x: -100, rotate: -8 }, show: { opacity: 1, x: 0, rotate: 0, transition: { duration: 0.6, ease: "easeOut" } } },
+  { hidden: { opacity: 0, y: 80, scale: 0.7 }, show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: "easeOut" } } },
+  { hidden: { opacity: 0, x: 100, rotate: 8 }, show: { opacity: 1, x: 0, rotate: 0, transition: { duration: 0.6, ease: "easeOut" } } },
+]
+
 const container = {
   hidden: {},
   show: {
     transition: { staggerChildren: 0.15 },
   },
-}
-
-const item = {
-  hidden: { opacity: 0, x: -30 },
-  show: { opacity: 1, x: 0, transition: { duration: 0.5, ease: "easeOut" as const } },
 }
 
 export function Process({ pasos }: ProcessProps) {
@@ -45,13 +46,11 @@ export function Process({ pasos }: ProcessProps) {
           className="mt-16 grid gap-8 md:grid-cols-3"
         >
           {pasos.map((p, i) => (
-            <motion.div key={i} variants={item} className="relative text-center">
+            <motion.div key={i} variants={variants[i]} className="relative text-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-lg font-bold text-accent font-display">
                 {i + 1}
               </div>
-              <h3 className="mt-4 font-display text-lg font-bold text-text">
-                {p.titulo}
-              </h3>
+              <h3 className="mt-4 font-display text-lg font-bold text-text">{p.titulo}</h3>
               <p className="mt-2 text-sm text-muted font-mono">{p.descripcion}</p>
             </motion.div>
           ))}

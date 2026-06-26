@@ -56,10 +56,10 @@ export function ContactForm() {
   return (
     <motion.section
       id="contacto"
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 80, rotate: -2, scale: 0.95 }}
+      whileInView={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.6 }}
+      transition={{ duration: 0.7, ease: "easeOut" }}
       className="mx-auto max-w-xl px-6 py-24"
     >
       <div className="text-center">

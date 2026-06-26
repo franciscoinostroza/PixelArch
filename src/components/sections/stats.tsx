@@ -50,7 +50,7 @@ export function Presencia() {
               whileHover={{ scale: 1.15, transition: { duration: 0.2 } }}
               className="flex flex-col items-center gap-1.5"
             >
-              <img src={`https://flagcdn.com/w40/${p.code}.png`} alt={p.nombre} className="h-10 w-auto rounded-sm shadow-lg" loading="lazy" />
+              <img src={`https://flagcdn.com/w40/${p.code}.png`} alt={p.nombre} className="h-10 w-auto shadow-lg" style={{ imageRendering: "pixelated", filter: "contrast(1.3) saturate(1.4)" }} loading="lazy" />
               <span className="text-sm text-text font-mono">{p.nombre}</span>
             </motion.div>
           ))}

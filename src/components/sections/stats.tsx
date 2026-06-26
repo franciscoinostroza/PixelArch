@@ -1,61 +1,21 @@
-"use client"
-
-import { motion } from "framer-motion"
-
-const paises = [
-  { code: "cl", nombre: "Chile" },
-  { code: "ar", nombre: "Argentina" },
-  { code: "mx", nombre: "México" },
-  { code: "pe", nombre: "Perú" },
-  { code: "co", nombre: "Colombia" },
-  { code: "es", nombre: "España" },
-]
-
-const container = {
-  hidden: {},
-  show: {
-    transition: { staggerChildren: 0.12 },
-  },
-}
-
-const item = {
-  hidden: { opacity: 0, scale: 0 },
-  show: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: "easeOut" as const } },
-}
-
 export function Presencia() {
   return (
-    <section className="border-y border-border bg-bg2 px-6 py-12">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="mx-auto max-w-4xl text-center"
-      >
-        <p className="text-xs uppercase tracking-[0.12em] text-muted font-mono mb-6">
-          Presencia en Latinoamérica y Europa
+    <section className="border-y border-border bg-bg2 px-6 py-16">
+      <div className="mx-auto max-w-4xl text-center">
+        <p className="text-xs uppercase tracking-[0.12em] text-muted font-mono mb-2">
+          Presencia
         </p>
-        <motion.div
-          variants={container}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          className="flex flex-wrap items-center justify-center gap-6 md:gap-10"
-        >
-          {paises.map((p) => (
-            <motion.div
-              key={p.nombre}
-              variants={item}
-              whileHover={{ scale: 1.15, transition: { duration: 0.2 } }}
-              className="flex flex-col items-center gap-1.5"
-            >
-              <img src={`https://flagcdn.com/w20/${p.code}.png`} alt={p.nombre} className="h-14 w-auto" style={{ imageRendering: "pixelated", filter: "contrast(1.4) saturate(1.5) brightness(1.2)", border: "3px solid #7f5af0", boxShadow: "4px 4px 0 #0a0a0f" }} loading="lazy" />
-              <span className="text-sm text-text font-mono">{p.nombre}</span>
-            </motion.div>
-          ))}
-        </motion.div>
-      </motion.div>
+        <p className="text-sm text-text font-mono leading-relaxed">
+          Chile <span className="text-accent">·</span> Argentina{" "}
+          <span className="text-accent">·</span> México{" "}
+          <span className="text-accent">·</span> Perú{" "}
+          <span className="text-accent">·</span> Colombia{" "}
+          <span className="text-accent">·</span> España
+        </p>
+        <p className="mt-4 text-xs text-muted font-mono">
+          Trabajamos con clientes en LATAM y Europa
+        </p>
+      </div>
     </section>
   )
 }

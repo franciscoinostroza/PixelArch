@@ -1,6 +1,6 @@
 import { sanityFetch } from "@/lib/sanity"
 import { Hero } from "@/components/sections/hero"
-import { Stats } from "@/components/sections/stats"
+import { Presencia } from "@/components/sections/stats"
 import { Services } from "@/components/sections/services"
 import { Process } from "@/components/sections/process"
 import { ContactForm } from "@/components/sections/contact-form"
@@ -40,7 +40,7 @@ export default async function LandingPage() {
         ctaPrimario={landing?.hero_cta_primario}
         ctaSecundario={landing?.hero_cta_secundario}
       />
-      <Stats stats={landing?.stats || []} />
+      <Presencia />
       <Services servicios={servicios || []} />
       <Process pasos={landing?.proceso_pasos || []} />
       <ContactForm />

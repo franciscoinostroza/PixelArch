@@ -141,19 +141,7 @@ export default async function RootLayout({
   return (
     <ClerkProvider
         appearance={{
-        layout: { showClerkBranding: false },
-        variables: {
-          colorPrimary: "#7f5af0",
-          colorBackground: "#14142a",
-          colorText: "#f1f5f9",
-          colorTextSecondary: "#94a3b8",
-          colorInputText: "#f1f5f9",
-          colorInputBackground: "rgba(255,255,255,0.04)",
-          colorSuccess: "#2cb67d",
-          colorDanger: "#ef4444",
-          colorNeutral: "#535a66",
-          borderRadius: "10px",
-        },
+        variables: { colorPrimary: "#7f5af0", colorBackground: "#14142a" },
         elements: {
           // === SignIn / SignUp ===
           card: {

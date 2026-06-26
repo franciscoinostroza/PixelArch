@@ -60,10 +60,10 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       images: [ogImage],
     },
-    icons: {
-      icon: [{ url: "/favicon-32.png", sizes: "32x32", type: "image/png" }, { url: "/favicon.png", sizes: "1254x1254", type: "image/png" }],
-      apple: "/apple-touch-icon.png",
-    },
+  icons: {
+    icon: "/favicon.png",
+    apple: "/apple-touch-icon.png",
+  },
     manifest: "/manifest.json",
     other: { "theme-color": "#0a0a0f" },
   }

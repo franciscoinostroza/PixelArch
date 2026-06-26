@@ -50,7 +50,7 @@ export function Presencia() {
               whileHover={{ scale: 1.15, transition: { duration: 0.2 } }}
               className="flex flex-col items-center gap-1.5"
             >
-              <span className="text-3xl md:text-4xl">{p.flag}</span>
+              <span className="text-3xl md:text-4xl" style={{ fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif' }}>{p.flag}</span>
               <span className="text-sm text-text font-mono">{p.nombre}</span>
             </motion.div>
           ))}

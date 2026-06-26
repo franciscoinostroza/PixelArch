@@ -10,11 +10,13 @@ interface DeployConfigProps {
   suscripcionId: string
   deploymentId: string | null
   deploymentPlatform: string | null
+  platformServiceId: string | null
 }
 
-export function DeployConfig({ suscripcionId, deploymentId: initialId, deploymentPlatform: initialPlatform }: DeployConfigProps) {
+export function DeployConfig({ suscripcionId, deploymentId: initialId, deploymentPlatform: initialPlatform, platformServiceId: initialServiceId }: DeployConfigProps) {
   const [id, setId] = useState(initialId ?? "")
   const [platform, setPlatform] = useState(initialPlatform ?? "")
+  const [serviceId, setServiceId] = useState(initialServiceId ?? "")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
@@ -33,6 +35,7 @@ export function DeployConfig({ suscripcionId, deploymentId: initialId, deploymen
           accion: "update-deploy",
           deploymentId: id || null,
           deploymentPlatform: platform || null,
+          platformServiceId: serviceId || null,
         }),
       })
       if (!res.ok) {
@@ -61,12 +64,8 @@ export function DeployConfig({ suscripcionId, deploymentId: initialId, deploymen
         <option value="railway">Railway</option>
         <option value="vercel">Vercel</option>
       </select>
-      <Input
-        value={id}
-        onChange={(e) => setId(e.target.value)}
-        placeholder="ID del deploy"
-        className="h-7 w-36 text-xs font-mono"
-      />
+      <Input value={id} onChange={(e) => setId(e.target.value)} placeholder="ID del deploy" className="h-7 w-28 text-xs font-mono" />
+      <Input value={serviceId} onChange={(e) => setServiceId(e.target.value)} placeholder="Service/Project ID" className="h-7 w-28 text-xs font-mono" />
       <Button size="sm" variant="ghost" onClick={guardar} disabled={loading || (!id && !platform)}>
         {loading ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
       </Button>

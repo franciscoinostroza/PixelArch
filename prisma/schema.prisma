@@ -54,6 +54,7 @@ model Suscripcion {
   polarTransactionId     String?
   deploymentId            String?
   deploymentPlatform      String?
+  platformServiceId       String?
   proximoPago             DateTime?
   entregadoEn             DateTime?
   cancelAtPeriodEnd       Boolean   @default(false)

@@ -169,7 +169,7 @@ export default async function ClienteDetalle({
                           </span>
                         )}
                       </span>
-                      {s.estado !== "PENDING" && <SubscriptionActions suscripcionId={s.id} estado={s.estado} cancelAtPeriodEnd={s.cancelAtPeriodEnd} />}
+                      {s.estado !== "PENDING" && <SubscriptionActions suscripcionId={s.id} estado={s.estado} cancelAtPeriodEnd={s.cancelAtPeriodEnd} deploymentPlatform={s.deploymentPlatform} platformServiceId={s.platformServiceId} />}
                     </div>
                   </div>
                   {s.estado === "PENDING" && (
@@ -182,6 +182,7 @@ export default async function ClienteDetalle({
                       suscripcionId={s.id}
                       deploymentId={s.deploymentId}
                       deploymentPlatform={s.deploymentPlatform}
+                      platformServiceId={s.platformServiceId}
                     />
                   )}
                 </div>

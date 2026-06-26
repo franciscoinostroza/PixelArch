@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { sendPaymentFailed, sendSubscriptionCanceled } from "@/lib/notifications"
+import { resumeDeploy } from "@/lib/deploy"
 import { logger } from "@/lib/logger"
 
 async function verifyPolarWebhook(
@@ -120,6 +121,9 @@ export async function POST(req: Request) {
               updates.estado = "ACTIVE"
               updates.pastDueEn = null
             }
+            if (suscripcion.estado === "CANCELED" && suscripcion.deploymentPlatform && suscripcion.platformServiceId) {
+              await resumeDeploy(suscripcion.deploymentPlatform, suscripcion.platformServiceId)
+            }
             await prisma.suscripcion.update({
               where: { id: suscripcion.id },
               data: updates,
@@ -192,6 +196,10 @@ export async function POST(req: Request) {
             proximoPago: currentPeriodEnd ? new Date(currentPeriodEnd) : undefined,
           },
         })
+        const subDb = await prisma.suscripcion.findFirst({ where: { polarSubscriptionId: subId }, select: { deploymentPlatform: true, platformServiceId: true } })
+        if (subDb?.deploymentPlatform && subDb?.platformServiceId) {
+          await resumeDeploy(subDb.deploymentPlatform, subDb.platformServiceId)
+        }
       },
 
       "subscription.past_due": async (sub: any) => {

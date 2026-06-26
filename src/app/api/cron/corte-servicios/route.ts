@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { resend } from "@/lib/resend"
 import { logger } from "@/lib/logger"
 import { polar } from "@/lib/polar"
+import { pauseDeploy } from "@/lib/deploy"
 
 export const dynamic = "force-dynamic"
 
@@ -31,6 +32,9 @@ export async function GET(req: Request) {
           where: { id: sub.id },
           data: { estado: "CANCELED", canceladoEn: now },
         })
+        if (sub.deploymentPlatform && sub.platformServiceId) {
+          await pauseDeploy(sub.deploymentPlatform, sub.platformServiceId)
+        }
 
         const r = resend()
         if (r) {

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { polar } from "@/lib/polar"
 import { requireAdmin } from "@/lib/auth"
 import { rateLimit } from "@/lib/rate-limit"
+import { pauseDeploy, resumeDeploy } from "@/lib/deploy"
 import { logger } from "@/lib/logger"
 
 export async function PATCH(req: Request) {
@@ -15,10 +16,45 @@ export async function PATCH(req: Request) {
   if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 })
 
   try {
-    const { suscripcionId, accion } = await req.json()
+    const body = await req.json()
+    const { suscripcionId, accion } = body
 
     if (!suscripcionId) {
       return NextResponse.json({ error: "suscripcionId requerido" }, { status: 400 })
+    }
+
+    if (accion === "update-deploy") {
+      const { deploymentId, deploymentPlatform, platformServiceId } = body
+      await prisma.suscripcion.update({
+        where: { id: suscripcionId },
+        data: { deploymentId: deploymentId || null, deploymentPlatform: deploymentPlatform || null, platformServiceId: platformServiceId || null },
+      })
+      logger.info("Deploy config actualizada", { suscripcionId, adminId: admin.id })
+      return NextResponse.json({ ok: true })
+    }
+
+    if (accion === "pause-deploy") {
+      const sub = await prisma.suscripcion.findUnique({
+        where: { id: suscripcionId },
+        select: { deploymentPlatform: true, platformServiceId: true },
+      })
+      if (sub?.deploymentPlatform && sub?.platformServiceId) {
+        await pauseDeploy(sub.deploymentPlatform, sub.platformServiceId)
+      }
+      logger.info("Deploy pausado manualmente", { suscripcionId, adminId: admin.id })
+      return NextResponse.json({ ok: true })
+    }
+
+    if (accion === "resume-deploy") {
+      const sub = await prisma.suscripcion.findUnique({
+        where: { id: suscripcionId },
+        select: { deploymentPlatform: true, platformServiceId: true },
+      })
+      if (sub?.deploymentPlatform && sub?.platformServiceId) {
+        await resumeDeploy(sub.deploymentPlatform, sub.platformServiceId)
+      }
+      logger.info("Deploy reanudado manualmente", { suscripcionId, adminId: admin.id })
+      return NextResponse.json({ ok: true })
     }
 
     const suscripcion = await prisma.suscripcion.findUnique({

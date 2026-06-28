@@ -94,7 +94,7 @@ export function Services({ servicios }: ServicesProps) {
                 <div className="flex-1">
                   <span className="text-3xl">{s.icono || "⚡"}</span>
                   <div className="flex items-center justify-between mt-3">
-                    <p className="font-display text-lg font-bold text-text">{s.titulo}</p>
+                    <p className="font-display text-xl font-bold text-text">{s.titulo}</p>
                     {s.precioBasico > 0 && (
                       <Badge variant="accent2" className="text-xs shrink-0 ml-2">
                         ${(s.precioBasico / 100).toFixed(0)}/mes

@@ -4,7 +4,7 @@ import { useRef, useCallback } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { SectionLabel } from "@/components/ui/section-label"
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
 interface ServiceItem {
@@ -91,19 +91,19 @@ export function Services({ servicios }: ServicesProps) {
             <TiltCard>
             <Link href={`/productos/${s.slug}`}>
               <Card className="group h-full flex flex-col border-border/50 bg-bg2/50 backdrop-blur-sm hover:border-accent/40 hover:shadow-[0_0_30px_rgba(127,90,240,0.1)]">
-                <CardHeader>
+                <div className="flex-1">
                   <span className="text-3xl">{s.icono || "⚡"}</span>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="mt-3">{s.titulo}</CardTitle>
+                  <div className="flex items-center justify-between mt-3">
+                    <p className="font-display text-lg font-bold text-text">{s.titulo}</p>
                     {s.precioBasico > 0 && (
-                      <Badge variant="accent2" className="text-xs">
-                        Desde ${(s.precioBasico / 100).toFixed(0)}/mes
+                      <Badge variant="accent2" className="text-xs shrink-0 ml-2">
+                        ${(s.precioBasico / 100).toFixed(0)}/mes
                       </Badge>
                     )}
                   </div>
-                  <CardDescription>{s.descripcion}</CardDescription>
-                </CardHeader>
-                <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-border/30">
+                  <p className="mt-2 text-sm text-muted font-mono leading-relaxed line-clamp-2">{s.descripcion}</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-4 pt-3 border-t border-border/30">
                   {s.tags?.map((tag) => (
                     <span key={tag} className="rounded-full border border-border bg-bg2 px-2 py-0.5 text-[10px] text-muted font-mono">
                       {tag}

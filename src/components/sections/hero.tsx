@@ -24,25 +24,25 @@ export function Hero({
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(127,90,240,0.1),transparent_60%)]" />
       <div className="relative mx-auto max-w-4xl text-center">
         <motion.h1
-          initial={{ opacity: 0, y: -80, rotate: -6 }}
-          animate={{ opacity: 1, y: 0, rotate: 0 }}
-          transition={{ duration: 0.9, ease: "easeOut", type: "spring", stiffness: 120 }}
+          initial={{ clipPath: "inset(0 100% 0 0)" }}
+          animate={{ clipPath: "inset(0 0% 0 0)" }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
           className="bg-gradient-to-r from-accent via-[#a78bfa] to-[#f472b6] bg-[length:200%_auto] bg-clip-text text-transparent animate-gradient text-4xl font-bold leading-tight tracking-tight md:text-6xl lg:text-7xl font-display"
         >
           {titulo}
         </motion.h1>
         <motion.p
-          initial={{ opacity: 0, x: 120, rotate: 2 }}
-          animate={{ opacity: 1, x: 0, rotate: 0 }}
-          transition={{ duration: 0.8, delay: 0.25, ease: "easeOut" }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
           className="mx-auto mt-6 max-w-2xl text-base md:text-lg text-muted font-mono leading-relaxed"
         >
           {subtitulo}
         </motion.p>
         <motion.div
-          initial={{ opacity: 0, y: 100, scale: 0.8 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.7, delay: 0.45, ease: "easeOut" }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
           className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
         >
           <Link

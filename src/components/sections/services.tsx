@@ -22,11 +22,10 @@ interface ServicesProps {
   servicios: ServiceItem[]
 }
 
-const variants = [
-  { hidden: { opacity: 0, x: -100, rotate: -4 }, show: { opacity: 1, x: 0, rotate: 0, transition: { duration: 0.7, ease: "easeOut" as const } } },
-  { hidden: { opacity: 0, x: 100, rotate: 4, scale: 0.9 }, show: { opacity: 1, x: 0, rotate: 0, scale: 1, transition: { duration: 0.7, ease: "easeOut" as const } } },
-  { hidden: { opacity: 0, y: 100, scale: 0.8 }, show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.7, ease: "easeOut" as const } } },
-]
+const item = {
+  hidden: { opacity: 0, y: 30 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as const } },
+}
 
 function TiltCard({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -63,7 +62,7 @@ function TiltCard({ children }: { children: React.ReactNode }) {
 const container = {
   hidden: {},
   show: {
-    transition: { staggerChildren: 0.12 },
+    transition: { staggerChildren: 0.08 },
   },
 }
 
@@ -87,11 +86,11 @@ export function Services({ servicios }: ServicesProps) {
         viewport={{ once: true, margin: "-100px" }}
         className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
       >
-        {servicios.map((s, i) => (
-          <motion.div key={s.slug} variants={variants[i % 3]}>
+        {servicios.map((s) => (
+          <motion.div key={s.slug} variants={item}>
             <TiltCard>
             <Link href={`/productos/${s.slug}`}>
-              <Card className="group h-full border-border/50 bg-bg2/50 backdrop-blur-sm hover:border-accent/40 hover:shadow-[0_0_30px_rgba(127,90,240,0.1)]">
+              <Card className="group h-full flex flex-col border-border/50 bg-bg2/50 backdrop-blur-sm hover:border-accent/40 hover:shadow-[0_0_30px_rgba(127,90,240,0.1)]">
                 <CardHeader>
                   <span className="text-3xl">{s.icono || "⚡"}</span>
                   <div className="flex items-center justify-between">
@@ -104,7 +103,7 @@ export function Services({ servicios }: ServicesProps) {
                   </div>
                   <CardDescription>{s.descripcion}</CardDescription>
                 </CardHeader>
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-border/30">
                   {s.tags?.map((tag) => (
                     <span key={tag} className="rounded-full border border-border bg-bg2 px-2 py-0.5 text-[10px] text-muted font-mono">
                       {tag}

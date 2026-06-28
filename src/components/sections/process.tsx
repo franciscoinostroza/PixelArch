@@ -13,9 +13,9 @@ interface ProcessProps {
 }
 
 const variants = [
-  { hidden: { opacity: 0, x: -100, rotate: -8 }, show: { opacity: 1, x: 0, rotate: 0, transition: { duration: 0.6, ease: "easeOut" } } },
-  { hidden: { opacity: 0, y: 80, scale: 0.7 }, show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: "easeOut" } } },
-  { hidden: { opacity: 0, x: 100, rotate: 8 }, show: { opacity: 1, x: 0, rotate: 0, transition: { duration: 0.6, ease: "easeOut" } } },
+  { hidden: { opacity: 0, x: -100, rotate: -8 }, show: { opacity: 1, x: 0, rotate: 0, transition: { duration: 0.6, ease: "easeOut" as const } } },
+  { hidden: { opacity: 0, y: 80, scale: 0.7 }, show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: "easeOut" as const } } },
+  { hidden: { opacity: 0, x: 100, rotate: 8 }, show: { opacity: 1, x: 0, rotate: 0, transition: { duration: 0.6, ease: "easeOut" as const } } },
 ]
 
 const container = {

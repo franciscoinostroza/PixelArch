@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef, useCallback } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { SectionLabel } from "@/components/ui/section-label"
@@ -22,10 +23,42 @@ interface ServicesProps {
 }
 
 const variants = [
-  { hidden: { opacity: 0, x: -100, rotate: -4 }, show: { opacity: 1, x: 0, rotate: 0, transition: { duration: 0.7, ease: "easeOut" } } },
-  { hidden: { opacity: 0, x: 100, rotate: 4, scale: 0.9 }, show: { opacity: 1, x: 0, rotate: 0, scale: 1, transition: { duration: 0.7, ease: "easeOut" } } },
-  { hidden: { opacity: 0, y: 100, scale: 0.8 }, show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.7, ease: "easeOut" } } },
+  { hidden: { opacity: 0, x: -100, rotate: -4 }, show: { opacity: 1, x: 0, rotate: 0, transition: { duration: 0.7, ease: "easeOut" as const } } },
+  { hidden: { opacity: 0, x: 100, rotate: 4, scale: 0.9 }, show: { opacity: 1, x: 0, rotate: 0, scale: 1, transition: { duration: 0.7, ease: "easeOut" as const } } },
+  { hidden: { opacity: 0, y: 100, scale: 0.8 }, show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.7, ease: "easeOut" as const } } },
 ]
+
+function TiltCard({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const isTilting = useRef(false)
+
+  const handleMove = useCallback((e: React.MouseEvent) => {
+    const el = ref.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const x = (e.clientX - rect.left) / rect.width - 0.5
+    const y = (e.clientY - rect.top) / rect.height - 0.5
+    el.style.transform = `perspective(1000px) rotateX(${-y * 6}deg) rotateY(${x * 6}deg) scale3d(1.02,1.02,1.02)`
+  }, [])
+
+  const handleLeave = useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1,1,1)"
+  }, [])
+
+  return (
+    <div
+      ref={ref}
+      onMouseMove={handleMove}
+      onMouseLeave={handleLeave}
+      className="transition-transform duration-200 ease-out"
+      style={{ transformStyle: "preserve-3d" }}
+    >
+      {children}
+    </div>
+  )
+}
 
 const container = {
   hidden: {},
@@ -56,8 +89,9 @@ export function Services({ servicios }: ServicesProps) {
       >
         {servicios.map((s, i) => (
           <motion.div key={s.slug} variants={variants[i % 3]}>
+            <TiltCard>
             <Link href={`/productos/${s.slug}`}>
-              <Card className="group h-full border-border/50 bg-bg2/50 backdrop-blur-sm transition-all duration-500 hover:border-accent/40 hover:shadow-[0_0_30px_rgba(127,90,240,0.1)] hover:-translate-y-1">
+              <Card className="group h-full border-border/50 bg-bg2/50 backdrop-blur-sm hover:border-accent/40 hover:shadow-[0_0_30px_rgba(127,90,240,0.1)]">
                 <CardHeader>
                   <span className="text-3xl">{s.icono || "⚡"}</span>
                   <div className="flex items-center justify-between">
@@ -79,6 +113,7 @@ export function Services({ servicios }: ServicesProps) {
                 </div>
               </Card>
             </Link>
+            </TiltCard>
           </motion.div>
         ))}
       </motion.div>

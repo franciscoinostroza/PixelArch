@@ -88,9 +88,27 @@ function ClerkAuthSection() {
 export function Nav() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const [hidden, setHidden] = useState(false)
+  const [atTop, setAtTop] = useState(true)
+
+  useEffect(() => {
+    let lastScroll = 0
+    const onScroll = () => {
+      const current = window.scrollY
+      setHidden(current > lastScroll && current > 80)
+      setAtTop(current < 10)
+      lastScroll = current
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-bg/80 backdrop-blur-xl">
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 border-b transition-transform duration-300 ${
+        hidden ? "-translate-y-full" : "translate-y-0"
+      } ${atTop ? "border-transparent bg-transparent" : "border-border bg-bg/80 backdrop-blur-xl"}`}
+    >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <Link href="/" className="font-display text-lg font-bold text-text">
           Pixel<span className="text-accent">Arch</span>

@@ -4,6 +4,8 @@ import { Presencia } from "@/components/sections/stats"
 import { Services } from "@/components/sections/services"
 import { Process } from "@/components/sections/process"
 import { ContactForm } from "@/components/sections/contact-form"
+import { FAQ } from "@/components/sections/faq"
+import { BackToTop } from "@/components/ui/back-to-top"
 import type { LandingFields } from "@/types/sanity"
 
 const LANDING_QUERY = `*[_type == "landing"][0]{
@@ -43,7 +45,9 @@ export default async function LandingPage() {
       <Presencia />
       <Services servicios={servicios || []} />
       <Process pasos={landing?.proceso_pasos || []} />
+      <FAQ />
       <ContactForm />
+      <BackToTop />
     </>
   )
 }

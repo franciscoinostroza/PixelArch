@@ -9,10 +9,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { contactSchema, type ContactFormValues } from "@/lib/validations"
 import { useState } from "react"
-import { CheckCircle, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
+import { useToast } from "@/components/ui/toast"
 
 export function ContactForm() {
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+  const [status, setStatus] = useState<"idle" | "loading">("idle")
+  const { toast } = useToast()
 
   const {
     register,
@@ -32,25 +34,13 @@ export function ContactForm() {
         body: JSON.stringify(data),
       })
       if (!res.ok) throw new Error()
-      setStatus("success")
+      toast("success", "Mensaje enviado. Te responderemos pronto.")
       reset()
     } catch {
-      setStatus("error")
+      toast("error", "Error al enviar. Intentalo de nuevo.")
+    } finally {
+      setStatus("idle")
     }
-  }
-
-  if (status === "success") {
-    return (
-      <section id="contacto" className="mx-auto max-w-xl px-6 py-24 text-center">
-        <CheckCircle className="mx-auto h-12 w-12 text-accent2" />
-        <h2 className="mt-4 text-2xl font-bold text-text font-display">
-          Mensaje enviado
-        </h2>
-        <p className="mt-2 text-muted font-mono">
-          Te responderemos en las próximas 24 horas.
-        </p>
-      </section>
-    )
   }
 
   return (
@@ -131,11 +121,6 @@ export function ContactForm() {
           Enviar mensaje
         </Button>
 
-        {status === "error" && (
-          <p className="text-center text-sm text-red-400 font-mono">
-            Error al enviar. Intentalo de nuevo.
-          </p>
-        )}
       </form>
     </motion.section>
   )

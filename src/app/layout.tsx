@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Syne, DM_Mono } from "next/font/google"
 import { ClerkProvider } from "@clerk/nextjs"
+import { ToastProvider } from "@/components/ui/toast"
 import { registerShutdown } from "@/lib/shutdown"
 import { sanityFetch } from "@/lib/sanity"
 import type { SeoFields } from "@/types/sanity"
@@ -266,7 +267,7 @@ export default async function RootLayout({
       }}
       unsafe_disableDevelopmentModeConsoleWarning={true}
     >
-      {html}
+      <ToastProvider>{html}</ToastProvider>
     </ClerkProvider>
   )
 }

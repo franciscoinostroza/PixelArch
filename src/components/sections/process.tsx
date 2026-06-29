@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { SectionLabel } from "@/components/ui/section-label"
+import { Check } from "lucide-react"
 
 interface PasoItem {
   titulo: string
@@ -20,7 +21,7 @@ const item = {
 const container = {
   hidden: {},
   show: {
-    transition: { staggerChildren: 0.12 },
+    transition: { staggerChildren: 0.2 },
   },
 }
 
@@ -42,17 +43,31 @@ export function Process({ pasos }: ProcessProps) {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: "-50px" }}
-          className="mt-16 grid gap-8 md:grid-cols-3"
+          className="relative mt-16"
         >
-          {pasos.map((p, i) => (
-            <motion.div key={i} variants={item} className="relative text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-lg font-bold text-accent font-display">
-                {i + 1}
-              </div>
-              <h3 className="mt-4 font-display text-lg font-bold text-text">{p.titulo}</h3>
-              <p className="mt-2 text-sm text-muted font-mono">{p.descripcion}</p>
-            </motion.div>
-          ))}
+          {/* Línea conectora */}
+          <div className="absolute left-[23px] top-0 bottom-0 w-px bg-accent/20 hidden md:block" />
+
+          <div className="flex flex-col gap-8 md:gap-0 md:grid md:grid-cols-3">
+            {pasos.map((p, i) => (
+              <motion.div key={i} variants={item} className="relative flex gap-4 md:flex-col md:items-center md:text-center md:gap-3">
+                {/* Número / Círculo */}
+                <div className="relative z-10 flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full bg-accent/10 md:mx-auto">
+                  <span className="text-sm font-bold text-accent font-display">{i + 1}</span>
+                </div>
+
+                {/* Conector horizontal en desktop */}
+                {i < pasos.length - 1 && (
+                  <div className="hidden md:block absolute top-[23px] left-[calc(50%+23px)] w-[calc(100%-46px)] h-px bg-accent/20" />
+                )}
+
+                <div className="md:mt-2">
+                  <h3 className="font-display text-base font-bold text-text">{p.titulo}</h3>
+                  <p className="mt-1 text-sm text-muted font-mono leading-relaxed">{p.descripcion}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </motion.div>
       </div>
     </section>

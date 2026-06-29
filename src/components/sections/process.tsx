@@ -13,14 +13,14 @@ interface ProcessProps {
 }
 
 const item = {
-  hidden: { opacity: 0, x: -20 },
-  show: { opacity: 1, x: 0, transition: { duration: 0.5, ease: "easeOut" as const } },
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
 }
 
 const container = {
   hidden: {},
   show: {
-    transition: { staggerChildren: 0.15 },
+    transition: { staggerChildren: 0.12 },
   },
 }
 
@@ -42,17 +42,17 @@ export function Process({ pasos }: ProcessProps) {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: "-50px" }}
-          className="relative mt-16 pl-10"
+          className="mt-16 space-y-8"
         >
-          <div className="absolute left-[19px] top-2 bottom-2 w-px bg-accent/20" />
-
           {pasos.map((p, i) => (
-            <motion.div key={i} variants={item} className="relative pb-10 last:pb-0">
-              <div className="absolute left-[-26px] top-0 flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 z-10">
-                <span className="text-xs font-bold text-accent font-display">{i + 1}</span>
+            <motion.div key={i} variants={item} className="flex gap-4">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 text-xs font-bold text-accent font-display">
+                {i + 1}
+              </span>
+              <div className="pt-0.5">
+                <h3 className="font-display text-base font-bold text-text">{p.titulo}</h3>
+                <p className="mt-1 text-sm text-muted font-mono leading-relaxed">{p.descripcion}</p>
               </div>
-              <h3 className="font-display text-lg font-bold text-text">{p.titulo}</h3>
-              <p className="mt-1 text-sm text-muted font-mono leading-relaxed max-w-xl">{p.descripcion}</p>
             </motion.div>
           ))}
         </motion.div>

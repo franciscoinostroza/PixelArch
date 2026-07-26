@@ -4,14 +4,13 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { Menu, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { PortalUserButton } from "@/components/ui/portal-user-button"
 import { useUser } from "@clerk/nextjs"
 
 const links = [
-  { href: "/", label: "Inicio" },
-  { href: "/productos", label: "Productos" },
+  { href: "/#resenas", label: "Reseñas" },
+  { href: "/#productos", label: "Productos" },
+  { href: "/#proceso", label: "Proceso" },
+  { href: "/#nosotros", label: "Nosotros" },
   { href: "/#contacto", label: "Contacto" },
 ]
 
@@ -25,7 +24,8 @@ function AdminNavLink() {
   return (
     <Link
       href="/admin/dashboard"
-      className="text-sm font-mono text-accent transition-colors hover:text-[#a78bfa]"
+      className="text-sm text-text-dim transition-colors hover:text-text"
+      style={{ fontFamily: "var(--font-display)", fontWeight: 500 }}
     >
       Admin
     </Link>
@@ -50,35 +50,35 @@ function ClerkAuthSection() {
       .catch(() => setError(true))
   }, [])
 
-  if (!hasClerkKey || error || !ClerkComponents) {
-    return (
-      <Button variant="ghost" size="sm" disabled>
-        Ingresar
-      </Button>
-    )
-  }
+  if (!hasClerkKey || error || !ClerkComponents) return null
 
-  const { Show, SignInButton, UserButton } = ClerkComponents
+  const Show = ClerkComponents.Show
+  const SignInButton = ClerkComponents.SignInButton
+  const UserButton = ClerkComponents.UserButton
 
   return (
     <>
       <Show when="signed-out">
         <SignInButton mode="modal">
-          <Button variant="ghost" size="sm">
+          <span
+            className="text-sm text-text-dim transition-colors hover:text-text"
+            style={{ fontFamily: "var(--font-display)", fontWeight: 500, cursor: "pointer" }}
+          >
             Ingresar
-          </Button>
+          </span>
         </SignInButton>
       </Show>
       <Show when="signed-in">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <Link
             href="/portal"
-            className="text-sm font-mono text-muted transition-colors hover:text-text"
+            className="text-sm text-text-dim transition-colors hover:text-text"
+            style={{ fontFamily: "var(--font-display)", fontWeight: 500 }}
           >
             Portal
           </Link>
           <AdminNavLink />
-          <PortalUserButton />
+          <UserButton />
         </div>
       </Show>
     </>
@@ -88,78 +88,95 @@ function ClerkAuthSection() {
 export function Nav() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
-  const [hidden, setHidden] = useState(false)
-  const [atTop, setAtTop] = useState(true)
+  const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
-    let lastScroll = 0
-    const onScroll = () => {
-      const current = window.scrollY
-      setHidden(current > lastScroll && current > 80)
-      setAtTop(current < 10)
-      lastScroll = current
-    }
+    const onScroll = () => setScrolled(window.scrollY > 10)
+    onScroll()
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
   return (
-    <nav
-      className={`fixed top-0 left-0 right-0 z-50 border-b transition-transform duration-300 ${
-        hidden ? "-translate-y-full" : "translate-y-0"
-      } ${atTop ? "border-transparent bg-transparent" : "border-border bg-bg/80 backdrop-blur-xl"}`}
+    <header
+      className="site-header"
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+        padding: scrolled ? "14px 0" : "20px 0",
+        background: scrolled ? "rgba(7,6,12,0.75)" : "transparent",
+        backdropFilter: scrolled ? "blur(16px)" : "none",
+        borderBottom: scrolled ? "1px solid rgba(255,255,255,0.08)" : "1px solid transparent",
+        transition: "background 0.35s cubic-bezier(.19,1,.22,1), border-color 0.35s cubic-bezier(.19,1,.22,1), padding 0.35s cubic-bezier(.19,1,.22,1)",
+      }}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Link href="/" className="font-display text-lg font-bold text-text">
-          Pixel<span className="text-accent">Arch</span>
+      <div
+        className="mx-auto flex items-center"
+        style={{
+          maxWidth: "var(--maxw, 1180px)",
+          paddingInline: "clamp(20px, 5vw, 56px)",
+          gap: "36px",
+        }}
+      >
+        <Link href="/#inicio" className="logo">
+          <svg className="logo-mark" width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="4" y="4" width="11" height="11" rx="2" fill="url(#logoGrad)"/>
+            <rect x="17" y="17" width="11" height="11" rx="2" fill="url(#logoGrad)" opacity=".5"/>
+            <defs>
+              <linearGradient id="logoGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor="#8b5cf6"/>
+                <stop offset="1" stopColor="#22d3ee"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <span className="logo-text">
+            Pixel<span className="logo-arch">Arch</span>
+            <span className="logo-scan" aria-hidden="true" />
+          </span>
         </Link>
 
-        <div className="hidden items-center gap-8 md:flex">
+        <nav className="main-nav">
           {links.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={cn(
-                "text-sm font-mono text-muted transition-colors hover:text-text",
-                pathname === l.href && "text-text"
-              )}
-            >
+            <Link key={l.href} href={l.href}>
               {l.label}
+              <span className="nav-underline" aria-hidden="true" />
             </Link>
           ))}
-        </div>
+        </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="clerk-section">
           <ClerkAuthSection />
         </div>
 
+        <a href="#contacto" className="btn btn-primary btn-sm hablemos-btn">Hablemos</a>
+
         <button
-          className="text-muted md:hidden"
+          className="nav-toggle"
           onClick={() => setOpen(!open)}
           aria-label={open ? "Cerrar menu" : "Abrir menu"}
           aria-expanded={open}
         >
-          {open ? <X size={24} aria-hidden="true" /> : <Menu size={24} aria-hidden="true" />}
+          <span className={cn(open && "rotated-1")} />
+          <span className={cn(open && "hidden")} />
+          <span className={cn(open && "rotated-2")} />
         </button>
       </div>
 
       {open && (
-        <div className="border-t border-border bg-bg px-6 pb-6 md:hidden">
+        <div className="mobile-menu">
           {links.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              onClick={() => setOpen(false)}
-              className="block py-2 text-sm font-mono text-muted hover:text-text"
-            >
+            <Link key={l.href} href={l.href} onClick={() => setOpen(false)}>
               {l.label}
             </Link>
           ))}
-          <div className="mt-3 border-t border-border pt-3">
+          <div className="mobile-menu-auth">
             <ClerkAuthSection />
           </div>
         </div>
       )}
-    </nav>
+    </header>
   )
 }

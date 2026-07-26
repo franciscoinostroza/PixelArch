@@ -1,11 +1,10 @@
 import { sanityFetch } from "@/lib/sanity"
 import { Hero } from "@/components/sections/hero"
-import { Presencia } from "@/components/sections/stats"
+import { Reviews } from "@/components/sections/reviews"
 import { Services } from "@/components/sections/services"
 import { Process } from "@/components/sections/process"
+import { About } from "@/components/sections/about"
 import { ContactForm } from "@/components/sections/contact-form"
-import { FAQ } from "@/components/sections/faq"
-import { BackToTop } from "@/components/ui/back-to-top"
 import type { LandingFields } from "@/types/sanity"
 
 const LANDING_QUERY = `*[_type == "landing"][0]{
@@ -42,12 +41,11 @@ export default async function LandingPage() {
         ctaPrimario={landing?.hero_cta_primario}
         ctaSecundario={landing?.hero_cta_secundario}
       />
-      <Presencia />
+      <Reviews />
       <Services servicios={servicios || []} />
       <Process pasos={landing?.proceso_pasos || []} />
-      <FAQ />
+      <About />
       <ContactForm />
-      <BackToTop />
     </>
   )
 }

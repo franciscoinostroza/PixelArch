@@ -1,5 +1,7 @@
 import { Nav } from "@/components/layout/nav"
 import { Footer } from "@/components/layout/footer"
+import SpaceCanvas from "@/components/layout/space-canvas"
+import SiteInteractivity from "@/components/layout/site-interactivity"
 
 export default function MarketingLayout({
   children,
@@ -8,9 +10,13 @@ export default function MarketingLayout({
 }) {
   return (
     <>
+      <SpaceCanvas />
+      <div className="scroll-progress" id="scrollProgress" aria-hidden="true" />
+      <div className="cursor-glow" id="cursorGlow" aria-hidden="true" />
       <Nav />
       <main className="flex-1">{children}</main>
       <Footer />
+      <SiteInteractivity />
     </>
   )
 }

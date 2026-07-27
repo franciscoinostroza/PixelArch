@@ -19,7 +19,6 @@ export function Hero({
   return (
     <section className="hero" id="inicio">
       <div className="hero-inner">
-        <p className="eyebrow reveal is-visible">Software + Infraestructura de red</p>
         <h1 className="hero-title reveal is-visible" style={{ transitionDelay: "0.08s" }}>
           {hasGradient ? (
             <>

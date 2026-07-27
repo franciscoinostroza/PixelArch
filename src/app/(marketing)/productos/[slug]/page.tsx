@@ -112,7 +112,7 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
             )}
           </div>
 
-          <div className="rounded-xl border-2 border-accent/30 bg-panel p-6 text-center">
+          <div className="rounded-xl border-2 border-violet/30 bg-panel p-6 text-center">
             <p className="text-xs uppercase tracking-wider text-violet font-mono mb-2">Plan Basico</p>
             <p className="font-display text-3xl font-extrabold">{price(servicioDB.precioBasico)}<span className="text-sm font-normal text-text-dim">/mes</span></p>
             <p className="text-xs text-text-dim mt-2 mb-4">Servicio online, hosting incluido</p>

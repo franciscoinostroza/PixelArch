@@ -55,7 +55,7 @@ export default async function ProductosPage() {
       <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {servicios?.map((s) => (
           <Link key={s.slug} href={`/productos/${s.slug}`}>
-            <Card className="h-full transition-colors hover:border-accent/30">
+            <Card className="h-full transition-colors hover:border-violet/30">
               <CardHeader>
                 <span className="text-3xl">{s.icono || "⚡"}</span>
                 <div className="flex items-center justify-between">

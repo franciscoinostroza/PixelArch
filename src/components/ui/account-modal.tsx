@@ -130,8 +130,8 @@ export function AccountModal({ isOpen, onClose }: Props) {
             {editingName ? (
               <div className="flex flex-1 flex-col gap-2">
                 <div className="flex gap-2">
-                  <input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Nombre" className="flex-1 rounded-lg border px-3 py-1.5 text-sm outline-none transition-colors focus:border-accent" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: c.white }} />
-                  <input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Apellido" className="flex-1 rounded-lg border px-3 py-1.5 text-sm outline-none transition-colors focus:border-accent" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: c.white }} />
+                  <input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Nombre" className="flex-1 rounded-lg border px-3 py-1.5 text-sm outline-none transition-colors focus:border-violet" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: c.white }} />
+                  <input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Apellido" className="flex-1 rounded-lg border px-3 py-1.5 text-sm outline-none transition-colors focus:border-violet" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: c.white }} />
                 </div>
                 <div className="flex gap-2">
                   <button onClick={saveName} disabled={saving} className="rounded-lg px-3 py-1 text-xs font-medium text-white transition-opacity disabled:opacity-50" style={{ background: c.accent }}>{saving ? "Guardando..." : "Guardar"}</button>
@@ -178,7 +178,7 @@ export function AccountModal({ isOpen, onClose }: Props) {
               ))}
               {addingEmail ? (
                 <div className="flex items-center gap-2 px-6 py-3">
-                  <input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="nuevo@email.com" className="flex-1 rounded-lg border px-3 py-1.5 text-sm outline-none transition-colors focus:border-accent" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: c.white }} />
+                  <input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="nuevo@email.com" className="flex-1 rounded-lg border px-3 py-1.5 text-sm outline-none transition-colors focus:border-violet" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: c.white }} />
                   <button onClick={addEmail} disabled={saving || !newEmail.trim()} className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-opacity disabled:opacity-50" style={{ background: c.accent }}>{saving ? "..." : "Add"}</button>
                   <button onClick={() => { setAddingEmail(false); setNewEmail("") }} className="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors hover:bg-white/10" style={{ background: "rgba(255,255,255,0.05)", color: c.w60 }}>Cancel</button>
                 </div>

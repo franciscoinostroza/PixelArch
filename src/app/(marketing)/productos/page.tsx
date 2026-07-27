@@ -1,6 +1,5 @@
 import { sanityFetch } from "@/lib/sanity"
 import Link from "next/link"
-import { SectionLabel } from "@/components/ui/section-label"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
@@ -39,54 +38,54 @@ export default async function ProductosPage() {
   >(SERVICIOS_QUERY)
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-24">
-      <Breadcrumbs items={[{ name: "Inicio", href: "/" }, { name: "Productos" }]} />
-      <div className="text-center">
-        <SectionLabel>Productos</SectionLabel>
-        <h1 className="mt-4 text-4xl font-bold text-text font-display md:text-6xl">
-          Soluciones a medida
-        </h1>
-        <p className="mx-auto mt-4 max-w-xl text-text-dim font-mono">
-          Elegi el producto que mejor se adapte a tu negocio. Todos incluyen
-          soporte y mantenimiento.
-        </p>
-      </div>
+    <section className="productos-page" style={{ position: "relative", zIndex: 1, overflow: "hidden", padding: "clamp(88px, 10vw, 132px) 0" }}>
+      <div className="section-divider section-divider--cyan" aria-hidden="true" />
+      <div className="section-band section-band--cyan" aria-hidden="true" />
+      <div className="section-glow section-glow--cyan" style={{ width: "420px", height: "420px", right: "-140px", top: "0%" }} aria-hidden="true" />
+      <div className="wrap" style={{ maxWidth: "var(--maxw, 1180px)", marginInline: "auto", paddingInline: "clamp(20px, 5vw, 56px)" }}>
+        <Breadcrumbs items={[{ name: "Inicio", href: "/" }, { name: "Productos" }]} />
+        <div className="section-head" style={{ maxWidth: "600px", marginBottom: "52px" }}>
+          <p className="eyebrow">Productos</p>
+          <h2 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.7rem, 3.2vw, 2.5rem)", marginBottom: "14px" }}>Elegí la pieza que tu negocio necesita</h2>
+          <p style={{ color: "var(--color-text-dim)", fontSize: "1.02rem" }}>Desde un sitio institucional hasta un agente de IA corriendo sobre infraestructura propia.</p>
+        </div>
 
-      <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {servicios?.map((s) => (
-          <Link key={s.slug} href={`/productos/${s.slug}`}>
-            <Card className="h-full transition-colors hover:border-violet/30">
-              <CardHeader>
-                <span className="text-3xl">{s.icono || "⚡"}</span>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="mt-3">{s.titulo}</CardTitle>
-                  {s.precioBasico > 0 && (
-                    <Badge variant="accent2" className="text-xs shrink-0">
-                      {priceLabel(s)}
-                    </Badge>
-                  )}
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {servicios?.map((s) => (
+            <Link key={s.slug} href={`/productos/${s.slug}`}>
+              <Card className="h-full transition-colors hover:border-violet/30">
+                <CardHeader>
+                  <span className="text-3xl">{s.icono || "⚡"}</span>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="mt-3">{s.titulo}</CardTitle>
+                    {s.precioBasico > 0 && (
+                      <Badge variant="accent2" className="text-xs shrink-0">
+                        {priceLabel(s)}
+                      </Badge>
+                    )}
+                  </div>
+                  <CardDescription>{s.descripcion}</CardDescription>
+                </CardHeader>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {s.tags?.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-border bg-panel px-2 py-0.5 text-[10px] text-text-dim font-mono"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                 </div>
-                <CardDescription>{s.descripcion}</CardDescription>
-              </CardHeader>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {s.tags?.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full border border-border bg-panel px-2 py-0.5 text-[10px] text-text-dim font-mono"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </Card>
-          </Link>
-        ))}
-        {(!servicios || servicios.length === 0) && (
-          <div className="col-span-full py-12 text-center text-text-dim font-mono text-sm">
-            No hay servicios disponibles en este momento.
-          </div>
-        )}
+              </Card>
+            </Link>
+          ))}
+          {(!servicios || servicios.length === 0) && (
+            <div className="col-span-full py-12 text-center text-text-dim font-mono text-sm">
+              No hay servicios disponibles en este momento.
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </section>
   )
 }

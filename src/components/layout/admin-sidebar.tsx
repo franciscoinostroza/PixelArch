@@ -33,7 +33,7 @@ function SidebarNav({ onNavClick }: { onNavClick?: () => void }) {
     <>
       {sections.map((sec) => (
         <div key={sec.label} className="mt-2">
-          <p className="px-4 pt-2 pb-1 text-[10px] uppercase tracking-[0.12em] text-[#4a5568] font-mono">
+          <p className="px-4 pt-2 pb-1 text-[10px] uppercase tracking-[0.12em] text-text-faint font-mono">
             {sec.label}
           </p>
           {sec.items.map(({ href, label, icon: Icon }) => {

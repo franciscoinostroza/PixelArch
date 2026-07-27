@@ -115,19 +115,19 @@ export default async function AdminPagos({
         <table className="w-full">
           <thead>
             <tr>
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 pt-4 pb-3 font-mono font-normal">
+              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">
                 Cliente
               </th>
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 pt-4 pb-3 font-mono font-normal">
+              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">
                 Servicio
               </th>
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 pt-4 pb-3 font-mono font-normal">
+              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">
                 Fecha
               </th>
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 pt-4 pb-3 font-mono font-normal">
+              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">
                 Monto
               </th>
-              <th className="text-right text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 pt-4 pb-3 font-mono font-normal">
+              <th className="text-right text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">
                 Estado
               </th>
             </tr>
@@ -162,7 +162,7 @@ export default async function AdminPagos({
                       className={cn(
                         "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]",
                         p.estadoPago === "SUCCEEDED"
-                          ? "bg-mint/10 text-violet2"
+                          ? "bg-mint/10 text-mint"
                           : p.estadoPago === "FAILED"
                             ? "bg-red-500/10 text-red-400"
                             : "bg-text-faint/10 text-text-dim"

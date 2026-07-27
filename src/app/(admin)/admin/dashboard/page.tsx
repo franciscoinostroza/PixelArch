@@ -103,7 +103,7 @@ export default async function AdminDashboard() {
             {(ingresoActual / 100).toFixed(0)}
           </p>
           {deltaIngreso !== 0 && (
-            <p className={`mt-1 flex items-center gap-1 text-[11px] ${deltaIngreso > 0 ? "text-violet2" : "text-red-400"}`}>
+            <p className={`mt-1 flex items-center gap-1 text-[11px] ${deltaIngreso > 0 ? "text-mint" : "text-red-400"}`}>
               {deltaIngreso > 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
               {deltaIngreso > 0 ? "+" : ""}{deltaIngreso}% vs mes anterior
             </p>
@@ -140,13 +140,13 @@ export default async function AdminDashboard() {
           <table className="w-full">
             <thead>
               <tr>
-                <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] pb-3 border-b border-border font-mono font-normal">
+                <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint pb-3 border-b border-border font-mono font-normal">
                   Nombre
                 </th>
-                <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] pb-3 border-b border-border font-mono font-normal">
+                <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint pb-3 border-b border-border font-mono font-normal">
                   Email
                 </th>
-                <th className="text-right text-[10px] uppercase tracking-[0.1em] text-[#4a5568] pb-3 border-b border-border font-mono font-normal">
+                <th className="text-right text-[10px] uppercase tracking-[0.1em] text-text-faint pb-3 border-b border-border font-mono font-normal">
                   Susc.
                 </th>
               </tr>

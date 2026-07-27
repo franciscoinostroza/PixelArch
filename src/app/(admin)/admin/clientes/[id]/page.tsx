@@ -94,19 +94,19 @@ export default async function ClienteDetalle({
         <div className="rounded-xl border border-border bg-panel p-5">
           <div className="grid grid-cols-2 gap-4 text-xs font-mono">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.1em] text-[#4a5568] mb-1">Empresa</p>
+              <p className="text-[10px] uppercase tracking-[0.1em] text-text-faint mb-1">Empresa</p>
               <p className="text-text">{cliente.empresa || "—"}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.1em] text-[#4a5568] mb-1">Telefono</p>
+              <p className="text-[10px] uppercase tracking-[0.1em] text-text-faint mb-1">Telefono</p>
               <p className="text-text">{cliente.telefono || "—"}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.1em] text-[#4a5568] mb-1">Registrado</p>
+              <p className="text-[10px] uppercase tracking-[0.1em] text-text-faint mb-1">Registrado</p>
               <p className="text-text">{new Date(cliente.creadoEn).toLocaleDateString("es-AR")}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.1em] text-[#4a5568] mb-1">Polar ID</p>
+              <p className="text-[10px] uppercase tracking-[0.1em] text-text-faint mb-1">Polar ID</p>
               <p className="text-text-dim text-[11px] truncate">{cliente.polarCustomerId || "—"}</p>
             </div>
           </div>
@@ -201,16 +201,16 @@ export default async function ClienteDetalle({
         <table className="w-full">
           <thead>
             <tr className="border-t border-border">
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 py-3 font-mono font-normal">
+              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 py-3 font-mono font-normal">
                 Servicio
               </th>
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 py-3 font-mono font-normal">
+              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 py-3 font-mono font-normal">
                 Fecha
               </th>
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 py-3 font-mono font-normal">
+              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 py-3 font-mono font-normal">
                 Monto
               </th>
-              <th className="text-right text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 py-3 font-mono font-normal">
+              <th className="text-right text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 py-3 font-mono font-normal">
                 Estado
               </th>
             </tr>

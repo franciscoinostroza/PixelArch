@@ -3,55 +3,50 @@ import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Política de Reembolsos | PixelArch",
-  description: "Política de reembolsos y cancelaciones de PixelArch",
+  description: "Política de reembolsos de PixelArch",
   alternates: { canonical: "/reembolsos" },
 }
 
 export default function ReembolsosPage() {
   return (
-    <div className="mx-auto max-w-3xl px-6 py-20">
-      <Breadcrumbs items={[{ name: "Inicio", href: "/" }, { name: "Política de Reembolsos" }]} />
-      <h1 className="text-3xl font-bold text-text font-display md:text-4xl">Política de Reembolsos</h1>
-      <p className="mt-2 text-xs text-text-dim">Última actualización: Junio 2026</p>
+    <section style={{ position: "relative", zIndex: 1, overflow: "hidden", padding: "clamp(88px, 10vw, 132px) 0" }}>
+      <div className="section-divider section-divider--violet" aria-hidden="true" />
+      <div className="section-band section-band--violet" aria-hidden="true" />
+      <div className="section-glow section-glow--violet" style={{ width: "380px", height: "380px", left: "-120px", top: "20%" }} aria-hidden="true" />
+      <div className="wrap" style={{ maxWidth: "var(--maxw, 1180px)", marginInline: "auto", paddingInline: "clamp(20px, 5vw, 56px)" }}>
+        <Breadcrumbs items={[{ name: "Inicio", href: "/" }, { name: "Política de Reembolsos" }]} />
+        <div className="rounded-xl border border-border bg-panel p-8 md:p-10">
+          <h1 className="text-3xl font-bold text-text font-display md:text-4xl">Política de Reembolsos</h1>
+          <p className="mt-2 text-xs text-text-dim">Última actualización: Junio 2026</p>
 
-      <div className="mt-10 space-y-6 text-sm text-text/80 leading-relaxed">
-        <section>
-          <h2 className="mb-3 text-lg font-semibold text-text font-display">1. Servicios de Pago Único</h2>
-          <p>Para los servicios de pago único (desarrollo web, chatbots, agentes de IA, landing pages, automatizaciones e integraciones), ofrecemos un reembolso completo si el proyecto no ha sido iniciado y se solicita dentro de los 14 días posteriores a la compra.</p>
-          <p className="mt-2">Una vez que el trabajo ha comenzado, no se realizan reembolsos. Si el proyecto no cumple con los requisitos acordados, trabajaremos con usted para resolver cualquier problema sin costo adicional.</p>
-        </section>
+          <div className="mt-10 space-y-6 text-sm text-text/80 leading-relaxed">
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-text font-display">1. Pagos Únicos</h2>
+              <p>Los pagos únicos por desarrollo de proyectos no son reembolsables una vez que el trabajo ha comenzado, salvo que PixelArch no pueda cumplir con los términos acordados. Si el proyecto no ha iniciado, se puede solicitar un reembolso completo dentro de los 7 días posteriores al pago.</p>
+            </section>
 
-        <section>
-          <h2 className="mb-3 text-lg font-semibold text-text font-display">2. Planes Mensuales (Básico y Mantenimiento)</h2>
-          <p>Las suscripciones mensuales pueden cancelarse en cualquier momento. Al cancelar:</p>
-          <ul className="mt-2 list-disc pl-6 space-y-1">
-            <li>El servicio continúa activo hasta el final del período facturado</li>
-            <li>No se realizan reembolsos parciales por tiempo no utilizado</li>
-            <li>No se realizan cargos adicionales después de la cancelación</li>
-          </ul>
-        </section>
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-text font-display">2. Planes Mensuales</h2>
+              <p>Las suscripciones mensuales (Básico y Mantenimiento) se pueden cancelar en cualquier momento. El servicio continúa hasta el final del período facturado. No se realizan reembolsos parciales por tiempo no utilizado del período en curso.</p>
+            </section>
 
-        <section>
-          <h2 className="mb-3 text-lg font-semibold text-text font-display">3. Cómo Solicitar un Reembolso</h2>
-          <p>Para solicitar un reembolso, contáctenos a través de nuestro formulario de contacto o enviando un correo a contacto@pixelarch.dev con el asunto "Solicitud de Reembolso" e incluyendo su número de transacción.</p>
-          <p className="mt-2">Procesaremos su solicitud dentro de los 5 días hábiles posteriores a su recepción.</p>
-        </section>
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-text font-display">3. Cancelación por parte de PixelArch</h2>
+              <p>En caso de que PixelArch cancele un servicio por incumplimiento de los términos, no se realizará reembolso del período en curso.</p>
+            </section>
 
-        <section>
-          <h2 className="mb-3 text-lg font-semibold text-text font-display">4. Excepciones</h2>
-          <p>No se realizan reembolsos en los siguientes casos:</p>
-          <ul className="mt-2 list-disc pl-6 space-y-1">
-            <li>Servicios ya entregados y aprobados por el cliente</li>
-            <li>Suscripciones mensuales con más de 14 días desde el último pago</li>
-            <li>Violación de los Términos del Servicio por parte del cliente</li>
-          </ul>
-        </section>
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-text font-display">4. Proceso de Reembolso</h2>
+              <p>Para solicitar un reembolso, contactanos a través de nuestro formulario de contacto o enviando un correo a contacto@pixelarch.dev. Procesaremos tu solicitud dentro de los 10 días hábiles posteriores a su aprobación.</p>
+            </section>
 
-        <section>
-          <h2 className="mb-3 text-lg font-semibold text-text font-display">5. Pagos No Autorizados</h2>
-          <p>Si detecta un cargo no autorizado, contáctenos inmediatamente. Investigaremos y, de ser procedente, emitiremos un reembolso completo dentro de los 10 días hábiles.</p>
-        </section>
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-text font-display">5. Excepciones</h2>
+              <p>Los reembolsos pueden no aplicarse en casos de violación de los términos del servicio, uso indebido de la plataforma, o cuando el servicio haya sido entregado en su totalidad según lo acordado.</p>
+            </section>
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
   )
 }

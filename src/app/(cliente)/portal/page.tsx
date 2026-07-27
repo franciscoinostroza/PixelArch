@@ -84,7 +84,7 @@ export default async function PortalPage({
       </div>
 
       {success === "true" && (
-        <div className="mb-5 flex items-center gap-3 rounded-lg border border-mint/30 bg-mint/5 px-4 py-3 text-[13px] text-violet2 font-mono">
+        <div className="mb-5 flex items-center gap-3 rounded-lg border border-mint/30 bg-mint/5 px-4 py-3 text-[13px] text-mint font-mono">
           <CheckCircle2 size={18} /> Pago exitoso. Tu suscripcion se activara en breve.
         </div>
       )}
@@ -105,8 +105,8 @@ export default async function PortalPage({
       <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {suscripciones.length === 0 && (
           <Link href="/productos" className="col-span-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/40 px-6 py-12 transition-colors hover:border-violet/40 hover:bg-violet/[0.04]">
-            <span className="text-2xl text-[#4a5568]">+</span>
-            <span className="text-[13px] text-[#4a5568]">Agregar un<br />nuevo producto</span>
+            <span className="text-2xl text-text-faint">+</span>
+            <span className="text-[13px] text-text-faint">Agregar un<br />nuevo producto</span>
           </Link>
         )}
 
@@ -155,8 +155,8 @@ export default async function PortalPage({
 
         {suscripciones.length > 0 && (
           <Link href="/productos" className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/40 px-6 py-3 transition-colors hover:border-violet/40 hover:bg-violet/[0.04]">
-            <span className="text-xl text-[#4a5568]">+</span>
-            <span className="text-[13px] text-[#4a5568] text-center">Agregar un<br />nuevo producto</span>
+            <span className="text-xl text-text-faint">+</span>
+            <span className="text-[13px] text-text-faint text-center">Agregar un<br />nuevo producto</span>
           </Link>
         )}
       </div>
@@ -171,10 +171,10 @@ export default async function PortalPage({
             <table className="w-full">
               <thead>
                 <tr>
-                  <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 pt-4 pb-3 font-mono font-normal border-b border-border/50">Descripcion</th>
-                  <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 pt-4 pb-3 font-mono font-normal border-b border-border/50">Fecha</th>
-                  <th className="text-left text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 pt-4 pb-3 font-mono font-normal border-b border-border/50">Monto</th>
-                  <th className="text-right text-[10px] uppercase tracking-[0.1em] text-[#4a5568] px-5 pt-4 pb-3 font-mono font-normal border-b border-border/50">Estado</th>
+                  <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal border-b border-border/50">Descripcion</th>
+                  <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal border-b border-border/50">Fecha</th>
+                  <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal border-b border-border/50">Monto</th>
+                  <th className="text-right text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal border-b border-border/50">Estado</th>
                 </tr>
               </thead>
               <tbody>

@@ -6,14 +6,14 @@ import { X, Mail, ExternalLink, LogOut, ChevronRight, Plus, Trash2, Star, Camera
 
 const c = {
   bg: "linear-gradient(145deg, #1a1a30 0%, #14142a 50%, #1a1a30 100%)",
-  border: "1px solid rgba(127,90,240,0.12)",
-  divider: "1px solid rgba(127,90,240,0.08)",
+  border: "1px solid rgba(139,92,246,0.12)",
+  divider: "1px solid rgba(139,92,246,0.08)",
   white: "#ffffff",
   w70: "rgba(255,255,255,0.7)",
   w60: "rgba(255,255,255,0.6)",
   w50: "rgba(255,255,255,0.5)",
   w40: "rgba(255,255,255,0.4)",
-  accent: "#7f5af0",
+  accent: "#8b5cf6",
   green: "#34d399",
   red: "#ef4444",
 }
@@ -98,7 +98,7 @@ export function AccountModal({ isOpen, onClose }: Props) {
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b px-6 py-4" style={{ background: c.bg, borderColor: "rgba(127,90,240,0.08)" }}>
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b px-6 py-4" style={{ background: c.bg, borderColor: "rgba(139,92,246,0.08)" }}>
           <h1 id="account-modal-title" className="font-display text-lg font-bold" style={{ color: c.white }}>Mi cuenta</h1>
           <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-white/10" style={{ color: c.w50 }}>
             <X size={16} />
@@ -117,9 +117,9 @@ export function AccountModal({ isOpen, onClose }: Props) {
             <div className="relative shrink-0">
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatar} />
               {user.imageUrl ? (
-                <img src={user.imageUrl} alt="" onClick={() => fileRef.current?.click()} className="h-14 w-14 cursor-pointer rounded-full border-2 object-cover transition-opacity hover:opacity-80" style={{ borderColor: "rgba(127,90,240,0.25)" }} />
+                <img src={user.imageUrl} alt="" onClick={() => fileRef.current?.click()} className="h-14 w-14 cursor-pointer rounded-full border-2 object-cover transition-opacity hover:opacity-80" style={{ borderColor: "rgba(139,92,246,0.25)" }} />
               ) : (
-                <div onClick={() => fileRef.current?.click()} className="flex h-14 w-14 cursor-pointer items-center justify-center rounded-full font-display text-lg font-bold transition-opacity hover:opacity-80" style={{ background: "rgba(127,90,240,0.2)", color: c.accent }}>
+                <div onClick={() => fileRef.current?.click()} className="flex h-14 w-14 cursor-pointer items-center justify-center rounded-full font-display text-lg font-bold transition-opacity hover:opacity-80" style={{ background: "rgba(139,92,246,0.2)", color: c.accent }}>
                   {initials}
                 </div>
               )}
@@ -155,7 +155,7 @@ export function AccountModal({ isOpen, onClose }: Props) {
 
           {/* Email addresses */}
           <div className="overflow-hidden rounded-xl" style={{ border: c.border, background: c.bg }}>
-            <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: "rgba(127,90,240,0.08)" }}>
+            <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: "rgba(139,92,246,0.08)" }}>
               <Mail size={16} style={{ color: c.accent }} />
               <h2 className="text-sm font-semibold" style={{ color: c.white }}>Email addresses</h2>
             </div>
@@ -165,7 +165,7 @@ export function AccountModal({ isOpen, onClose }: Props) {
                   <span className="truncate text-sm" style={{ color: c.white }}>{email.emailAddress}</span>
                   <div className="flex shrink-0 items-center gap-2">
                     {email.id === primaryEmail?.id && (
-                      <span className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: c.accent, background: "rgba(127,90,240,0.15)" }}>Primary</span>
+                      <span className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: c.accent, background: "rgba(139,92,246,0.15)" }}>Primary</span>
                     )}
                     {email.id !== primaryEmail?.id && (
                       <>
@@ -194,7 +194,7 @@ export function AccountModal({ isOpen, onClose }: Props) {
           {/* Connected accounts */}
           {user.externalAccounts.length > 0 && (
             <div className="overflow-hidden rounded-xl" style={{ border: c.border, background: c.bg }}>
-              <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: "rgba(127,90,240,0.08)" }}>
+              <div className="flex items-center gap-2 border-b px-6 py-4" style={{ borderColor: "rgba(139,92,246,0.08)" }}>
                 <ExternalLink size={16} style={{ color: c.accent }} />
                 <h2 className="text-sm font-semibold" style={{ color: c.white }}>Connected accounts</h2>
               </div>

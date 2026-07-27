@@ -19,7 +19,7 @@ export function BackToTop() {
       animate={visible ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0 }}
       transition={{ duration: 0.2 }}
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className="fixed bottom-6 right-6 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-accent text-white shadow-lg hover:bg-accent/90 transition-colors"
+      className="fixed bottom-6 right-6 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-violet text-white shadow-lg hover:bg-violet/90 transition-colors"
       aria-label="Volver arriba"
     >
       <ArrowUp size={18} />

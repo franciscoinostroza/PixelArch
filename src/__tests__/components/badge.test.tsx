@@ -10,28 +10,28 @@ describe("Badge", () => {
 
   it("applies default variant", () => {
     render(<Badge>Default</Badge>)
-    expect(screen.getByText("Default").className).toContain("bg-card-bg")
+    expect(screen.getByText("Default").className).toContain("bg-panel")
   })
 
   it("applies accent variant", () => {
     render(<Badge variant="accent">Accent</Badge>)
     const badge = screen.getByText("Accent")
-    expect(badge.className).toContain("bg-accent/10")
-    expect(badge.className).toContain("text-accent")
+    expect(badge.className).toContain("bg-violet/10")
+    expect(badge.className).toContain("text-violet")
   })
 
   it("applies accent2 variant", () => {
     render(<Badge variant="accent2">Green</Badge>)
     const badge = screen.getByText("Green")
-    expect(badge.className).toContain("bg-accent2/10")
-    expect(badge.className).toContain("text-accent2")
+    expect(badge.className).toContain("bg-mint/10")
+    expect(badge.className).toContain("text-mint")
   })
 
   it("applies muted variant", () => {
     render(<Badge variant="muted">Muted</Badge>)
     const badge = screen.getByText("Muted")
-    expect(badge.className).toContain("bg-bg2")
-    expect(badge.className).toContain("text-muted")
+    expect(badge.className).toContain("bg-panel")
+    expect(badge.className).toContain("text-text-dim")
   })
 
   it("applies custom className", () => {

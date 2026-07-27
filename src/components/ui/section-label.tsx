@@ -9,7 +9,7 @@ export function SectionLabel({ children, className }: SectionLabelProps) {
   return (
     <span
       className={cn(
-        "inline-block rounded-full border border-accent/20 bg-accent/5 px-4 py-1 text-xs font-mono font-medium tracking-wider text-accent uppercase",
+        "inline-block rounded-full border border-violet/20 bg-violet/5 px-4 py-1 text-xs font-mono font-medium tracking-wider text-violet uppercase",
         className
       )}
     >

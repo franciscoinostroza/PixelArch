@@ -22,12 +22,12 @@ export function PortalUserButton() {
       <button
         onClick={() => setOpen(true)}
         aria-label="Abrir mi cuenta"
-        className="h-8 w-8 overflow-hidden rounded-full border-2 border-[rgba(127,90,240,0.2)] transition-colors hover:border-[#7f5af0]"
+        className="h-8 w-8 overflow-hidden rounded-full border-2 border-[rgba(139,92,246,0.2)] transition-colors hover:border-[#8b5cf6]"
       >
         {user.imageUrl ? (
           <img src={user.imageUrl} alt="" className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-[rgba(127,90,240,0.2)] text-xs font-bold text-[#7f5af0]">
+          <div className="flex h-full w-full items-center justify-center bg-[rgba(139,92,246,0.2)] text-xs font-bold text-[#8b5cf6]">
             {initials}
           </div>
         )}

@@ -46,7 +46,7 @@ export default async function ProductosPage() {
         <h1 className="mt-4 text-4xl font-bold text-text font-display md:text-6xl">
           Soluciones a medida
         </h1>
-        <p className="mx-auto mt-4 max-w-xl text-muted font-mono">
+        <p className="mx-auto mt-4 max-w-xl text-text-dim font-mono">
           Elegi el producto que mejor se adapte a tu negocio. Todos incluyen
           soporte y mantenimiento.
         </p>
@@ -72,7 +72,7 @@ export default async function ProductosPage() {
                 {s.tags?.map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-full border border-border bg-bg2 px-2 py-0.5 text-[10px] text-muted font-mono"
+                    className="rounded-full border border-border bg-panel px-2 py-0.5 text-[10px] text-text-dim font-mono"
                   >
                     {tag}
                   </span>
@@ -82,7 +82,7 @@ export default async function ProductosPage() {
           </Link>
         ))}
         {(!servicios || servicios.length === 0) && (
-          <div className="col-span-full py-12 text-center text-muted font-mono text-sm">
+          <div className="col-span-full py-12 text-center text-text-dim font-mono text-sm">
             No hay servicios disponibles en este momento.
           </div>
         )}

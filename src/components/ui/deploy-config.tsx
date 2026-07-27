@@ -58,7 +58,7 @@ export function DeployConfig({ suscripcionId, deploymentId: initialId, deploymen
       <select
         value={platform}
         onChange={(e) => setPlatform(e.target.value)}
-        className="rounded-md border border-border bg-bg2 px-2 py-1 text-xs text-text font-mono"
+        className="rounded-md border border-border bg-panel px-2 py-1 text-xs text-text font-mono"
       >
         <option value="">Sin plataforma</option>
         <option value="railway">Railway</option>
@@ -71,7 +71,7 @@ export function DeployConfig({ suscripcionId, deploymentId: initialId, deploymen
       </Button>
       </div>
       {error && <p className="text-xs text-red-400">{error}</p>}
-      {success && <p className="text-xs text-accent2">Configuracion guardada</p>}
+      {success && <p className="text-xs text-mint">Configuracion guardada</p>}
     </div>
   )
 }

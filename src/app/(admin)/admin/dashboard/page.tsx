@@ -79,7 +79,7 @@ export default async function AdminDashboard() {
       <div className="mb-7 flex items-center justify-between">
         <div>
           <h1 className="font-display text-xl font-extrabold">Dashboard</h1>
-          <p className="mt-0.5 text-xs text-muted">Bienvenido, admin</p>
+          <p className="mt-0.5 text-xs text-text-dim">Bienvenido, admin</p>
         </div>
       </div>
 
@@ -89,40 +89,40 @@ export default async function AdminDashboard() {
           <span className="flex-1">
             {pagosVencidos} suscripcion{pagosVencidos > 1 ? "es" : ""} vencida{pagosVencidos > 1 ? "s" : ""}. Revisa los clientes.
           </span>
-          <Link href="/admin/clientes?estado=PAST_DUE" className="shrink-0 text-accent hover:underline">
+          <Link href="/admin/clientes?estado=PAST_DUE" className="shrink-0 text-violet hover:underline">
             Ver clientes
           </Link>
         </div>
       )}
 
       <div className="grid grid-cols-4 gap-3 mb-7">
-        <div className="rounded-xl border border-border bg-bg2 p-5">
-          <p className="text-[11px] text-muted tracking-[0.05em] mb-2">Ingresos (mes)</p>
+        <div className="rounded-xl border border-border bg-panel p-5">
+          <p className="text-[11px] text-text-dim tracking-[0.05em] mb-2">Ingresos (mes)</p>
           <p className="font-display text-[1.6rem] font-extrabold leading-none tracking-[-0.03em]">
-            <span className="text-accent">$</span>
+            <span className="text-violet">$</span>
             {(ingresoActual / 100).toFixed(0)}
           </p>
           {deltaIngreso !== 0 && (
-            <p className={`mt-1 flex items-center gap-1 text-[11px] ${deltaIngreso > 0 ? "text-accent2" : "text-red-400"}`}>
+            <p className={`mt-1 flex items-center gap-1 text-[11px] ${deltaIngreso > 0 ? "text-violet2" : "text-red-400"}`}>
               {deltaIngreso > 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
               {deltaIngreso > 0 ? "+" : ""}{deltaIngreso}% vs mes anterior
             </p>
           )}
         </div>
-        <div className="rounded-xl border border-border bg-bg2 p-5">
-          <p className="text-[11px] text-muted tracking-[0.05em] mb-2">Clientes activos</p>
+        <div className="rounded-xl border border-border bg-panel p-5">
+          <p className="text-[11px] text-text-dim tracking-[0.05em] mb-2">Clientes activos</p>
           <p className="font-display text-[1.6rem] font-extrabold leading-none tracking-[-0.03em]">
             {clientesActivos}
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-bg2 p-5">
-          <p className="text-[11px] text-muted tracking-[0.05em] mb-2">Suscripciones</p>
+        <div className="rounded-xl border border-border bg-panel p-5">
+          <p className="text-[11px] text-text-dim tracking-[0.05em] mb-2">Suscripciones</p>
           <p className="font-display text-[1.6rem] font-extrabold leading-none tracking-[-0.03em]">
             {suscripcionesActivas}
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-bg2 p-5">
-          <p className="text-[11px] text-muted tracking-[0.05em] mb-2">Vencidos</p>
+        <div className="rounded-xl border border-border bg-panel p-5">
+          <p className="text-[11px] text-text-dim tracking-[0.05em] mb-2">Vencidos</p>
           <p className="font-display text-[1.6rem] font-extrabold leading-none tracking-[-0.03em] text-red-400">
             {pagosVencidos}
           </p>
@@ -130,10 +130,10 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <div className="rounded-xl border border-border bg-bg2 p-5">
+        <div className="rounded-xl border border-border bg-panel p-5">
           <div className="mb-4 flex items-center justify-between">
             <p className="font-display text-sm font-bold">Clientes recientes</p>
-            <Link href="/admin/clientes" className="text-[11px] text-accent font-mono hover:underline">
+            <Link href="/admin/clientes" className="text-[11px] text-violet font-mono hover:underline">
               Ver todos
             </Link>
           </div>
@@ -155,12 +155,12 @@ export default async function AdminDashboard() {
               {ultimosClientes.map((c) => (
                 <tr key={c.id} className="border-b border-border/50 last:border-b-0">
                   <td className="py-2.5 pr-4">
-                    <Link href={`/admin/clientes/${c.id}`} className="text-xs text-text hover:text-accent transition-colors">
+                    <Link href={`/admin/clientes/${c.id}`} className="text-xs text-text hover:text-violet transition-colors">
                       {c.nombre}
                     </Link>
                   </td>
-                  <td className="py-2.5 pr-4 text-xs text-muted">{c.email}</td>
-                  <td className="py-2.5 text-right text-xs text-muted font-mono">
+                  <td className="py-2.5 pr-4 text-xs text-text-dim">{c.email}</td>
+                  <td className="py-2.5 text-right text-xs text-text-dim font-mono">
                     {c._count.suscripciones}
                   </td>
                 </tr>
@@ -169,7 +169,7 @@ export default async function AdminDashboard() {
           </table>
         </div>
 
-        <div className="rounded-xl border border-border bg-bg2 p-5">
+        <div className="rounded-xl border border-border bg-panel p-5">
           <p className="font-display text-sm font-bold mb-4">Estado de suscripciones</p>
           <div className="space-y-3">
             {suscripcionesPorEstado.map((g) => (
@@ -179,19 +179,19 @@ export default async function AdminDashboard() {
                   <div
                     className={`h-full rounded-full transition-all ${
                       g.estado === "ACTIVE"
-                        ? "bg-accent2/60"
+                        ? "bg-mint/60"
                         : g.estado === "PAST_DUE"
                           ? "bg-red-400/60"
-                          : "bg-muted/30"
+                          : "bg-text-faint/30"
                     }`}
                     style={{ width: `${Math.max((g._count.id / maxCount) * 100, 8)}%` }}
                   />
                 </div>
-                <span className="text-xs text-muted font-mono w-6 text-right">{g._count.id}</span>
+                <span className="text-xs text-text-dim font-mono w-6 text-right">{g._count.id}</span>
               </div>
             ))}
             {suscripcionesPorEstado.length === 0 && (
-              <p className="text-xs text-muted py-8 text-center">Sin datos</p>
+              <p className="text-xs text-text-dim py-8 text-center">Sin datos</p>
             )}
           </div>
         </div>

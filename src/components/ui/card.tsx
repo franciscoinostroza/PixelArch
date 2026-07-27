@@ -4,7 +4,7 @@ function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-card-bg p-6",
+        "rounded-xl border border-border bg-panel p-6",
         className
       )}
       {...props}
@@ -30,7 +30,7 @@ function CardDescription({
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={cn("text-sm text-muted font-mono", className)} {...props} />
+    <p className={cn("text-sm text-text-dim font-mono", className)} {...props} />
   )
 }
 

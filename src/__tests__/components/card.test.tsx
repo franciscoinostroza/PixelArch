@@ -19,7 +19,7 @@ describe("Card", () => {
     const card = screen.getByText("Card")
     expect(card.className).toContain("rounded-xl")
     expect(card.className).toContain("border-border")
-    expect(card.className).toContain("bg-card-bg")
+    expect(card.className).toContain("bg-panel")
   })
 
   it("applies custom className", () => {
@@ -49,6 +49,6 @@ describe("Card", () => {
 
   it("CardDescription uses muted text", () => {
     render(<CardDescription>Desc</CardDescription>)
-    expect(screen.getByText("Desc").className).toContain("text-muted")
+    expect(screen.getByText("Desc").className).toContain("text-text-dim")
   })
 })

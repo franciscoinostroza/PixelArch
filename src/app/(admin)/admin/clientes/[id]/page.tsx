@@ -72,7 +72,7 @@ export default async function ClienteDetalle({
         <div className="mb-7 flex items-center justify-between">
         <div>
           <h1 className="font-display text-xl font-extrabold">{cliente.nombre}</h1>
-          <p className="mt-0.5 text-xs text-muted">{cliente.email}</p>
+          <p className="mt-0.5 text-xs text-text-dim">{cliente.email}</p>
         </div>
         <div className="flex items-center gap-3">
           <AsignarProductoButton clienteId={cliente.id} servicios={servicios} />
@@ -80,18 +80,18 @@ export default async function ClienteDetalle({
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px]",
             cliente.activo
-              ? "bg-accent2/10 text-accent2"
-              : "bg-muted/10 text-muted"
+              ? "bg-mint/10 text-mint"
+              : "bg-text-faint/10 text-text-dim"
           )}
         >
-          <span className={cn("w-[5px] h-[5px] rounded-full", cliente.activo ? "bg-accent2" : "bg-muted")} />
+          <span className={cn("w-[5px] h-[5px] rounded-full", cliente.activo ? "bg-mint" : "bg-text-faint")} />
           {cliente.activo ? "Cliente activo" : "Inactivo"}
         </span>
       </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <div className="rounded-xl border border-border bg-bg2 p-5">
+        <div className="rounded-xl border border-border bg-panel p-5">
           <div className="grid grid-cols-2 gap-4 text-xs font-mono">
             <div>
               <p className="text-[10px] uppercase tracking-[0.1em] text-[#4a5568] mb-1">Empresa</p>
@@ -107,19 +107,19 @@ export default async function ClienteDetalle({
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-[0.1em] text-[#4a5568] mb-1">Polar ID</p>
-              <p className="text-muted text-[11px] truncate">{cliente.polarCustomerId || "—"}</p>
+              <p className="text-text-dim text-[11px] truncate">{cliente.polarCustomerId || "—"}</p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <div className="rounded-xl border border-border bg-bg2 p-5">
+        <div className="rounded-xl border border-border bg-panel p-5">
           <p className="font-display text-sm font-bold mb-4">
             Suscripciones ({cliente.suscripciones.length})
           </p>
           {cliente.suscripciones.length === 0 ? (
-            <p className="text-xs text-muted py-4 text-center">Sin suscripciones</p>
+            <p className="text-xs text-text-dim py-4 text-center">Sin suscripciones</p>
           ) : (
             <div className="space-y-2">
               {cliente.suscripciones.map((s) => (
@@ -131,9 +131,9 @@ export default async function ClienteDetalle({
                     <div>
                       <p className="text-xs text-text">
                         {s.servicio.nombre}
-                        {s.plan && <span className="text-[10px] text-muted ml-1">· {s.plan === "UNICO" ? "Pago unico" : s.plan === "BASICO" ? "Basico" : "Mantenimiento"}</span>}
+                        {s.plan && <span className="text-[10px] text-text-dim ml-1">· {s.plan === "UNICO" ? "Pago unico" : s.plan === "BASICO" ? "Basico" : "Mantenimiento"}</span>}
                       </p>
-                      <p className="text-[11px] text-muted font-mono">
+                      <p className="text-[11px] text-text-dim font-mono">
                         {s.plan === "MANTENIMIENTO" ? `$${(s.servicio.precioMantenimiento / 100).toFixed(2)}/mes` : s.plan === "BASICO" ? `$${(s.servicio.precioBasico / 100).toFixed(2)}/mes` : `$${(s.servicio.precioUnico / 100).toFixed(2)} pago unico`}
                       </p>
                     </div>
@@ -142,29 +142,29 @@ export default async function ClienteDetalle({
                         className={cn(
                           "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]",
                           s.estado === "ACTIVE" || s.estado === "READY"
-                            ? "bg-accent2/10 text-accent2"
+                            ? "bg-mint/10 text-mint"
                             : s.estado === "PAST_DUE"
                               ? "bg-red-500/10 text-red-400"
                               : s.estado === "PENDING"
                                 ? "bg-yellow-400/10 text-yellow-400"
-                                : "bg-muted/10 text-muted"
+                                : "bg-text-faint/10 text-text-dim"
                         )}
                       >
                         <span
                           className={cn(
                             "w-[5px] h-[5px] rounded-full",
                             s.estado === "ACTIVE" || s.estado === "READY"
-                              ? "bg-accent2"
+                              ? "bg-mint"
                               : s.estado === "PAST_DUE"
                                 ? "bg-red-400"
                                 : s.estado === "PENDING"
                                   ? "bg-yellow-400"
-                                  : "bg-muted"
+                                  : "bg-text-faint"
                           )}
                         />
                         {mapLabel(s.estado)}
                         {s.polarDiscountId && (
-                          <span className="ml-1 rounded-full bg-accent/10 px-1.5 py-px text-[10px] text-accent font-mono">
+                          <span className="ml-1 rounded-full bg-violet/10 px-1.5 py-px text-[10px] text-violet font-mono">
                             Dto.
                           </span>
                         )}
@@ -192,7 +192,7 @@ export default async function ClienteDetalle({
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-bg2 overflow-hidden">
+      <div className="rounded-xl border border-border bg-panel overflow-hidden">
         <div className="px-5 pt-4 pb-3">
           <p className="font-display text-sm font-bold">
             Historial de pagos ({cliente.pagos.length})
@@ -218,7 +218,7 @@ export default async function ClienteDetalle({
           <tbody>
             {cliente.pagos.length === 0 ? (
               <tr>
-                <td colSpan={4} className="py-12 text-center text-xs text-muted">
+                <td colSpan={4} className="py-12 text-center text-xs text-text-dim">
                   Sin pagos registrados
                 </td>
               </tr>
@@ -228,7 +228,7 @@ export default async function ClienteDetalle({
                   <td className="px-5 py-3 text-xs text-text">
                     {p.suscripcion?.servicio.nombre ?? "—"}
                   </td>
-                  <td className="px-5 py-3 text-xs text-muted font-mono">
+                  <td className="px-5 py-3 text-xs text-text-dim font-mono">
                     {new Date(p.creadoEn).toLocaleDateString("es-AR")}
                   </td>
                   <td className="px-5 py-3 text-xs text-text font-mono">
@@ -239,20 +239,20 @@ export default async function ClienteDetalle({
                       className={cn(
                         "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]",
                         p.estadoPago === "SUCCEEDED"
-                          ? "bg-accent2/10 text-accent2"
+                          ? "bg-mint/10 text-mint"
                           : p.estadoPago === "FAILED"
                             ? "bg-red-500/10 text-red-400"
-                            : "bg-muted/10 text-muted"
+                            : "bg-text-faint/10 text-text-dim"
                       )}
                     >
                       <span
                         className={cn(
                           "w-[5px] h-[5px] rounded-full",
                           p.estadoPago === "SUCCEEDED"
-                            ? "bg-accent2"
+                            ? "bg-mint"
                             : p.estadoPago === "FAILED"
                               ? "bg-red-400"
-                              : "bg-muted"
+                              : "bg-text-faint"
                         )}
                       />
                       {mapEstadoPago(p.estadoPago)}

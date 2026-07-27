@@ -72,7 +72,7 @@ export default async function AdminPagos({
     <div>
       <div className="mb-7">
         <h1 className="font-display text-xl font-extrabold">Pagos</h1>
-        <p className="mt-0.5 text-xs text-muted">Historial completo de transacciones</p>
+        <p className="mt-0.5 text-xs text-text-dim">Historial completo de transacciones</p>
       </div>
 
       <div className="mb-5 flex flex-wrap items-center gap-3">
@@ -80,7 +80,7 @@ export default async function AdminPagos({
           <select
             name="estado"
             defaultValue={estado ?? ""}
-            className="rounded-lg border border-border bg-bg2 px-3 py-2 text-xs text-text font-mono"
+            className="rounded-lg border border-border bg-panel px-3 py-2 text-xs text-text font-mono"
           >
             <option value="">Todos los estados</option>
             {estados.map((e) => (
@@ -91,14 +91,14 @@ export default async function AdminPagos({
             type="date"
             name="desde"
             defaultValue={desde ?? ""}
-            className="rounded-lg border border-border bg-bg2 px-3 py-2 text-xs text-text font-mono"
+            className="rounded-lg border border-border bg-panel px-3 py-2 text-xs text-text font-mono"
             title="Desde"
           />
           <input
             type="date"
             name="hasta"
             defaultValue={hasta ?? ""}
-            className="rounded-lg border border-border bg-bg2 px-3 py-2 text-xs text-text font-mono"
+            className="rounded-lg border border-border bg-panel px-3 py-2 text-xs text-text font-mono"
             title="Hasta"
           />
           <Button type="submit" size="sm" variant="outline">Filtrar</Button>
@@ -108,10 +108,10 @@ export default async function AdminPagos({
             </Link>
           )}
         </form>
-        <span className="text-xs text-muted font-mono">{total} resultados</span>
+        <span className="text-xs text-text-dim font-mono">{total} resultados</span>
       </div>
 
-      <div className="rounded-xl border border-border bg-bg2 overflow-hidden">
+      <div className="rounded-xl border border-border bg-panel overflow-hidden">
         <table className="w-full">
           <thead>
             <tr>
@@ -135,7 +135,7 @@ export default async function AdminPagos({
           <tbody>
             {pagos.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-12 text-center text-xs text-muted">
+                <td colSpan={5} className="py-12 text-center text-xs text-text-dim">
                   No hay pagos registrados
                 </td>
               </tr>
@@ -143,16 +143,16 @@ export default async function AdminPagos({
               pagos.map((p) => (
                 <tr key={p.id} className="border-t border-border/50">
                   <td className="px-5 py-3 text-xs text-text">{p.cliente.nombre}</td>
-                  <td className="px-5 py-3 text-xs text-muted">
+                  <td className="px-5 py-3 text-xs text-text-dim">
                     {p.suscripcion?.servicio.nombre ?? "—"}
                   </td>
-                  <td className="px-5 py-3 text-xs text-muted font-mono">
+                  <td className="px-5 py-3 text-xs text-text-dim font-mono">
                     {new Date(p.creadoEn).toLocaleDateString("es-AR")}
                   </td>
                   <td className="px-5 py-3 text-xs text-text font-mono font-medium">
                     ${(p.monto / 100).toFixed(2)} {p.moneda.toUpperCase()}
                     {p.discountAmount ? (
-                      <span className="ml-1 text-[10px] text-accent">
+                      <span className="ml-1 text-[10px] text-violet">
                         (-${(p.discountAmount / 100).toFixed(0)})
                       </span>
                     ) : null}
@@ -162,20 +162,20 @@ export default async function AdminPagos({
                       className={cn(
                         "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]",
                         p.estadoPago === "SUCCEEDED"
-                          ? "bg-accent2/10 text-accent2"
+                          ? "bg-mint/10 text-violet2"
                           : p.estadoPago === "FAILED"
                             ? "bg-red-500/10 text-red-400"
-                            : "bg-muted/10 text-muted"
+                            : "bg-text-faint/10 text-text-dim"
                       )}
                     >
                       <span
                         className={cn(
                           "w-[5px] h-[5px] rounded-full",
                           p.estadoPago === "SUCCEEDED"
-                            ? "bg-accent2"
+                            ? "bg-mint"
                             : p.estadoPago === "FAILED"
                               ? "bg-red-400"
-                              : "bg-muted"
+                              : "bg-text-faint"
                         )}
                       />
                       {mapEstado(p.estadoPago)}
@@ -197,7 +197,7 @@ export default async function AdminPagos({
           >
             <ChevronLeft size={14} /> Anterior
           </Link>
-          <span className="text-xs text-muted font-mono">
+          <span className="text-xs text-text-dim font-mono">
             Pagina {currentPage} de {totalPages}
           </span>
           <Link

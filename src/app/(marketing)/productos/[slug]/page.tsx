@@ -88,7 +88,7 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
 
       <span className="text-5xl">{servicioSanity.icono || "⚡"}</span>
       <h1 className="mt-4 text-4xl font-bold text-text font-display md:text-5xl">{servicioSanity.titulo}</h1>
-      <p className="mt-6 text-lg text-muted font-mono leading-relaxed">{servicioSanity.descripcion}</p>
+      <p className="mt-6 text-lg text-text-dim font-mono leading-relaxed">{servicioSanity.descripcion}</p>
 
       {servicioSanity.tags?.length > 0 && (
         <div className="mt-8 flex flex-wrap gap-2">
@@ -98,10 +98,10 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
 
       {servicioDB && (
         <div className="mt-16 grid gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-border/50 bg-bg2 p-6 text-center">
-            <p className="text-xs uppercase tracking-wider text-muted font-mono mb-2">Pago Unico</p>
+          <div className="rounded-xl border border-border/50 bg-panel p-6 text-center">
+            <p className="text-xs uppercase tracking-wider text-text-dim font-mono mb-2">Pago Unico</p>
             <p className="font-display text-3xl font-extrabold">{price(servicioDB.precioUnico)}</p>
-            <p className="text-xs text-muted mt-2 mb-4">Desarrollo y entrega del proyecto</p>
+            <p className="text-xs text-text-dim mt-2 mb-4">Desarrollo y entrega del proyecto</p>
             <div className="text-[11px] text-left space-y-1.5 border-t border-border/50 pt-3 mb-5">
               <p>✅ Codigo y activos incluidos</p>
               <p>❌ Sin hosting incluido</p>
@@ -112,10 +112,10 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
             )}
           </div>
 
-          <div className="rounded-xl border-2 border-accent/30 bg-bg2 p-6 text-center">
-            <p className="text-xs uppercase tracking-wider text-accent font-mono mb-2">Plan Basico</p>
-            <p className="font-display text-3xl font-extrabold">{price(servicioDB.precioBasico)}<span className="text-sm font-normal text-muted">/mes</span></p>
-            <p className="text-xs text-muted mt-2 mb-4">Servicio online, hosting incluido</p>
+          <div className="rounded-xl border-2 border-accent/30 bg-panel p-6 text-center">
+            <p className="text-xs uppercase tracking-wider text-violet font-mono mb-2">Plan Basico</p>
+            <p className="font-display text-3xl font-extrabold">{price(servicioDB.precioBasico)}<span className="text-sm font-normal text-text-dim">/mes</span></p>
+            <p className="text-xs text-text-dim mt-2 mb-4">Servicio online, hosting incluido</p>
             <div className="text-[11px] text-left space-y-1.5 border-t border-border/50 pt-3 mb-5">
               <p>✅ Hosting incluido</p>
               <p>✅ SSL y monitoreo</p>
@@ -126,10 +126,10 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
             )}
           </div>
 
-          <div className="rounded-xl border border-border/50 bg-bg2 p-6 text-center">
-            <p className="text-xs uppercase tracking-wider text-muted font-mono mb-2">Plan Mantenimiento</p>
-            <p className="font-display text-3xl font-extrabold">{price(servicioDB.precioMantenimiento)}<span className="text-sm font-normal text-muted">/mes</span></p>
-            <p className="text-xs text-muted mt-2 mb-4">Hosting + cambios + soporte</p>
+          <div className="rounded-xl border border-border/50 bg-panel p-6 text-center">
+            <p className="text-xs uppercase tracking-wider text-text-dim font-mono mb-2">Plan Mantenimiento</p>
+            <p className="font-display text-3xl font-extrabold">{price(servicioDB.precioMantenimiento)}<span className="text-sm font-normal text-text-dim">/mes</span></p>
+            <p className="text-xs text-text-dim mt-2 mb-4">Hosting + cambios + soporte</p>
             <div className="text-[11px] text-left space-y-1.5 border-t border-border/50 pt-3 mb-5">
               <p>✅ Todo lo del Basico</p>
               <p>✅ Cambios mensuales</p>
@@ -140,7 +140,7 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
             )}
           </div>
 
-          <p className="md:col-span-3 text-[13px] text-muted text-center border-t border-border/50 pt-4">
+          <p className="md:col-span-3 text-[13px] text-text-dim text-center border-t border-border/50 pt-4">
             Sin un plan mensual, el servicio deja de estar online. Cancelacion con 7 dias de aviso.
           </p>
         </div>

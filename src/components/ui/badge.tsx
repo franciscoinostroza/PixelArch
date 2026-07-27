@@ -6,10 +6,10 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-card-bg text-text",
-        accent: "bg-accent/10 text-accent border-accent/20",
-        accent2: "bg-accent2/10 text-accent2 border-accent2/20",
-        muted: "bg-bg2 text-muted",
+        default: "bg-panel text-text",
+        accent: "bg-violet/10 text-violet border-violet/20",
+        accent2: "bg-mint/10 text-mint border-mint/20",
+        muted: "bg-panel text-text-dim",
         destructive: "bg-red-500/10 text-red-400 border-red-500/20",
       },
     },

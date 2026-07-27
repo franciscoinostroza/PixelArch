@@ -29,7 +29,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <nav aria-label="Breadcrumb" className="mb-8">
-        <ol className="flex items-center gap-1.5 text-sm font-mono text-muted">
+        <ol className="flex items-center gap-1.5 text-sm font-mono text-text-dim">
           {items.map((item, i) => {
             const isLast = i === items.length - 1
             return (
@@ -38,7 +38,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
                 {isLast || !item.href ? (
                   <span className={isLast ? "text-text" : ""}>{item.name}</span>
                 ) : (
-                  <Link href={item.href} className="hover:text-accent transition-colors">
+                  <Link href={item.href} className="hover:text-violet transition-colors">
                     {item.name}
                   </Link>
                 )}

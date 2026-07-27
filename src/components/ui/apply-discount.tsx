@@ -39,7 +39,7 @@ export function ApplyDiscount({ suscripcionId }: { suscripcionId: string }) {
 
   if (success) {
     return (
-      <div className="flex items-center gap-1.5 pt-2 text-xs text-accent2">
+      <div className="flex items-center gap-1.5 pt-2 text-xs text-mint">
         <CheckCircle2 size={12} />
         {descripcion}
       </div>
@@ -50,7 +50,7 @@ export function ApplyDiscount({ suscripcionId }: { suscripcionId: string }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="pt-2 text-xs text-accent hover:underline"
+        className="pt-2 text-xs text-violet hover:underline"
       >
         Tengo un codigo de descuento
       </button>

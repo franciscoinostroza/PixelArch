@@ -30,7 +30,7 @@ export default async function FacturacionPage({
     return (
       <div>
         <Card>
-          <CardContent className="py-12 text-center text-muted font-mono text-sm">
+          <CardContent className="py-12 text-center text-text-dim font-mono text-sm">
             Cliente no encontrado.
           </CardContent>
         </Card>
@@ -58,12 +58,12 @@ export default async function FacturacionPage({
   return (
     <div>
       <h1 className="text-2xl font-bold text-text font-display">Facturacion</h1>
-      <p className="mt-1 text-muted font-mono text-sm">Historial de pagos</p>
+      <p className="mt-1 text-text-dim font-mono text-sm">Historial de pagos</p>
 
       <div className="mt-8">
         {pagos.length === 0 ? (
           <Card>
-            <CardContent className="py-12 text-center text-muted font-mono text-sm">
+            <CardContent className="py-12 text-center text-text-dim font-mono text-sm">
               No hay pagos registrados
             </CardContent>
           </Card>
@@ -76,7 +76,7 @@ export default async function FacturacionPage({
                     <p className="font-mono text-sm text-text">
                       {p.suscripcion?.servicio.nombre ?? "Pago"}
                     </p>
-                    <p className="text-xs text-muted font-mono">
+                    <p className="text-xs text-text-dim font-mono">
                       {new Date(p.creadoEn).toLocaleDateString("es-AR")}
                     </p>
                   </div>
@@ -113,7 +113,7 @@ export default async function FacturacionPage({
           >
             <ChevronLeft size={14} /> Anterior
           </Link>
-          <span className="text-xs text-muted font-mono">
+          <span className="text-xs text-text-dim font-mono">
             Pagina {currentPage} de {totalPages}
           </span>
           <Link

@@ -12,7 +12,7 @@ describe("Button", () => {
   it("applies default variant classes", () => {
     render(<Button>Default</Button>)
     const button = screen.getByRole("button")
-    expect(button.className).toContain("bg-accent")
+    expect(button.className).toContain("bg-violet")
   })
 
   it("applies outline variant", () => {

@@ -22,7 +22,7 @@ export function PortalNav() {
             "transition-colors",
             pathname === href
               ? "text-text font-medium"
-              : "text-muted hover:text-text"
+              : "text-text-dim hover:text-text"
           )}
         >
           {label}

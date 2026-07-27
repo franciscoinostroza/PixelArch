@@ -21,18 +21,18 @@ export default async function PortalLayout({
 
   return (
     <div className="min-h-screen bg-bg">
-      <header className="border-b border-border bg-bg2">
+      <header className="border-b border-border bg-panel">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <Link
             href="/"
             className="font-display text-lg font-bold text-text"
           >
-            Pixel<span className="text-accent">Arch</span>
+            Pixel<span className="text-violet">Arch</span>
           </Link>
           <PortalNav />
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-full border border-border/20 bg-card-bg px-3 py-1">
-              <div className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full bg-accent/20 font-display text-[11px] font-bold text-accent">
+            <div className="flex items-center gap-2 rounded-full border border-border/20 bg-panel px-3 py-1">
+              <div className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full bg-violet/20 font-display text-[11px] font-bold text-violet">
                 {iniciales}
               </div>
               <span className="text-xs text-text">{nombre}</span>

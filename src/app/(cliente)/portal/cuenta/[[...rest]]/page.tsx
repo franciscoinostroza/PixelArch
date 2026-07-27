@@ -12,7 +12,7 @@ const providers: Record<string, string> = {
   linkedin: "LinkedIn",
 }
 
-const cardBg = "linear-gradient(145deg, #1a1a30 0%, #14142a 50%, #1a1a30 100%)"
+  const cardBg = "linear-gradient(145deg, #161320 0%, #110e1a 50%, #161320 100%)"
 
 export default function CuentaPage() {
   const { user, isLoaded } = useUser()
@@ -21,7 +21,7 @@ export default function CuentaPage() {
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet border-t-transparent" />
       </div>
     )
   }
@@ -41,7 +41,7 @@ export default function CuentaPage() {
 
       {/* Avatar + nombre + email */}
       <div
-        style={{ background: cardBg, border: "1px solid rgba(127,90,240,0.12)", borderRadius: "16px" }}
+        style={{ background: cardBg, border: "1px solid rgba(139,92,246,0.12)", borderRadius: "16px" }}
         className="p-6"
       >
         <div className="flex items-center gap-4">
@@ -49,10 +49,10 @@ export default function CuentaPage() {
             <img
               src={user.imageUrl}
               alt={user.fullName ?? ""}
-              className="h-14 w-14 rounded-full border-2 border-[rgba(127,90,240,0.25)] object-cover"
+              className="h-14 w-14 rounded-full border-2 border-[rgba(139,92,246,0.25)] object-cover"
             />
           ) : (
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[rgba(127,90,240,0.2)] font-display text-lg font-bold text-[#7f5af0]">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[rgba(139,92,246,0.2)] font-display text-lg font-bold text-[#8b5cf6]">
               {initials || "?"}
             </div>
           )}
@@ -65,10 +65,10 @@ export default function CuentaPage() {
 
       {/* Email addresses */}
       <div
-        style={{ background: cardBg, border: "1px solid rgba(127,90,240,0.12)", borderRadius: "16px" }}
+        style={{ background: cardBg, border: "1px solid rgba(139,92,246,0.12)", borderRadius: "16px" }}
       >
-        <div className="flex items-center gap-2 border-b border-[rgba(127,90,240,0.08)] px-6 py-4">
-          <Mail className="h-4 w-4 text-[#7f5af0]" />
+        <div className="flex items-center gap-2 border-b border-[rgba(139,92,246,0.08)] px-6 py-4">
+          <Mail className="h-4 w-4 text-[#8b5cf6]" />
           <h2 className="text-sm font-semibold text-white">Email addresses</h2>
         </div>
         <div>
@@ -76,12 +76,12 @@ export default function CuentaPage() {
             <div
               key={email.id}
               className="flex items-center justify-between px-6 py-3"
-              style={i < user.emailAddresses.length - 1 ? { borderBottom: "1px solid rgba(127,90,240,0.08)" } : undefined}
+              style={i < user.emailAddresses.length - 1 ? { borderBottom: "1px solid rgba(139,92,246,0.08)" } : undefined}
             >
               <span className="text-sm text-white">{email.emailAddress}</span>
               <div className="flex items-center gap-2 shrink-0">
                 {email.id === primaryEmail?.id && (
-                  <span className="rounded-full bg-[rgba(127,90,240,0.15)] px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[#7f5af0]">
+                  <span className="rounded-full bg-[rgba(139,92,246,0.15)] px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[#8b5cf6]">
                     Primary
                   </span>
                 )}
@@ -95,10 +95,10 @@ export default function CuentaPage() {
       {/* Connected accounts */}
       {accounts.length > 0 && (
         <div
-          style={{ background: cardBg, border: "1px solid rgba(127,90,240,0.12)", borderRadius: "16px" }}
+          style={{ background: cardBg, border: "1px solid rgba(139,92,246,0.12)", borderRadius: "16px" }}
         >
-          <div className="flex items-center gap-2 border-b border-[rgba(127,90,240,0.08)] px-6 py-4">
-            <ExternalLink className="h-4 w-4 text-[#7f5af0]" />
+          <div className="flex items-center gap-2 border-b border-[rgba(139,92,246,0.08)] px-6 py-4">
+            <ExternalLink className="h-4 w-4 text-[#8b5cf6]" />
             <h2 className="text-sm font-semibold text-white">Connected accounts</h2>
           </div>
           <div>
@@ -106,7 +106,7 @@ export default function CuentaPage() {
               <div
                 key={acc.id}
                 className="flex items-center justify-between px-6 py-3"
-                style={i < accounts.length - 1 ? { borderBottom: "1px solid rgba(127,90,240,0.08)" } : undefined}
+                style={i < accounts.length - 1 ? { borderBottom: "1px solid rgba(139,92,246,0.08)" } : undefined}
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-sm text-white">{providers[acc.provider] ?? acc.provider}</span>

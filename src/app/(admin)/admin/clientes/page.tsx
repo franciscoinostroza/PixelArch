@@ -50,7 +50,7 @@ export default async function AdminClientes({
       <div className="mb-7 flex items-center justify-between">
         <div>
           <h1 className="font-display text-xl font-extrabold">Clientes</h1>
-          <p className="mt-0.5 text-xs text-muted">Gestiona tus clientes</p>
+          <p className="mt-0.5 text-xs text-text-dim">Gestiona tus clientes</p>
         </div>
       </div>
 
@@ -65,7 +65,7 @@ export default async function AdminClientes({
         </form>
       </div>
 
-      <div className="rounded-xl border border-border bg-bg2 overflow-hidden">
+      <div className="rounded-xl border border-border bg-panel overflow-hidden">
         <table className="w-full">
           <thead>
             <tr>
@@ -86,23 +86,23 @@ export default async function AdminClientes({
           <tbody>
             {clientes.length === 0 ? (
               <tr>
-                <td colSpan={4} className="py-12 text-center text-xs text-muted">
+                <td colSpan={4} className="py-12 text-center text-xs text-text-dim">
                   No hay clientes registrados
                 </td>
               </tr>
             ) : (
               clientes.map((c) => (
-                <tr key={c.id} className="border-t border-border/50 hover:bg-card-bg/50 transition-colors">
+                <tr key={c.id} className="border-t border-border/50 hover:bg-panel/50 transition-colors">
                   <td className="px-5 py-3">
                     <Link
                       href={`/admin/clientes/${c.id}`}
-                      className="text-xs text-text hover:text-accent transition-colors"
+                      className="text-xs text-text hover:text-violet transition-colors"
                     >
                       {c.nombre}
                     </Link>
                   </td>
-                  <td className="px-5 py-3 text-xs text-muted">{c.email}</td>
-                  <td className="px-5 py-3 text-xs text-muted font-mono">
+                  <td className="px-5 py-3 text-xs text-text-dim">{c.email}</td>
+                  <td className="px-5 py-3 text-xs text-text-dim font-mono">
                     {c._count.suscripciones}
                   </td>
                   <td className="px-5 py-3 text-right">
@@ -110,11 +110,11 @@ export default async function AdminClientes({
                       className={cn(
                         "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]",
                         c.activo
-                          ? "bg-accent2/10 text-accent2"
-                          : "bg-muted/10 text-muted"
+                          ? "bg-mint/10 text-mint"
+                          : "bg-text-faint/10 text-text-dim"
                       )}
                     >
-                      <span className={cn("w-[5px] h-[5px] rounded-full", c.activo ? "bg-accent2" : "bg-muted")} />
+                      <span className={cn("w-[5px] h-[5px] rounded-full", c.activo ? "bg-mint" : "bg-text-faint")} />
                       {c.activo ? "Activo" : "Inactivo"}
                     </span>
                   </td>
@@ -137,7 +137,7 @@ export default async function AdminClientes({
           >
             <ChevronLeft size={14} /> Anterior
           </Link>
-          <span className="text-xs text-muted font-mono">
+          <span className="text-xs text-text-dim font-mono">
             Pagina {currentPage} de {totalPages}
           </span>
           <Link

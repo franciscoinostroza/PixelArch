@@ -45,9 +45,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               transition={{ duration: 0.25, ease: "easeOut" }}
               className="flex items-center gap-3 rounded-xl border px-5 py-3 text-sm font-mono shadow-2xl"
               style={{
-                background: t.type === "success" ? "rgba(44, 182, 109, 0.12)" : "rgba(239, 68, 68, 0.12)",
-                borderColor: t.type === "success" ? "rgba(44, 182, 109, 0.25)" : "rgba(239, 68, 68, 0.25)",
-                color: t.type === "success" ? "#2cb67d" : "#ef4444",
+                background: t.type === "success" ? "rgba(52, 211, 153, 0.12)" : "rgba(239, 68, 68, 0.12)",
+                borderColor: t.type === "success" ? "rgba(52, 211, 153, 0.25)" : "rgba(239, 68, 68, 0.25)",
+                color: t.type === "success" ? "#34d399" : "#ef4444",
                 pointerEvents: "auto",
               }}
             >

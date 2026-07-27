@@ -58,19 +58,19 @@ export function AsignarProductoModal({ isOpen, onClose, clienteId, servicios }: 
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-border bg-bg2 p-6 shadow-2xl"
+        className="w-full max-w-md rounded-2xl border border-border bg-panel p-6 shadow-2xl"
         style={{ background: "linear-gradient(145deg, #1a1a30 0%, #14142a 50%, #1a1a30 100%)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {success ? (
           <div className="flex flex-col items-center gap-3 py-6">
-            <CheckCircle2 size={32} className="text-accent2" />
-            <p className="text-sm text-accent2 font-medium">Producto asignado</p>
+            <CheckCircle2 size={32} className="text-mint" />
+            <p className="text-sm text-mint font-medium">Producto asignado</p>
           </div>
         ) : (
           <>
             <h2 className="font-display text-lg font-bold text-text mb-1">Asignar producto</h2>
-            <p className="text-xs text-muted mb-5">Seleccioná el servicio que el cliente compró por fuera.</p>
+            <p className="text-xs text-text-dim mb-5">Seleccioná el servicio que el cliente compró por fuera.</p>
 
             <div className="space-y-4">
               <div>

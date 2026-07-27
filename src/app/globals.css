@@ -133,7 +133,7 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.15; letter-spacing
   transition: width 0.08s linear;
 }
 
-/* custom cursor */
+/* custom cursor — branding glow */
 .cursor-glow {
   position: fixed;
   top: 0;
@@ -141,17 +141,27 @@ h1, h2, h3 { font-family: var(--font-display); line-height: 1.15; letter-spacing
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.55);
   pointer-events: none;
   z-index: 9999;
   transform: translate(-50%, -50%);
   opacity: 0;
-  transition: opacity 0.3s, width 0.3s cubic-bezier(.19,1,.22,1), height 0.3s cubic-bezier(.19,1,.22,1), background 0.3s cubic-bezier(.19,1,.22,1), border-color 0.3s cubic-bezier(.19,1,.22,1);
-  mix-blend-mode: difference;
+  transition: opacity 0.3s, width 0.3s cubic-bezier(.19,1,.22,1), height 0.3s cubic-bezier(.19,1,.22,1), background 0.3s cubic-bezier(.19,1,.22,1), box-shadow 0.3s cubic-bezier(.19,1,.22,1);
+  box-shadow:
+    0 0 0 1.5px rgba(139, 92, 246, 0.7),
+    0 0 12px rgba(139, 92, 246, 0.35),
+    0 0 24px rgba(34, 211, 238, 0.15);
   will-change: transform;
 }
 .cursor-glow.is-active { opacity: 1 }
-.cursor-glow.is-hover { width: 54px; height: 54px; background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.9) }
+.cursor-glow.is-hover {
+  width: 54px;
+  height: 54px;
+  background: rgba(139, 92, 246, 0.08);
+  box-shadow:
+    0 0 0 1.5px rgba(34, 211, 238, 0.8),
+    0 0 20px rgba(139, 92, 246, 0.5),
+    0 0 40px rgba(34, 211, 238, 0.3);
+}
 body.cursor-hidden,
 body.cursor-hidden a,
 body.cursor-hidden button { cursor: none }

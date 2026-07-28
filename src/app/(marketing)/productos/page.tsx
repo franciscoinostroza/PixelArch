@@ -66,7 +66,7 @@ export default async function ProductosPage() {
           <p style={{ color: "var(--color-text-dim)", fontSize: "1.02rem" }}>Desde un sitio institucional hasta un agente de IA corriendo sobre infraestructura propia.</p>
         </div>
 
-        <div className="products-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "22px" }}>
+        <div className="products-grid">
           {displayServicios.length === 0 ? (
             <div className="col-span-full py-12 text-center text-text-dim font-mono text-sm">
               No hay servicios disponibles en este momento.

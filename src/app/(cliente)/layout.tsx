@@ -20,14 +20,30 @@ export default async function PortalLayout({
     : "??"
 
   return (
-    <div className="min-h-screen bg-bg">
-      <header className="border-b border-border bg-panel">
+    <div className="min-h-screen bg-bg" style={{ position: "relative" }}>
+      <div className="section-glow section-glow--violet" style={{ width: "450px", height: "450px", left: "-100px", top: "-5%", opacity: 0.5 }} aria-hidden="true" />
+      <header className="border-b border-border bg-panel" style={{ position: "relative", zIndex: 2 }}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link
-            href="/"
-            className="font-display text-lg font-bold text-text"
-          >
-            Pixel<span className="text-violet">Arch</span>
+          <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: "9px" }}>
+            <svg width="18" height="18" viewBox="0 0 32 32" aria-hidden="true">
+              <rect x="4" y="4" width="11" height="11" rx="2" fill="url(#portalLogoGrad)"/>
+              <rect x="17" y="17" width="11" height="11" rx="2" fill="url(#portalLogoGrad)" opacity=".5"/>
+              <defs>
+                <linearGradient id="portalLogoGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#8b5cf6"/>
+                  <stop offset="1" stopColor="#22d3ee"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <span className="font-display text-lg font-bold text-text" style={{ position: "relative", display: "inline-block", paddingBottom: "2px", overflow: "hidden" }}>
+              Pixel<span className="text-violet">Arch</span>
+              <span aria-hidden="true" style={{
+                position: "absolute", left: "-45%", bottom: 0, width: "45%", height: "2px",
+                background: "linear-gradient(90deg,transparent,#22d3ee,#8b5cf6,transparent)",
+                animation: "logo-scan 3.2s ease-in-out infinite",
+                pointerEvents: "none",
+              }} />
+            </span>
           </Link>
           <PortalNav />
           <div className="flex items-center gap-3">
@@ -41,7 +57,7 @@ export default async function PortalLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-6 py-10">{children}</main>
+      <main className="mx-auto max-w-3xl px-6 py-10" style={{ position: "relative", zIndex: 1 }}>{children}</main>
     </div>
   )
 }

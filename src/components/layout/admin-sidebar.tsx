@@ -87,10 +87,26 @@ export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
 
       <aside className="hidden lg:flex h-screen w-[220px] flex-col border-r border-border bg-panel shrink-0">
         <div className="flex h-full flex-col">
-          <Link href="/admin/dashboard" className="px-4 pt-6 pb-4">
-            <p className="font-display text-lg font-bold text-text">
+          <Link href="/admin/dashboard" className="px-4 pt-6 pb-4 flex items-center gap-2">
+            <svg width="18" height="18" viewBox="0 0 32 32" aria-hidden="true">
+              <rect x="4" y="4" width="11" height="11" rx="2" fill="url(#adminLogoGrad)"/>
+              <rect x="17" y="17" width="11" height="11" rx="2" fill="url(#adminLogoGrad)" opacity=".5"/>
+              <defs>
+                <linearGradient id="adminLogoGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#8b5cf6"/>
+                  <stop offset="1" stopColor="#22d3ee"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <span className="font-display text-lg font-bold text-text" style={{ position: "relative", display: "inline-block", paddingBottom: "2px", overflow: "hidden" }}>
               Pixel<span className="text-violet">Arch</span>
-            </p>
+              <span aria-hidden="true" style={{
+                position: "absolute", left: "-45%", bottom: 0, width: "45%", height: "2px",
+                background: "linear-gradient(90deg,transparent,#22d3ee,#8b5cf6,transparent)",
+                animation: "logo-scan 3.2s ease-in-out infinite",
+                pointerEvents: "none",
+              }} />
+            </span>
           </Link>
           <SidebarNav />
         </div>
@@ -101,9 +117,21 @@ export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
           <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setOpen(false)} />
           <aside className="fixed inset-y-0 left-0 z-40 flex w-[220px] flex-col border-r border-border bg-panel lg:hidden">
             <div className="flex items-center justify-between px-4 pt-6 pb-4 border-b border-border">
-              <p className="font-display text-lg font-bold text-text">
-              Pixel<span className="text-violet">Arch</span>
-              </p>
+              <div className="flex items-center gap-2">
+                <svg width="18" height="18" viewBox="0 0 32 32" aria-hidden="true">
+                  <rect x="4" y="4" width="11" height="11" rx="2" fill="url(#adminLogoGrad2)"/>
+                  <rect x="17" y="17" width="11" height="11" rx="2" fill="url(#adminLogoGrad2)" opacity=".5"/>
+                  <defs>
+                    <linearGradient id="adminLogoGrad2" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0" stopColor="#8b5cf6"/>
+                      <stop offset="1" stopColor="#22d3ee"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <span className="font-display text-lg font-bold text-text">
+                  Pixel<span className="text-violet">Arch</span>
+                </span>
+              </div>
               <button className="text-text-dim hover:text-text" onClick={() => setOpen(false)} aria-label="Cerrar sidebar">
                 <X size={18} aria-hidden="true" />
               </button>

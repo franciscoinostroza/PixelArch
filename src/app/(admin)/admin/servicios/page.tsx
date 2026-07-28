@@ -18,7 +18,7 @@ export default async function AdminServicios() {
         <p style={{ color: "var(--color-text-dim)", fontSize: ".9rem" }}>Catálogo de servicios</p>
       </div>
 
-      <div className="brand-card overflow-hidden">
+      <div className="brand-table">
         <table className="w-full">
           <thead>
             <tr>

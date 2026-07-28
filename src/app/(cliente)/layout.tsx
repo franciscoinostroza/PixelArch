@@ -21,7 +21,10 @@ export default async function PortalLayout({
 
   return (
     <div className="min-h-screen bg-bg" style={{ position: "relative" }}>
-      <div className="section-glow section-glow--violet" style={{ width: "450px", height: "450px", left: "-100px", top: "-5%", opacity: 0.5 }} aria-hidden="true" />
+      <section className="section--compact" style={{ position: "relative", zIndex: 1, overflow: "hidden", minHeight: "100svh" }}>
+        <div className="section-divider section-divider--violet" aria-hidden="true" />
+        <div className="section-band section-band--violet" aria-hidden="true" />
+        <div className="section-glow section-glow--violet" style={{ width: "450px", height: "450px", left: "-100px", top: "-5%" }} aria-hidden="true" />
       <header className="border-b border-border bg-panel" style={{ position: "relative", zIndex: 2 }}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: "9px" }}>
@@ -58,6 +61,7 @@ export default async function PortalLayout({
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-6 py-10" style={{ position: "relative", zIndex: 1 }}>{children}</main>
+      </section>
     </div>
   )
 }

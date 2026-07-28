@@ -192,7 +192,7 @@ export default async function ClienteDetalle({
         </div>
       </div>
 
-      <div className="brand-card overflow-hidden">
+      <div className="brand-table">
         <div className="px-5 pt-4 pb-3">
           <p className="font-display text-sm font-bold">
             Historial de pagos ({cliente.pagos.length})

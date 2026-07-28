@@ -173,6 +173,7 @@ body.cursor-hidden button { cursor: none }
 .section-head p { color: var(--color-text-dim); font-size: 1.02rem }
 
 section { padding: clamp(88px, 10vw, 132px) 0 }
+.section--compact { padding: clamp(40px, 4vw, 60px) 0 }
 
 .section-glow {
   position: absolute;
@@ -443,6 +444,14 @@ section { padding: clamp(88px, 10vw, 132px) 0 }
 }
 .brand-card:hover { transform: translateY(-4px); background: var(--color-panel-2) }
 .brand-card:hover::before { opacity: 1 }
+
+/* brand table — same as brand-card but without glow/gradient border (for data tables) */
+.brand-table {
+  background: var(--color-panel);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  overflow: hidden;
+}
 
 .cl-headerLogo {
   display: none;

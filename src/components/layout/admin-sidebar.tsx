@@ -44,9 +44,9 @@ function SidebarNav({ onNavClick }: { onNavClick?: () => void }) {
                 href={href}
                 onClick={onNavClick}
                 className={cn(
-                  "mx-2 flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] font-mono transition-colors",
+                  "mx-2 flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] font-display transition-colors",
                   isActive
-                    ? "bg-violet/12 text-[#a78bfa]"
+                    ? "bg-violet/12 text-violet"
                     : "text-text-dim hover:bg-panel hover:text-text"
                 )}
               >
@@ -61,7 +61,7 @@ function SidebarNav({ onNavClick }: { onNavClick?: () => void }) {
         <Link
           href="/portal"
           onClick={onNavClick}
-          className="mx-2 mt-1 flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-text-dim hover:bg-panel hover:text-text transition-colors font-mono"
+          className="mx-2 mt-1 flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-text-dim hover:bg-panel hover:text-text transition-colors font-display"
         >
           <ExternalLink size={13} />
           Portal Cliente

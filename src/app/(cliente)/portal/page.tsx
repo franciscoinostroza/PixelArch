@@ -105,7 +105,7 @@ export default async function PortalPage({
 
       <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {suscripciones.length === 0 && (
-          <Link href="/productos" className="col-span-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/40 px-6 py-12 transition-colors hover:border-violet/40 hover:bg-violet/[0.04]">
+          <Link href="/productos" className="col-span-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/40 px-6 py-12 transition-colors hover:border-violet/40 hover:bg-violet/[0.04] brand-card">
             <span className="text-2xl text-text-faint">+</span>
             <span className="text-[13px] text-text-faint">Agregar un<br />nuevo producto</span>
           </Link>
@@ -114,7 +114,7 @@ export default async function PortalPage({
         {suscripciones.map((s) => {
           const config = estadoUI(s)
           return (
-            <div key={s.id} className={cn("brand-card p-5", s.estado === "PENDING" ? "border-t-2 border-t-yellow-400" : s.estado === "READY" ? "border-t-2 border-t-purple-400" : s.estado === "ACTIVE" ? "border-t-2 border-t-violet" : s.estado === "PAST_DUE" ? "border-t-2 border-t-red-400" : "border-t-2")}>
+            <div key={s.id} className="brand-card p-5">
               <div className="mb-3 flex items-center justify-between">
                 <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]", config.badgeBg, config.badgeColor)}>
                   <span className={cn("w-[5px] h-[5px] rounded-full", s.estado === "ACTIVE" && "animate-pulse")} style={{ backgroundColor: "currentColor" }} />

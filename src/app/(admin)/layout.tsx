@@ -19,7 +19,7 @@ export default async function AdminLayout({
     <div className="flex min-h-screen bg-bg" style={{ position: "relative" }}>
       <AdminSidebar alertasActivas={alertasVencidos} />
       <main className="flex-1 overflow-x-hidden" style={{ position: "relative", zIndex: 1 }}>
-        <section style={{ position: "relative", zIndex: 1, overflow: "hidden", padding: "clamp(40px, 4vw, 60px) 0" }}>
+        <section className="section--compact" style={{ position: "relative", zIndex: 1, overflow: "hidden" }}>
           <div className="section-divider section-divider--violet" aria-hidden="true" />
           <div className="section-band section-band--violet" aria-hidden="true" />
           <div className="section-glow section-glow--violet" style={{ width: "500px", height: "500px", left: "-150px", top: "-10%" }} aria-hidden="true" />

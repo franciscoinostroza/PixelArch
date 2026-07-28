@@ -88,7 +88,6 @@ export default async function ClienteDetalle({
           {cliente.activo ? "Cliente activo" : "Inactivo"}
         </span>
       </div>
-      </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">
         <div className="brand-card p-5">
@@ -109,6 +108,8 @@ export default async function ClienteDetalle({
               <p className="text-[10px] uppercase tracking-[0.1em] text-text-faint mb-1">Polar ID</p>
               <p className="text-text-dim text-[11px] truncate">{cliente.polarCustomerId || "—"}</p>
             </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">

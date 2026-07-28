@@ -1,6 +1,5 @@
 import { sanityFetch } from "@/lib/sanity"
 import Link from "next/link"
-import { Breadcrumbs } from "@/components/ui/breadcrumbs"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -56,12 +55,11 @@ export default async function ProductosPage() {
   const displayServicios = servicios || []
 
   return (
-    <section className="productos-page" style={{ position: "relative", zIndex: 1, overflow: "hidden", padding: "clamp(88px, 10vw, 132px) 0" }}>
+    <section className="productos-page" style={{ position: "relative", zIndex: 1, overflow: "hidden", padding: "clamp(88px, 10vw, 132px) 0", background: "rgba(7,6,12,0.88)", backdropFilter: "blur(3px)" }}>
       <div className="section-divider section-divider--cyan" aria-hidden="true" />
       <div className="section-band section-band--cyan" aria-hidden="true" />
       <div className="section-glow section-glow--cyan" style={{ width: "420px", height: "420px", right: "-140px", top: "0%" }} aria-hidden="true" />
       <div className="wrap" style={{ maxWidth: "var(--maxw, 1180px)", marginInline: "auto", paddingInline: "clamp(20px, 5vw, 56px)" }}>
-        <Breadcrumbs items={[{ name: "Inicio", href: "/" }, { name: "Productos" }]} />
         <div className="section-head" style={{ maxWidth: "600px", marginBottom: "52px" }}>
           <p className="eyebrow">Productos</p>
           <h2 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.7rem, 3.2vw, 2.5rem)", marginBottom: "14px" }}>Elegí la pieza que tu negocio necesita</h2>

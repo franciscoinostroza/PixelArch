@@ -1,6 +1,5 @@
 import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -65,15 +64,14 @@ export default async function FacturacionPage({
 
       <div className="mt-8">
         {pagos.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center text-text-dim font-mono text-sm">
-              No hay pagos registrados
-            </CardContent>
-          </Card>
+          <div className="brand-card p-8 text-center">
+            <p className="font-mono text-sm text-text-dim">No hay pagos registrados</p>
+          </div>
         ) : (
           <div className="space-y-3">
             {pagos.map((p) => (
-              <Card key={p.id}>
+              <div key={p.id} className="brand-card relative overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet/20 to-cyan/20" />
                 <div className="flex items-center justify-between p-4">
                   <div>
                     <p className="font-mono text-sm text-text">
@@ -101,7 +99,7 @@ export default async function FacturacionPage({
                     </Badge>
                   </div>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         )}

@@ -105,7 +105,8 @@ export default async function PortalPage({
 
       <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {suscripciones.length === 0 && (
-          <Link href="/productos" className="col-span-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/40 px-6 py-12 transition-colors hover:border-violet/40 hover:bg-violet/[0.04] brand-card">
+          <Link href="/productos" className="col-span-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/40 px-6 py-12 transition-colors hover:border-violet/40 hover:bg-violet/[0.04] brand-card relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet/40 to-cyan/40" />
             <span className="text-2xl text-text-faint">+</span>
             <span className="text-[13px] text-text-faint">Agregar un<br />nuevo producto</span>
           </Link>
@@ -114,7 +115,8 @@ export default async function PortalPage({
         {suscripciones.map((s) => {
           const config = estadoUI(s)
           return (
-            <div key={s.id} className="brand-card p-5">
+            <div key={s.id} className="brand-card p-5 relative overflow-hidden">
+              <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${s.estado === "ACTIVE" ? "from-mint to-cyan" : s.estado === "PAST_DUE" ? "from-red-400 to-red-500" : s.estado === "PENDING" ? "from-yellow-400 to-yellow-500" : s.estado === "READY" ? "from-violet to-cyan" : "from-text-faint to-text-dim"}`} />
               <div className="mb-3 flex items-center justify-between">
                 <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]", config.badgeBg, config.badgeColor)}>
                   <span className={cn("w-[5px] h-[5px] rounded-full", s.estado === "ACTIVE" && "animate-pulse")} style={{ backgroundColor: "currentColor" }} />
@@ -168,7 +170,8 @@ export default async function PortalPage({
             <p className="font-display text-[0.95rem] font-bold">Ultimos pagos</p>
             <Link href="/portal/facturacion" className="text-xs font-mono text-violet hover:underline">Ver historial completo</Link>
           </div>
-          <div className="brand-card overflow-hidden">
+          <div className="brand-table">
+            <div className="h-[2px] bg-gradient-to-r from-violet/20 to-cyan/20" />
             <table className="w-full">
               <thead>
                 <tr>

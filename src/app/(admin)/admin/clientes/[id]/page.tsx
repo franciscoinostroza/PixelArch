@@ -110,7 +110,6 @@ export default async function ClienteDetalle({
               <p className="text-text-dim text-[11px] truncate">{cliente.polarCustomerId || "—"}</p>
             </div>
           </div>
-        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">

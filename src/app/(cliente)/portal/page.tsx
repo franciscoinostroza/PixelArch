@@ -78,9 +78,10 @@ export default async function PortalPage({
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-display text-[1.4rem] font-extrabold leading-tight">Hola, <span className="text-violet">{primerNombre}</span> 👋</h1>
-        <p className="mt-1 text-[13px] text-text-dim">Estos son tus servicios activos con PixelArch.</p>
+      <div className="section-head" style={{ maxWidth: "600px", marginBottom: "40px" }}>
+        <p className="eyebrow">Portal</p>
+        <h2 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", marginBottom: "10px" }}>Hola, {primerNombre}</h2>
+        <p style={{ color: "var(--color-text-dim)", fontSize: ".9rem" }}>Estos son tus servicios activos con PixelArch.</p>
       </div>
 
       {success === "true" && (
@@ -113,7 +114,7 @@ export default async function PortalPage({
         {suscripciones.map((s) => {
           const config = estadoUI(s)
           return (
-            <div key={s.id} className={cn("rounded-xl border border-border/50 bg-panel p-5", s.estado === "PENDING" ? "border-t-2 border-t-yellow-400" : s.estado === "READY" ? "border-t-2 border-t-purple-400" : s.estado === "ACTIVE" ? "border-t-2 border-t-violet" : s.estado === "PAST_DUE" ? "border-t-2 border-t-red-400" : "border-t-2 border-t-text-faint")}>
+            <div key={s.id} className={cn("brand-card p-5", s.estado === "PENDING" ? "border-t-2 border-t-yellow-400" : s.estado === "READY" ? "border-t-2 border-t-purple-400" : s.estado === "ACTIVE" ? "border-t-2 border-t-violet" : s.estado === "PAST_DUE" ? "border-t-2 border-t-red-400" : "border-t-2")}>
               <div className="mb-3 flex items-center justify-between">
                 <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]", config.badgeBg, config.badgeColor)}>
                   <span className={cn("w-[5px] h-[5px] rounded-full", s.estado === "ACTIVE" && "animate-pulse")} style={{ backgroundColor: "currentColor" }} />
@@ -167,7 +168,7 @@ export default async function PortalPage({
             <p className="font-display text-[0.95rem] font-bold">Ultimos pagos</p>
             <Link href="/portal/facturacion" className="text-xs font-mono text-violet hover:underline">Ver historial completo</Link>
           </div>
-          <div className="rounded-xl border border-border/50 bg-panel overflow-hidden">
+          <div className="brand-card overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr>

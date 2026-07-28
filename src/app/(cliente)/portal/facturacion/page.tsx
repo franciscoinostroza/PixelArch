@@ -57,8 +57,11 @@ export default async function FacturacionPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-text font-display">Facturacion</h1>
-      <p className="mt-1 text-text-dim font-mono text-sm">Historial de pagos</p>
+      <div className="section-head" style={{ maxWidth: "600px", marginBottom: "40px" }}>
+        <p className="eyebrow">Facturación</p>
+        <h2 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", marginBottom: "10px" }}>Facturación</h2>
+        <p style={{ color: "var(--color-text-dim)", fontSize: ".9rem" }}>Historial de pagos</p>
+      </div>
 
       <div className="mt-8">
         {pagos.length === 0 ? (

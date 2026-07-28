@@ -17,10 +17,18 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-screen bg-bg" style={{ position: "relative" }}>
-      <div className="section-glow section-glow--violet" style={{ width: "500px", height: "500px", left: "-150px", top: "-10%", opacity: 0.5 }} aria-hidden="true" />
-      <div className="section-glow section-glow--cyan" style={{ width: "400px", height: "400px", right: "-120px", bottom: "-5%", opacity: 0.4 }} aria-hidden="true" />
       <AdminSidebar alertasActivas={alertasVencidos} />
-      <main className="flex-1 overflow-x-hidden p-8" style={{ position: "relative", zIndex: 1 }}>{children}</main>
+      <main className="flex-1 overflow-x-hidden" style={{ position: "relative", zIndex: 1 }}>
+        <section style={{ position: "relative", zIndex: 1, overflow: "hidden", padding: "clamp(40px, 4vw, 60px) 0" }}>
+          <div className="section-divider section-divider--violet" aria-hidden="true" />
+          <div className="section-band section-band--violet" aria-hidden="true" />
+          <div className="section-glow section-glow--violet" style={{ width: "500px", height: "500px", left: "-150px", top: "-10%" }} aria-hidden="true" />
+          <div className="section-glow section-glow--cyan" style={{ width: "400px", height: "400px", right: "-120px", bottom: "-5%" }} aria-hidden="true" />
+          <div className="wrap" style={{ maxWidth: "var(--maxw, 1180px)", marginInline: "auto", paddingInline: "clamp(20px, 5vw, 56px)" }}>
+            {children}
+          </div>
+        </section>
+      </main>
     </div>
   )
 }

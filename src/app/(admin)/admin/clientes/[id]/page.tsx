@@ -69,12 +69,12 @@ export default async function ClienteDetalle({
 
   return (
     <div>
-        <div className="mb-7 flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-xl font-extrabold">{cliente.nombre}</h1>
-          <p className="mt-0.5 text-xs text-text-dim">{cliente.email}</p>
-        </div>
-        <div className="flex items-center gap-3">
+      <div className="section-head" style={{ maxWidth: "600px", marginBottom: "40px" }}>
+        <p className="eyebrow">Cliente</p>
+        <h2 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", marginBottom: "10px" }}>{cliente.nombre}</h2>
+        <p style={{ color: "var(--color-text-dim)", fontSize: ".9rem" }}>{cliente.email}</p>
+      </div>
+      <div className="flex items-center gap-3">
           <AsignarProductoButton clienteId={cliente.id} servicios={servicios} />
           <span
           className={cn(
@@ -91,7 +91,7 @@ export default async function ClienteDetalle({
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <div className="rounded-xl border border-border bg-panel p-5">
+        <div className="brand-card p-5">
           <div className="grid grid-cols-2 gap-4 text-xs font-mono">
             <div>
               <p className="text-[10px] uppercase tracking-[0.1em] text-text-faint mb-1">Empresa</p>
@@ -114,9 +114,10 @@ export default async function ClienteDetalle({
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <div className="rounded-xl border border-border bg-panel p-5">
+        <div className="brand-card p-5">
           <p className="font-display text-sm font-bold mb-4">
-            Suscripciones ({cliente.suscripciones.length})
+
+        Suscripciones ({cliente.suscripciones.length})
           </p>
           {cliente.suscripciones.length === 0 ? (
             <p className="text-xs text-text-dim py-4 text-center">Sin suscripciones</p>
@@ -192,7 +193,7 @@ export default async function ClienteDetalle({
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-panel overflow-hidden">
+      <div className="brand-card overflow-hidden">
         <div className="px-5 pt-4 pb-3">
           <p className="font-display text-sm font-bold">
             Historial de pagos ({cliente.pagos.length})

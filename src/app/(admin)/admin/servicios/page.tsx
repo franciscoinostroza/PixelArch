@@ -12,14 +12,13 @@ export default async function AdminServicios() {
 
   return (
     <div>
-      <div className="mb-7 flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-xl font-extrabold">Servicios</h1>
-          <p className="mt-0.5 text-xs text-text-dim">Catalogo de servicios</p>
-        </div>
+      <div className="section-head" style={{ maxWidth: "600px", marginBottom: "40px" }}>
+        <p className="eyebrow">Catálogo</p>
+        <h2 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", marginBottom: "10px" }}>Servicios</h2>
+        <p style={{ color: "var(--color-text-dim)", fontSize: ".9rem" }}>Catálogo de servicios</p>
       </div>
 
-      <div className="rounded-xl border border-border bg-panel overflow-hidden">
+      <div className="brand-card overflow-hidden">
         <table className="w-full">
           <thead>
             <tr>

@@ -418,6 +418,32 @@ section { padding: clamp(88px, 10vw, 132px) 0 }
   .mobile-menu { display: none }
 }
 
+/* brand card — shared glow border card (same as .product-card) */
+.brand-card {
+  background: var(--color-panel);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.4s cubic-bezier(.19,1,.22,1), border-color 0.4s cubic-bezier(.19,1,.22,1), background 0.4s cubic-bezier(.19,1,.22,1);
+}
+.brand-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, #8b5cf6, #22d3ee);
+  opacity: 0;
+  transition: opacity 0.4s cubic-bezier(.19,1,.22,1);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.brand-card:hover { transform: translateY(-4px); background: var(--color-panel-2) }
+.brand-card:hover::before { opacity: 1 }
+
 .cl-headerLogo {
   display: none;
 }

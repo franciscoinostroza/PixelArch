@@ -76,11 +76,10 @@ export default async function AdminDashboard() {
 
   return (
     <div>
-      <div className="mb-7 flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-xl font-extrabold">Dashboard</h1>
-          <p className="mt-0.5 text-xs text-text-dim">Bienvenido, admin</p>
-        </div>
+      <div className="section-head" style={{ maxWidth: "600px", marginBottom: "40px" }}>
+        <p className="eyebrow">Panel</p>
+        <h2 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", marginBottom: "10px" }}>Dashboard</h2>
+        <p style={{ color: "var(--color-text-dim)", fontSize: ".9rem" }}>Bienvenido, admin</p>
       </div>
 
       {pagosVencidos > 0 && (
@@ -96,7 +95,7 @@ export default async function AdminDashboard() {
       )}
 
       <div className="grid grid-cols-4 gap-3 mb-7">
-        <div className="rounded-xl border border-border bg-panel p-5">
+        <div className="brand-card p-5">
           <p className="text-[11px] text-text-dim tracking-[0.05em] mb-2">Ingresos (mes)</p>
           <p className="font-display text-[1.6rem] font-extrabold leading-none tracking-[-0.03em]">
             <span className="text-violet">$</span>
@@ -109,19 +108,19 @@ export default async function AdminDashboard() {
             </p>
           )}
         </div>
-        <div className="rounded-xl border border-border bg-panel p-5">
+        <div className="brand-card p-5">
           <p className="text-[11px] text-text-dim tracking-[0.05em] mb-2">Clientes activos</p>
           <p className="font-display text-[1.6rem] font-extrabold leading-none tracking-[-0.03em]">
             {clientesActivos}
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-panel p-5">
+        <div className="brand-card p-5">
           <p className="text-[11px] text-text-dim tracking-[0.05em] mb-2">Suscripciones</p>
           <p className="font-display text-[1.6rem] font-extrabold leading-none tracking-[-0.03em]">
             {suscripcionesActivas}
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-panel p-5">
+        <div className="brand-card p-5">
           <p className="text-[11px] text-text-dim tracking-[0.05em] mb-2">Vencidos</p>
           <p className="font-display text-[1.6rem] font-extrabold leading-none tracking-[-0.03em] text-red-400">
             {pagosVencidos}
@@ -130,7 +129,7 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <div className="rounded-xl border border-border bg-panel p-5">
+        <div className="brand-card p-5">
           <div className="mb-4 flex items-center justify-between">
             <p className="font-display text-sm font-bold">Clientes recientes</p>
             <Link href="/admin/clientes" className="text-[11px] text-violet font-mono hover:underline">
@@ -169,7 +168,7 @@ export default async function AdminDashboard() {
           </table>
         </div>
 
-        <div className="rounded-xl border border-border bg-panel p-5">
+        <div className="brand-card p-5">
           <p className="font-display text-sm font-bold mb-4">Estado de suscripciones</p>
           <div className="space-y-3">
             {suscripcionesPorEstado.map((g) => (

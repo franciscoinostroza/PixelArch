@@ -28,11 +28,9 @@ export default async function FacturacionPage({
   if (!cliente) {
     return (
       <div>
-        <Card>
-          <CardContent className="py-12 text-center text-text-dim font-mono text-sm">
-            Cliente no encontrado.
-          </CardContent>
-        </Card>
+        <div className="brand-card p-8 text-center">
+          <p className="font-mono text-sm text-text-dim">Cliente no encontrado.</p>
+        </div>
       </div>
     )
   }

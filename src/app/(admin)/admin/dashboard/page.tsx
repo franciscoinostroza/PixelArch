@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { ArrowUpRight, ArrowDownRight, AlertTriangle } from "lucide-react"
+import { ArrowUpRight, ArrowDownRight, AlertTriangle, DollarSign, Users, CreditCard } from "lucide-react"
 
 export default async function AdminDashboard() {
   const admin = await requireAdmin()
@@ -97,39 +97,65 @@ export default async function AdminDashboard() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         <div className="brand-card p-6 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet to-cyan" />
-          <div className="flex items-center justify-between mb-3">
-            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-text-faint">Ingresos (mes)</p>
+          <div className="flex items-start gap-4 mb-4">
+            <div className="w-[52px] h-[52px] rounded-[13px] flex items-center justify-center bg-violet/15 text-violet shrink-0">
+              <DollarSign size={24} />
+            </div>
+            <div className="min-w-0">
+              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-text-faint mb-1 truncate">Ingresos (mes)</p>
+              <p className="font-display text-3xl font-extrabold tracking-[-0.03em] text-text truncate">
+                <span className="text-violet">$</span>{(ingresoActual / 100).toFixed(0)}
+              </p>
+            </div>
           </div>
-          <p className="font-display text-3xl font-extrabold tracking-[-0.03em] text-text">
-            <span className="text-violet">$</span>{(ingresoActual / 100).toFixed(0)}
-          </p>
           {deltaIngreso !== 0 && (
-            <p className={`mt-2 flex items-center gap-1.5 text-[12px] ${deltaIngreso > 0 ? "text-mint" : "text-red-400"}`}>
+            <p className={`flex items-center gap-1.5 text-[12px] ${deltaIngreso > 0 ? "text-mint" : "text-red-400"}`}>
               {deltaIngreso > 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-              {deltaIngreso > 0 ? "+" : ""}{deltaIngreso}% vs mes anterior
+              {deltaIngreso > 0 ? "+" : ""}{deltaIngreso}% vs anterior
             </p>
           )}
         </div>
         <div className="brand-card p-6 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan to-violet" />
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-text-faint mb-3">Clientes activos</p>
-          <p className="font-display text-3xl font-extrabold tracking-[-0.03em] text-text">
-            {clientesActivos}
-          </p>
+          <div className="flex items-start gap-4 mb-4">
+            <div className="w-[52px] h-[52px] rounded-[13px] flex items-center justify-center bg-cyan/15 text-cyan shrink-0">
+              <Users size={24} />
+            </div>
+            <div className="min-w-0">
+              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-text-faint mb-1 truncate">Clientes activos</p>
+              <p className="font-display text-3xl font-extrabold tracking-[-0.03em] text-text truncate">
+                {clientesActivos}
+              </p>
+            </div>
+          </div>
         </div>
         <div className="brand-card p-6 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet to-cyan" />
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-text-faint mb-3">Suscripciones activas</p>
-          <p className="font-display text-3xl font-extrabold tracking-[-0.03em] text-text">
-            {suscripcionesActivas}
-          </p>
+          <div className="flex items-start gap-4 mb-4">
+            <div className="w-[52px] h-[52px] rounded-[13px] flex items-center justify-center bg-violet/15 text-violet shrink-0">
+              <CreditCard size={24} />
+            </div>
+            <div className="min-w-0">
+              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-text-faint mb-1 truncate">Suscripciones</p>
+              <p className="font-display text-3xl font-extrabold tracking-[-0.03em] text-text truncate">
+                {suscripcionesActivas}
+              </p>
+            </div>
+          </div>
         </div>
         <div className="brand-card p-6 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-red-400 to-red-500" />
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-text-faint mb-3">Vencidos</p>
-          <p className="font-display text-3xl font-extrabold tracking-[-0.03em] text-red-400">
-            {pagosVencidos}
-          </p>
+          <div className="flex items-start gap-4 mb-4">
+            <div className="w-[52px] h-[52px] rounded-[13px] flex items-center justify-center bg-red-400/15 text-red-400 shrink-0">
+              <AlertTriangle size={24} />
+            </div>
+            <div className="min-w-0">
+              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-text-faint mb-1 truncate">Vencidos</p>
+              <p className="font-display text-3xl font-extrabold tracking-[-0.03em] text-text truncate text-red-400">
+                {pagosVencidos}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 

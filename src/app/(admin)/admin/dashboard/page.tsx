@@ -128,7 +128,7 @@ export default async function AdminDashboard() {
         </div>
       )}
 
-      <div className="mb-7">
+      <div className="mb-8">
         <div className="stats-track">
           {stats.map((s, i) => (
             <div key={i} className="stat-card relative overflow-hidden">
@@ -150,8 +150,8 @@ export default async function AdminDashboard() {
         <div className="stats-dots" id="statsDots" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="rounded-xl border border-border bg-panel-2 p-5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-6">
+        <div className="rounded-[18px] border border-border bg-panel-2 p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="font-display text-[.95rem] font-bold">Clientes recientes</p>
             <Link href="/admin/clientes" className="font-mono text-[11px] text-violet inline-flex items-center gap-1">
@@ -159,7 +159,7 @@ export default async function AdminDashboard() {
             </Link>
           </div>
           <div className="h-px" style={{ background: "linear-gradient(90deg,rgba(139,92,246,.25),rgba(34,211,238,.15),transparent)", marginBottom: "14px" }} />
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-2">
             {ultimosClientes.map((c) => (
               <Link key={c.id} href={`/admin/clientes/${c.id}`} className="flex items-center gap-3 rounded-[10px] px-1.5 py-2.5 transition-colors hover:bg-white/[0.02]">
                 <ClientAvatar name={c.nombre} />
@@ -173,7 +173,7 @@ export default async function AdminDashboard() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-panel-2 p-5">
+        <div className="rounded-[18px] border border-border bg-panel-2 p-6">
           <p className="font-display text-[.95rem] font-bold mb-4">Estado de suscripciones</p>
           <div className="h-px" style={{ background: "linear-gradient(90deg,rgba(34,211,238,.25),rgba(139,92,246,.15),transparent)", marginBottom: "14px" }} />
           <div className="flex flex-col gap-4">
@@ -237,7 +237,7 @@ export default async function AdminDashboard() {
         }
         .stats-track::-webkit-scrollbar { display: none }
         @media (min-width: 640px) {
-          .stats-track { display: grid; grid-template-columns: repeat(2, 1fr); overflow: visible }
+          .stats-track { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; overflow: visible }
         }
         @media (min-width: 1024px) {
           .stats-track { grid-template-columns: repeat(4, 1fr) }

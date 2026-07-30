@@ -112,7 +112,7 @@ export default async function AdminPagos({
         <span className="text-xs text-text-dim font-mono">{total} resultados</span>
       </div>
 
-      <div className="brand-table">
+      <div className="brand-table overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr>

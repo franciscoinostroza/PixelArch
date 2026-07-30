@@ -89,9 +89,9 @@ export default async function ClienteDetalle({
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
         <div className="brand-card p-5">
-          <div className="grid grid-cols-2 gap-4 text-xs font-mono">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
             <div>
               <p className="text-[10px] uppercase tracking-[0.1em] text-text-faint mb-1">Empresa</p>
               <p className="text-text">{cliente.empresa || "—"}</p>
@@ -112,7 +112,7 @@ export default async function ClienteDetalle({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
         <div className="brand-card p-5">
           <p className="font-display text-sm font-bold mb-4">
 
@@ -192,7 +192,7 @@ export default async function ClienteDetalle({
         </div>
       </div>
 
-      <div className="brand-table">
+      <div className="brand-table overflow-x-auto">
         <div className="px-5 pt-4 pb-3">
           <p className="font-display text-sm font-bold">
             Historial de pagos ({cliente.pagos.length})

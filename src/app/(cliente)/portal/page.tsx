@@ -170,7 +170,7 @@ export default async function PortalPage({
             <p className="font-display text-[0.95rem] font-bold">Ultimos pagos</p>
             <Link href="/portal/facturacion" className="text-xs font-mono text-violet hover:underline">Ver historial completo</Link>
           </div>
-          <div className="brand-table">
+          <div className="brand-table overflow-x-auto">
             <div className="h-[2px] bg-gradient-to-r from-violet/20 to-cyan/20" />
             <table className="w-full">
               <thead>

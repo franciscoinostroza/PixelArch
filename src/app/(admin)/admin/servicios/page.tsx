@@ -18,7 +18,7 @@ export default async function AdminServicios() {
         <p style={{ color: "var(--color-text-dim)", fontSize: ".9rem" }}>Catálogo de servicios</p>
       </div>
 
-      <div className="brand-table">
+      <div className="brand-table overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr>
@@ -47,7 +47,7 @@ export default async function AdminServicios() {
               servicios.map((s) => (
                 <tr key={s.id} className="border-t border-border/50">
                   <td className="px-5 py-3 text-xs text-text">{s.nombre}</td>
-                  <td className="px-5 py-3 text-xs text-text-dim max-w-xs truncate">
+                  <td className="px-5 py-3 text-xs text-text-dim max-w-[200px] lg:max-w-xs truncate">
                     {s.descripcion}
                   </td>
                   <td className="px-5 py-3 text-xs text-text font-mono font-medium">

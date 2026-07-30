@@ -94,7 +94,7 @@ export default async function AdminDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         <div className="brand-card p-6 relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet to-cyan" />
           <div className="flex items-center justify-between mb-3">
@@ -133,8 +133,8 @@ export default async function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-3">
-        <div className="brand-card p-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
+        <div className="brand-card p-5 overflow-x-auto">
           <div className="mb-4 flex items-center justify-between">
             <p className="font-display text-sm font-bold">Clientes recientes</p>
             <Link href="/admin/clientes" className="text-[11px] text-violet font-mono hover:text-violet/80 transition-colors inline-flex items-center gap-1">

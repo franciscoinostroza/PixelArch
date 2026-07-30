@@ -64,7 +64,7 @@ export default async function AdminClientes({
         </form>
       </div>
 
-      <div className="brand-table">
+      <div className="brand-table overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr>

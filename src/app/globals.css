@@ -460,3 +460,15 @@ section { padding: clamp(88px, 10vw, 132px) 0 }
 .cl-footerItem {
   display: none;
 }
+
+/* Print / PDF export styles */
+@media print {
+  body { background: #fff; color: #111 }
+  body::before { display: none }
+  ::-webkit-scrollbar { display: none }
+  .scroll-progress, .cursor-glow, .space-canvas, .site-header, .site-footer,
+  .section-glow, .section-band, .section-divider { display: none !important }
+  section { padding: 40px 0 !important }
+  a { color: inherit }
+  @page { size: A4; margin: 2cm }
+}

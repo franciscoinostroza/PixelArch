@@ -62,7 +62,7 @@ export default function PropuestaPage() {
         </h1>
 
         {/* Description */}
-        <p style={{ color: "var(--color-text-dim)", fontSize: "1.05rem", lineHeight: 1.75, marginBottom: "52px", maxWidth: "65ch", marginInline: "auto" }}>
+        <p style={{ color: "var(--color-text-dim)", fontSize: "1.05rem", lineHeight: 1.75, marginBottom: "52px", maxWidth: "65ch", marginInline: "auto", textAlign: "justify" }}>
           Con más de <strong style={{ color: "var(--color-text)", fontWeight: 600 }}>10 años de experiencia</strong> en el ecosistema tecnológico, mi enfoque fusiona la arquitectura de software de alto rendimiento con una comprensión profunda del lenguaje, los datos y la interacción humana. Esto me permite crear ecosistemas digitales —desde plataformas web de alta conversión hasta agentes autónomos de IA— que no solo son robustos a nivel de código, sino que se comunican estratégicamente con tus usuarios. Integrando el <strong style={{ color: "var(--color-text)", fontWeight: 600 }}>análisis de Big Data</strong> y técnicas avanzadas de <strong style={{ color: "var(--color-text)", fontWeight: 600 }}>Prompt Engineering</strong>, garantizo que cada desarrollo esté diseñado para escalar la rentabilidad de tu negocio.
         </p>
 
@@ -74,6 +74,9 @@ export default function PropuestaPage() {
               background: "var(--color-panel)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px",
               padding: "28px 24px", position: "relative", overflow: "hidden",
             }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px",
+                background: i === 0 ? "linear-gradient(90deg,#8b5cf6,#22d3ee)" : i === 1 ? "linear-gradient(90deg,#22d3ee,#8b5cf6)" : "linear-gradient(90deg,#8b5cf6,#34d399)"
+              }} />
               <div style={{
                 width: "48px", height: "48px", borderRadius: "12px",
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -125,16 +128,16 @@ export default function PropuestaPage() {
               pixelarch.dev
             </a>
           </p>
-          <p style={{ fontFamily: "var(--font-mono)", fontSize: ".7rem", color: "var(--color-text-faint)", letterSpacing: ".08em", marginBottom: "24px" }}>
-            Portfolio completo · Reseñas reales · Precios transparentes
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: ".7rem", color: "var(--color-text-faint)", letterSpacing: ".08em", marginBottom: "24px" }}>
+            Visitá nuestras reseñas y conocé la experiencia de clientes reales
           </p>
-          <a href="https://pixelarch.dev" target="_blank" rel="noopener" style={{
+          <a href="https://pixelarch.dev/#resenas" target="_blank" rel="noopener" style={{
             display: "inline-flex", alignItems: "center", gap: "8px",
             background: "linear-gradient(135deg,#8b5cf6,#22d3ee)",
             color: "#07060c", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: ".88rem",
             padding: "14px 30px", borderRadius: "10px", textDecoration: "none",
           }}>
-            Ver portfolio →
+            Ver reseñas →
           </a>
         </div>
 

@@ -78,17 +78,23 @@ export default function PropuestaPage() {
                 background: i === 0 ? "linear-gradient(90deg,#8b5cf6,#22d3ee)" : i === 1 ? "linear-gradient(90deg,#22d3ee,#8b5cf6)" : "linear-gradient(90deg,#8b5cf6,#34d399)"
               }} />
               <div style={{
-                width: "48px", height: "48px", borderRadius: "12px",
+                width: "56px", height: "56px", borderRadius: "14px",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                background: i % 2 === 0 ? "rgba(139,92,246,0.14)" : "rgba(34,211,238,0.14)",
-                color: i % 2 === 0 ? "#8b5cf6" : "#22d3ee",
-                marginBottom: "20px", marginInline: "auto",
-              }} dangerouslySetInnerHTML={{ __html: s.icon }} />
+                background: `linear-gradient(135deg,${i === 0 ? "#8b5cf6,#22d3ee" : i === 1 ? "#22d3ee,#8b5cf6" : "#8b5cf6,#34d399"})`,
+                color: "#07060c",
+                marginBottom: "22px", marginInline: "auto",
+              }} dangerouslySetInnerHTML={{ __html: s.icon.replace('width="22" height="22"', 'width="24" height="24"') }} />
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", letterSpacing: ".12em", color: "var(--color-cyan)", display: "block", textAlign: "center", marginBottom: "6px" }}>0{i + 1}</span>
               <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 600, marginBottom: "8px", textAlign: "center" }}>{s.title}</h3>
               <p style={{ color: "var(--color-text-dim)", fontSize: ".85rem", lineHeight: 1.6, marginBottom: "16px", textAlign: "center" }}>{s.desc}</p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", justifyContent: "center" }}>
                 {s.tags.map((tag) => (
-                  <span key={tag} style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--color-text-faint)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "100px", padding: "3px 9px" }}>{tag}</span>
+                  <span key={tag} style={{
+                    fontFamily: "var(--font-mono)", fontSize: ".65rem",
+                    color: i === 0 ? "#8b5cf6" : i === 1 ? "#22d3ee" : "#34d399",
+                    border: `1px solid ${i === 0 ? "rgba(139,92,246,0.25)" : i === 1 ? "rgba(34,211,238,0.25)" : "rgba(52,211,153,0.25)"}`,
+                    borderRadius: "100px", padding: "3px 9px",
+                  }}>{tag}</span>
                 ))}
               </div>
             </div>

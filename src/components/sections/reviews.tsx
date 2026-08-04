@@ -28,6 +28,24 @@ export function Reviews() {
         />
       </div>
 
+      <div className="mt-12 text-center">
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: ".68rem", letterSpacing: ".12em", textTransform: "uppercase", color: "var(--color-text-faint)", marginBottom: "16px" }}>
+          ¿Trabajaste con nosotros?
+        </p>
+        <a
+          href="https://review.clutch.co/review?provider_id=277f4f12-3fd1-4cca-907e-35d3a73e7f9a"
+          target="_blank"
+          rel="noopener"
+          className="btn btn-primary"
+          style={{ display: "inline-flex" }}
+        >
+          Dejar reseña en Clutch →
+        </a>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", color: "var(--color-text-faint)", marginTop: "12px" }}>
+          5 minutos · Verificación por Clutch · Sin registro
+        </p>
+      </div>
+
       <Script src="https://widget.clutch.co/static/js/widget.js" strategy="lazyOnload" />
 
       <style>{`

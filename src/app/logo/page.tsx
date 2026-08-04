@@ -73,7 +73,6 @@ export default function LogoPage() {
     // Subtitle
     ctx.font = "500 14px 'JetBrains Mono', monospace"
     ctx.fillStyle = "#645f74"
-    ctx.letterSpacing = "0.15em"
     ctx.fillText("SOFTWARE + INFRASTRUCTURE", 360, 485)
   }, [])
 

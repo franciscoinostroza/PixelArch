@@ -14,7 +14,7 @@ export default function LogoPage() {
     const s = 720
 
     ctx.fillStyle = "#07060c"
-    ctx.roundRect(0, 0, s, s, 40)
+    drawRounded(ctx, 0, 0, s, s, 40)
     ctx.fill()
 
     // Draw squares

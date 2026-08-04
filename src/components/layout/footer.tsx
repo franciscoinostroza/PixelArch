@@ -55,8 +55,9 @@ export function Footer() {
           Disponible para nuevos proyectos
         </div>
         <div className="footer-links" style={{ display: "flex", gap: "22px" }}>
-          <Link href="/terminos" style={{ color: "var(--color-text-faint)", transition: "color 0.2s" }}>Términos</Link>
-          <Link href="/privacidad" style={{ color: "var(--color-text-faint)", transition: "color 0.2s" }}>Privacidad</Link>
+          <Link href="/terminos" style={{ color: "var(--color-text-faint)", transition: "color 0.2s" }}>Terms</Link>
+          <Link href="/privacidad" style={{ color: "var(--color-text-faint)", transition: "color 0.2s" }}>Privacy</Link>
+          <Link href="/reembolsos" style={{ color: "var(--color-text-faint)", transition: "color 0.2s" }}>Refunds</Link>
         </div>
       </div>
     </footer>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { Monitor, Sparkles, Smartphone } from "lucide-react"
 
 export const metadata: Metadata = {
   title: "PixelArch — Propuesta de Servicios",
@@ -15,9 +16,9 @@ const steps = [
 ]
 
 const servicios = [
-  { title: "Sitios Web", desc: "Plataformas de alta conversión, optimizadas para SEO y velocidad.", tags: ["Next.js", "SEO", "Core Web Vitals"], icon: '<svg viewBox="0 0 24 24" width="22" height="22"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 9l2 2-2 2"/><path d="M13 13h4"/></svg>' },
-  { title: "Automatización & IA", desc: "Agentes inteligentes que eliminan tareas repetitivas y escalan tu negocio.", tags: ["LangChain", "RAG", "Workflows"], icon: '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5z"/><path d="M19 15l1 2.5L22.5 18.5 20 19.5 19 22 18 19.5 15.5 18.5 18 17.5z"/></svg>' },
-  { title: "Apps y E-commerce", desc: "Aplicaciones a medida y tiendas online con pasarela de pagos.", tags: ["React Native", "Stripe", "Inventario"], icon: '<svg viewBox="0 0 24 24" width="22" height="22"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M10 18h4"/></svg>' },
+  { title: "Sitios Web", desc: "Plataformas de alta conversión, optimizadas para SEO y velocidad.", tags: ["Next.js", "SEO", "Core Web Vitals"], icon: Monitor },
+  { title: "Automatización & IA", desc: "Agentes inteligentes que eliminan tareas repetitivas y escalan tu negocio.", tags: ["LangChain", "RAG", "Workflows"], icon: Sparkles },
+  { title: "Apps y E-commerce", desc: "Aplicaciones a medida y tiendas online con pasarela de pagos.", tags: ["React Native", "Stripe", "Inventario"], icon: Smartphone },
 ]
 
 export default function PropuestaPage() {
@@ -83,7 +84,9 @@ export default function PropuestaPage() {
                 background: `linear-gradient(135deg,${i === 0 ? "#8b5cf6,#22d3ee" : i === 1 ? "#22d3ee,#8b5cf6" : "#8b5cf6,#34d399"})`,
                 color: "#07060c",
                 marginBottom: "22px", marginInline: "auto",
-              }} dangerouslySetInnerHTML={{ __html: s.icon.replace('width="22" height="22"', 'width="24" height="24"') }} />
+              }}>
+                <s.icon size={24} />
+              </div>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", letterSpacing: ".12em", color: "var(--color-cyan)", display: "block", textAlign: "center", marginBottom: "6px" }}>0{i + 1}</span>
               <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 600, marginBottom: "8px", textAlign: "center" }}>{s.title}</h3>
               <p style={{ color: "var(--color-text-dim)", fontSize: ".85rem", lineHeight: 1.6, marginBottom: "16px", textAlign: "center" }}>{s.desc}</p>

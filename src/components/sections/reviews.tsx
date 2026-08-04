@@ -9,8 +9,8 @@ export function Reviews() {
       <div className="wrap">
         <div className="section-head">
           <p className="eyebrow">Reseñas</p>
-          <h2>Lo que dicen quienes ya trabajaron con nosotros</h2>
-          <p>Opiniones verificadas por Clutch, la plataforma líder de reseñas B2B.</p>
+          <h2>Reviews</h2>
+          <p>Verified reviews by Clutch, the leading B2B platform.</p>
         </div>
       </div>
 
@@ -30,7 +30,19 @@ export function Reviews() {
 
       <div className="mt-12 text-center">
         <p style={{ fontFamily: "var(--font-mono)", fontSize: ".68rem", letterSpacing: ".12em", textTransform: "uppercase", color: "var(--color-text-faint)", marginBottom: "16px" }}>
-          ¿Trabajaste con nosotros?
+          Worked with us?
+        </p>
+        <a
+          href="https://review.clutch.co/review?provider_id=277f4f12-3fd1-4cca-907e-35d3a73e7f9a"
+          target="_blank"
+          rel="noopener"
+          className="btn btn-primary"
+          style={{ display: "inline-flex" }}
+        >
+          Leave a review on Clutch →
+        </a>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", color: "var(--color-text-faint)", marginTop: "12px" }}>
+          5 minutes · Verified by Clutch · No signup
         </p>
         <a
           href="https://review.clutch.co/review?provider_id=277f4f12-3fd1-4cca-907e-35d3a73e7f9a"

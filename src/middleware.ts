@@ -2,7 +2,7 @@ import { clerkClient, clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/
 import { NextResponse } from "next/server"
 
 const ROUTES = {
-  public: ["/", "/productos(.*)", "/sign-in(.*)", "/sign-up(.*)", "/gracias", "/terminos", "/privacidad", "/reembolsos", "/studio(.*)", "/propuesta(.*)"],
+  public: ["/", "/productos(.*)", "/sign-in(.*)", "/sign-up(.*)", "/gracias", "/terminos", "/privacidad", "/reembolsos", "/studio(.*)", "/propuesta(.*)", "/logo"],
   admin: ["/admin(.*)"],
   client: ["/portal(.*)"],
 }

@@ -64,7 +64,7 @@ export default function PropuestaPage() {
 
         {/* Description */}
         <p style={{ color: "var(--color-text-dim)", fontSize: "1.05rem", lineHeight: 1.75, marginBottom: "52px", maxWidth: "65ch", marginInline: "auto", textAlign: "justify" }}>
-          Con más de <strong style={{ color: "var(--color-text)", fontWeight: 600 }}>10 años de experiencia</strong> en el ecosistema tecnológico, mi enfoque fusiona la arquitectura de software de alto rendimiento con una comprensión profunda del lenguaje, los datos y la interacción humana. Esto me permite crear ecosistemas digitales —desde plataformas web de alta conversión hasta agentes autónomos de IA— que no solo son robustos a nivel de código, sino que se comunican estratégicamente con tus usuarios. Integrando el <strong style={{ color: "var(--color-text)", fontWeight: 600 }}>análisis de Big Data</strong> y técnicas avanzadas de <strong style={{ color: "var(--color-text)", fontWeight: 600 }}>Prompt Engineering</strong>, garantizo que cada desarrollo esté diseñado para escalar la rentabilidad de tu negocio.
+          Con más de <strong style={{ color: "var(--color-text)", fontWeight: 600 }}>10 años de experiencia</strong> en el ecosistema tecnológico, mi enfoque fusiona la arquitectura de software de alto rendimiento con una comprensión profunda del lenguaje, los datos y la interacción humana. Esto me permite crear ecosistemas digitales —desde plataformas web de alta conversión hasta agentes autónomos de IA— que no solo son robustos a nivel de código, sino que se comunican estratégicamente con tus usuarios. Cada desarrollo está diseñado para que tu negocio crezca.
         </p>
 
         {/* Services */}

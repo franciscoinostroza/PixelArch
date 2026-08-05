@@ -8,6 +8,8 @@ interface GoogleReview {
   time: number
 }
 
+const CID = "0x28e46b0532f441a3"
+
 export async function GET() {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY
   if (!apiKey) {
@@ -15,73 +17,35 @@ export async function GET() {
   }
 
   try {
-    // Step 1: Search for PixelArch to get place_id
-    const searchRes = await fetch(
-      "https://places.googleapis.com/v1/places:searchText",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Goog-Api-Key": apiKey,
-          "X-Goog-FieldMask": "places.id,places.displayName",
-        },
-        body: JSON.stringify({
-          textQuery: "pixelarch.dev",
-          maxResultCount: 1,
-        }),
-      }
-    )
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?cid=${encodeURIComponent(CID)}&fields=place_id,rating,user_ratings_total,name,reviews&key=${apiKey}&language=en`
 
-    if (!searchRes.ok) {
-      const err = await searchRes.text()
-      return NextResponse.json({ error: `Search failed: ${err}` }, { status: searchRes.status })
+    const res = await fetch(url)
+    if (!res.ok) {
+      const err = await res.text()
+      return NextResponse.json({ error: `Places API failed: ${err}` }, { status: res.status })
     }
 
-    const searchData = await searchRes.json()
-    const place = searchData.places?.[0]
-    if (!place) {
-      return NextResponse.json({ error: "Place not found" }, { status: 404 })
+    const data = await res.json()
+    if (data.status !== "OK" || !data.result) {
+      return NextResponse.json({ error: `Place not found: ${data.status}` }, { status: 404 })
     }
 
-    const placeId = place.id
+    const place = data.result
 
-    // Step 2: Fetch place details with reviews
-    const detailsRes = await fetch(
-      `https://places.googleapis.com/v1/places/${placeId}`,
-      {
-        headers: {
-          "X-Goog-Api-Key": apiKey,
-          "X-Goog-FieldMask":
-            "displayName,rating,userRatingCount,reviews",
-        },
-      }
-    )
-
-    if (!detailsRes.ok) {
-      const err = await detailsRes.text()
-      return NextResponse.json({ error: `Details failed: ${err}` }, { status: detailsRes.status })
-    }
-
-    const details = await detailsRes.json()
-
-    const reviews: GoogleReview[] = (details.reviews || []).map(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (r: any) => ({
-        author: r.authorAttribution?.displayName || "Cliente",
-        avatar:
-          r.authorAttribution?.photoUri ||
-          "",
-        rating: r.rating || 5,
-        text: r.text?.text || "",
-        time: r.publishTime ? new Date(r.publishTime).getTime() : Date.now(),
-      })
-    )
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const reviews: GoogleReview[] = (place.reviews || []).map((r: any) => ({
+      author: r.author_name || "Cliente",
+      avatar: r.profile_photo_url || "",
+      rating: r.rating || 5,
+      text: r.text || "",
+      time: r.time ? r.time * 1000 : Date.now(),
+    }))
 
     return NextResponse.json({
-      placeId,
-      name: details.displayName?.text || "PixelArch",
-      rating: details.rating || 0,
-      totalReviews: details.userRatingCount || 0,
+      placeId: place.place_id,
+      name: place.name || "PixelArch",
+      rating: place.rating || 0,
+      totalReviews: place.user_ratings_total || 0,
       reviews,
     })
   } catch (e) {

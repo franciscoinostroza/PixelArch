@@ -57,19 +57,10 @@ export function Reviews() {
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "center" }}>
           <a
-            href="https://review.clutch.co/review?provider_id=277f4f12-3fd1-4cca-907e-35d3a73e7f9a"
+            href="https://g.page/r/CaNB9DIFa-QoEBM/review"
             target="_blank"
             rel="noopener"
             className="btn btn-primary"
-            style={{ display: "inline-flex" }}
-          >
-            Review on Clutch →
-          </a>
-          <a
-            href={REVIEW_LINK}
-            target="_blank"
-            rel="noopener"
-            className="btn btn-ghost"
             style={{ display: "inline-flex" }}
           >
             Review on Google →

@@ -26,7 +26,7 @@ export async function GET() {
           "X-Goog-FieldMask": "places.id,places.displayName",
         },
         body: JSON.stringify({
-          textQuery: "PixelArch",
+          textQuery: "pixelarch.dev",
           maxResultCount: 1,
         }),
       }

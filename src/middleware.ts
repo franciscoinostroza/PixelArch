@@ -34,5 +34,5 @@ export default clerkMiddleware(async (auth, req) => {
 })
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next|api/webhooks|api/revalidate|api/cron|api/portal|api/contact|api/payments|api/health).*)", "/", "/(api/(?!webhooks|revalidate|cron|portal|contact|payments|health)|trpc)(.*)"],
+  matcher: ["/((?!.*\\..*|_next|api/webhooks|api/revalidate|api/cron|api/portal|api/contact|api/payments|api/health|api/reviews).*)", "/", "/(api/(?!webhooks|revalidate|cron|portal|contact|payments|health|reviews)|trpc)(.*)"],
 }

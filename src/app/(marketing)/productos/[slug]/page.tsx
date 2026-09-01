@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { CheckoutButton } from "@/components/ui/checkout-button"
+import { getDolarVentaBancoNacion, formatARS, formatUSD } from "@/lib/dolar"
 
 const SERVICIO_QUERY = `*[_type == "servicio" && slug.current == $slug][0]{
   titulo,
@@ -42,14 +43,25 @@ const ICONS: Record<string, string> = {
 
 export default async function ProductoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const [servicioSanity, servicioDB] = await Promise.all([
+  const [servicioSanity, servicioDB, rate] = await Promise.all([
     sanityFetch<{ titulo: string; slug: string; descripcion: string; meta_title?: string; meta_description?: string; og_image_url?: string; icono: string; tags: string[] } | null>(SERVICIO_QUERY, { slug }),
     prisma.servicio.findFirst({ where: { OR: [{ slug }, { id: `servicio-${slug}` }] } }).catch(() => null),
+    getDolarVentaBancoNacion(),
   ])
 
   if (!servicioSanity) notFound()
 
-  const price = (cents: number) => `$${(cents / 100).toFixed(0)}`
+  const price = (cents: number) => {
+    if (rate) return `${formatARS(cents, rate)}`
+    return `$${(cents / 100).toFixed(0)}`
+  }
+
+  const period = (monthly: boolean) => {
+    if (!monthly) return rate ? "ARS" : ""
+    return rate ? "ARS/mes" : "/mes"
+  }
+
+  const priceRef = (cents: number) => (rate && cents > 0 ? `≈ ${formatUSD(cents)}` : null)
 
   const jsonLd = servicioDB ? {
     "@context": "https://schema.org",
@@ -128,7 +140,8 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
                 <div className="plan-card-content">
                   <div className="plan-icon"><svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
                   <p className="plan-label">Pago Único</p>
-                  <p className="plan-price">{price(servicioDB.precioUnico)}</p>
+                  <p className="plan-price">{price(servicioDB.precioUnico)}<span className="plan-period">{period(false)}</span></p>
+                  {priceRef(servicioDB.precioUnico) && <p className="plan-price-ref">{priceRef(servicioDB.precioUnico)}</p>}
                   <p className="plan-desc">Desarrollo y entrega del proyecto completo.</p>
                   <ul className="plan-features">
                     <li>✅ Código y activos incluidos</li>
@@ -136,7 +149,9 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
                     <li>❌ Sin soporte continuo</li>
                   </ul>
                   {servicioDB.polarProductIdUnico && (
-                    <CheckoutButton polarProductId={servicioDB.polarProductIdUnico} servicioNombre={servicioSanity.titulo} tipo="UNICO" label={`Contratar ${servicioSanity.titulo}`} size="sm" className="w-full" />
+                    <div className="plan-cta">
+                      <CheckoutButton polarProductId={servicioDB.polarProductIdUnico} servicioNombre={servicioSanity.titulo} tipo="UNICO" label={`Contratar ${servicioSanity.titulo}`} size="default" className="w-full" />
+                    </div>
                   )}
                 </div>
               </article>
@@ -146,7 +161,8 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
                 <div className="plan-card-content">
                   <div className="plan-icon"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5z"/></svg></div>
                   <p className="plan-label">Plan Básico</p>
-                  <p className="plan-price">{price(servicioDB.precioBasico)}<span className="plan-period">/mes</span></p>
+                  <p className="plan-price">{price(servicioDB.precioBasico)}<span className="plan-period">{period(true)}</span></p>
+                  {priceRef(servicioDB.precioBasico) && <p className="plan-price-ref">{priceRef(servicioDB.precioBasico)}/mes</p>}
                   <p className="plan-desc">Servicio online, hosting incluido, sin cambios.</p>
                   <ul className="plan-features">
                     <li>✅ Hosting incluido</li>
@@ -154,7 +170,9 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
                     <li>❌ Sin cambios ni soporte</li>
                   </ul>
                   {servicioDB.polarProductIdBasico && (
-                    <CheckoutButton polarProductId={servicioDB.polarProductIdBasico} servicioNombre={servicioSanity.titulo} tipo="BASICO" label="Activar Básico" size="sm" className="w-full" />
+                    <div className="plan-cta">
+                      <CheckoutButton polarProductId={servicioDB.polarProductIdBasico} servicioNombre={servicioSanity.titulo} tipo="BASICO" label="Activar Básico" size="default" variant="gradient" className="w-full" />
+                    </div>
                   )}
                 </div>
               </article>
@@ -163,7 +181,8 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
                 <div className="plan-card-content">
                   <div className="plan-icon"><svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="9"/><path d="M5 5l4 4M19 5l-4 4M5 19l4-4M19 19l-4-4"/></svg></div>
                   <p className="plan-label">Plan Mantenimiento</p>
-                  <p className="plan-price">{price(servicioDB.precioMantenimiento)}<span className="plan-period">/mes</span></p>
+                  <p className="plan-price">{price(servicioDB.precioMantenimiento)}<span className="plan-period">{period(true)}</span></p>
+                  {priceRef(servicioDB.precioMantenimiento) && <p className="plan-price-ref">{priceRef(servicioDB.precioMantenimiento)}/mes</p>}
                   <p className="plan-desc">Hosting + cambios + soporte prioritario.</p>
                   <ul className="plan-features">
                     <li>✅ Todo lo del Básico</li>
@@ -171,7 +190,9 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
                     <li>✅ Soporte prioritario</li>
                   </ul>
                   {servicioDB.polarProductIdMantenimiento && (
-                    <CheckoutButton polarProductId={servicioDB.polarProductIdMantenimiento} servicioNombre={servicioSanity.titulo} tipo="MANTENIMIENTO" label="Activar Mantenimiento" size="sm" className="w-full" />
+                    <div className="plan-cta">
+                      <CheckoutButton polarProductId={servicioDB.polarProductIdMantenimiento} servicioNombre={servicioSanity.titulo} tipo="MANTENIMIENTO" label="Activar Mantenimiento" size="default" className="w-full" />
+                    </div>
                   )}
                 </div>
               </article>
@@ -179,7 +200,8 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
           )}
 
           <p style={{ textAlign: "center", fontSize: ".85rem", color: "var(--color-text-faint)", marginTop: "36px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "28px" }}>
-            Sin un plan mensual, el servicio deja de estar online. Cancelación con 7 días de aviso.
+            {rate ? "Precios en ARS según dólar venta Banco Nación (fuente: ComparaDolar), se actualizan automáticamente. " : ""}
+            El cobro se realiza en USD. Sin un plan mensual, el servicio deja de estar online. Cancelación con 7 días de aviso.
           </p>
         </div>
       </section>
@@ -192,6 +214,8 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
           border-radius: 16px;
           position: relative;
           overflow: hidden;
+          display: flex;
+          flex-direction: column;
           transition: transform 0.4s cubic-bezier(.19,1,.22,1), border-color 0.4s cubic-bezier(.19,1,.22,1), background 0.4s cubic-bezier(.19,1,.22,1);
         }
         .plan-card::before {
@@ -233,7 +257,8 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
           border-radius: 100px;
           font-weight: 600;
         }
-        .plan-card-content { padding: 32px 28px; position: relative; z-index: 1; }
+        .plan-card-content { padding: 32px 28px; position: relative; z-index: 1; display: flex; flex-direction: column; flex: 1; }
+        .plan-cta { margin-top: auto; }
         .plan-icon {
           width: 44px; height: 44px; border-radius: 12px;
           display: flex; align-items: center; justify-content: center;
@@ -254,11 +279,18 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
           font-size: 2.2rem;
           font-weight: 700;
           margin-bottom: 12px;
+          white-space: nowrap;
         }
         .plan-period {
           font-size: .9rem;
           font-weight: 400;
           color: var(--color-text-dim);
+        }
+        .plan-price-ref {
+          font-family: var(--font-mono);
+          font-size: .72rem;
+          color: var(--color-text-faint);
+          margin: -6px 0 12px;
         }
         .plan-desc {
           color: var(--color-text-dim);

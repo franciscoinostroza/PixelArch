@@ -12,6 +12,7 @@ const buttonVariants = cva(
           "border border-border bg-transparent hover:bg-panel",
         ghost: "hover:bg-panel text-text-dim hover:text-text",
         accent2: "bg-mint text-bg hover:bg-mint/90",
+        gradient: "bg-gradient-to-r from-violet to-cyan text-bg hover:brightness-110",
       },
       size: {
         default: "h-10 px-5 py-2",

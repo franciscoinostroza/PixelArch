@@ -9,6 +9,7 @@ import { CancelSubscriptionButton } from "@/components/ui/cancel-subscription-bu
 import { PaymentPortalLink } from "@/components/ui/payment-portal-link"
 import { CheckoutButton } from "@/components/ui/checkout-button"
 import { ApplyDiscount } from "@/components/ui/apply-discount"
+import { getDolarVentaBancoNacion, formatARS, formatUSD } from "@/lib/dolar"
 
 export default async function PortalPage({
   searchParams,
@@ -56,7 +57,7 @@ export default async function PortalPage({
     }
   }
 
-  const [suscripciones, ultimosPagos, tienePagoFallido] = await Promise.all([
+  const [suscripciones, ultimosPagos, tienePagoFallido, rate] = await Promise.all([
     cliente ? prisma.suscripcion.findMany({
       where: { clienteId: cliente.id },
       include: { servicio: true },
@@ -69,12 +70,18 @@ export default async function PortalPage({
       take: 5,
     }) : Promise.resolve([]),
     cliente ? prisma.pago.count({ where: { clienteId: cliente.id, estadoPago: "FAILED" } }).then(n => n > 0) : Promise.resolve(false),
+    getDolarVentaBancoNacion(),
   ])
 
   const nombre = cliente?.nombre ?? "Cliente"
   const primerNombre = nombre.split(" ")[0]
 
-  const price = (cents: number) => `$${(cents / 100).toFixed(0)}`
+  const price = (cents: number) => {
+    if (rate) return `${formatARS(cents, rate)}`
+    return `$${(cents / 100).toFixed(0)}`
+  }
+
+  const priceRef = (cents: number) => (rate && cents > 0 ? `≈ ${formatUSD(cents)}` : null)
 
   return (
     <div>
@@ -133,10 +140,10 @@ export default async function PortalPage({
               {s.estado === "READY" && (
                 <div className="flex flex-col gap-1.5 mb-3">
                   {s.servicio.polarProductIdBasico && (
-                    <CheckoutButton polarProductId={s.servicio.polarProductIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label={`Basico ${price(s.servicio.precioBasico)}/mes — mantener online`} size="sm" className="w-full" />
+                    <CheckoutButton polarProductId={s.servicio.polarProductIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label={`Basico ${price(s.servicio.precioBasico)}${rate ? " ARS" : ""}/mes${priceRef(s.servicio.precioBasico) ? ` (${priceRef(s.servicio.precioBasico)})` : ""} — mantener online`} size="sm" className="w-full" />
                   )}
                   {s.servicio.polarProductIdMantenimiento && (
-                    <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label={`Mantenimiento ${price(s.servicio.precioMantenimiento)}/mes — online + cambios`} size="sm" className="w-full" />
+                    <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label={`Mantenimiento ${price(s.servicio.precioMantenimiento)}${rate ? " ARS" : ""}/mes${priceRef(s.servicio.precioMantenimiento) ? ` (${priceRef(s.servicio.precioMantenimiento)})` : ""} — online + cambios`} size="sm" className="w-full" />
                   )}
                 </div>
               )}
@@ -145,6 +152,7 @@ export default async function PortalPage({
                 <p className="font-display text-[0.95rem] font-bold">
                   {s.estado === "READY" ? price(s.servicio.precioMantenimiento) : s.estado === "PENDING" ? price(s.servicio.precioUnico) : s.plan === "MANTENIMIENTO" ? price(s.servicio.precioMantenimiento) : price(s.servicio.precioBasico)}
                   {s.estado !== "PENDING" && s.estado !== "READY" && <span className="text-[11px] font-normal text-text-dim">/mes</span>}
+                  {rate && <span className="ml-1.5 text-[10px] font-normal text-text-dim">≈ {formatUSD(s.estado === "READY" ? s.servicio.precioMantenimiento : s.estado === "PENDING" ? s.servicio.precioUnico : s.plan === "MANTENIMIENTO" ? s.servicio.precioMantenimiento : s.servicio.precioBasico)}</span>}
                 </p>
                 {s.proximoPago && (
                   <span className={cn("text-[11px]", s.estado === "PAST_DUE" ? "text-[#fac775]" : "text-text-dim")}>

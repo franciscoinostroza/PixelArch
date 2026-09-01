@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { Button, type ButtonProps } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
 
 type PlanTipo = "UNICO" | "BASICO" | "MANTENIMIENTO"
@@ -12,10 +12,11 @@ interface CheckoutButtonProps {
   tipo?: PlanTipo
   label?: string
   size?: "default" | "sm" | "lg" | "icon"
+  variant?: ButtonProps["variant"]
   className?: string
 }
 
-export function CheckoutButton({ polarProductId, tipo = "UNICO", label, size = "default", className }: CheckoutButtonProps) {
+export function CheckoutButton({ polarProductId, tipo = "UNICO", label, size = "default", variant = "default", className }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -41,7 +42,7 @@ export function CheckoutButton({ polarProductId, tipo = "UNICO", label, size = "
 
   return (
     <div>
-      <Button size={size} className={className} onClick={handleCheckout} disabled={loading}>
+      <Button size={size} variant={variant} className={className} onClick={handleCheckout} disabled={loading}>
         {loading && <Loader2 size={16} className="animate-spin mr-2" />}
         {label || "Contratar"}
       </Button>

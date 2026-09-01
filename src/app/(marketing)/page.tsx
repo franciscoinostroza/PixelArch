@@ -5,6 +5,7 @@ import { Services } from "@/components/sections/services"
 import { Process } from "@/components/sections/process"
 import { About } from "@/components/sections/about"
 import { ContactForm } from "@/components/sections/contact-form"
+import { getDolarVentaBancoNacion } from "@/lib/dolar"
 import type { LandingFields } from "@/types/sanity"
 
 const LANDING_QUERY = `*[_type == "landing"][0]{
@@ -28,10 +29,13 @@ const SERVICIOS_QUERY = `*[_type == "servicio" && activo == true] | order(orden 
 }`
 
 export default async function LandingPage() {
-  const landing = await sanityFetch<LandingFields | null>(LANDING_QUERY)
-  const servicios = await sanityFetch<
-    { titulo: string; slug: string; descripcion: string; icono: string; tags: string[]; precioUnico: number; precioBasico: number; precioMantenimiento: number }[]
-  >(SERVICIOS_QUERY)
+  const [landing, servicios, rate] = await Promise.all([
+    sanityFetch<LandingFields | null>(LANDING_QUERY),
+    sanityFetch<
+      { titulo: string; slug: string; descripcion: string; icono: string; tags: string[]; precioUnico: number; precioBasico: number; precioMantenimiento: number }[]
+    >(SERVICIOS_QUERY),
+    getDolarVentaBancoNacion(),
+  ])
 
   return (
     <>
@@ -42,7 +46,7 @@ export default async function LandingPage() {
         ctaSecundario={landing?.hero_cta_secundario}
       />
       <Reviews />
-      <Services servicios={servicios || []} />
+      <Services servicios={servicios || []} rate={rate} />
       <Process pasos={landing?.proceso_pasos || []} />
       <About />
       <ContactForm />

@@ -1,5 +1,8 @@
 "use client"
 
+import Link from "next/link"
+import { formatARS, formatUSD } from "@/lib/dolar"
+
 interface ServiceItem {
   titulo: string
   slug: string
@@ -13,6 +16,7 @@ interface ServiceItem {
 
 interface ServicesProps {
   servicios: ServiceItem[]
+  rate?: number | null
 }
 
 const ICONS: Record<string, string> = {
@@ -33,7 +37,7 @@ const FALLBACK_TAGS: Record<string, string[]> = {
   "Infraestructura & Cloud": ["Docker", "Linux", "CI/CD"],
 }
 
-export function Services({ servicios }: ServicesProps) {
+export function Services({ servicios, rate }: ServicesProps) {
   const displayServicios = servicios.length > 0 ? servicios : Object.keys(ICONS).map((name) => ({
     titulo: name,
     slug: name.toLowerCase().replace(/[^a-z]+/g, "-"),
@@ -44,6 +48,12 @@ export function Services({ servicios }: ServicesProps) {
     precioBasico: 0,
     precioMantenimiento: 0,
   }))
+
+  const priceLabel = (s: ServiceItem) => {
+    if (!s.precioBasico) return null
+    if (rate) return `Desde ${formatARS(s.precioBasico, rate)}/mes`
+    return `Desde $${(s.precioBasico / 100).toFixed(0)}/mes`
+  }
 
   return (
     <section className="productos" id="productos">
@@ -58,22 +68,31 @@ export function Services({ servicios }: ServicesProps) {
         </div>
 
         <div className="products-grid">
-          {displayServicios.map((s, i) => (
-            <article className="product-card" key={s.slug}>
-              <div
-                className="product-icon"
-                dangerouslySetInnerHTML={{
-                  __html: ICONS[s.titulo] || s.icono || "⚡",
-                }}
-              />
-              <h3>{s.titulo}</h3>
-              <p>{s.descripcion || "Descubrí cómo este servicio puede potenciar tu negocio."}</p>
-              <div className="product-meta">
-                {(s.tags?.length ? s.tags : FALLBACK_TAGS[s.titulo] || []).map((tag) => (
-                  <span key={tag}>{tag}</span>
-                ))}
-              </div>
-            </article>
+          {displayServicios.map((s) => (
+            <Link
+              key={s.slug}
+              href={`/productos/${s.slug}`}
+              aria-label={`Ir a ${s.titulo}`}
+              style={{ textDecoration: "none", color: "inherit", display: "block", height: "100%" }}
+            >
+              <article className="product-card">
+                <div
+                  className="product-icon"
+                  dangerouslySetInnerHTML={{
+                    __html: ICONS[s.titulo] || s.icono || "⚡",
+                  }}
+                />
+                <h3>{s.titulo}</h3>
+                <p>{s.descripcion || "Descubrí cómo este servicio puede potenciar tu negocio."}</p>
+                <div className="product-meta">
+                  {priceLabel(s) && <span className="price-badge">{priceLabel(s)}</span>}
+                  {rate && s.precioBasico > 0 && <span className="price-usd">≈ {formatUSD(s.precioBasico)}/mes</span>}
+                  {(s.tags?.length ? s.tags : FALLBACK_TAGS[s.titulo] || []).map((tag) => (
+                    <span key={tag}>{tag}</span>
+                  ))}
+                </div>
+              </article>
+            </Link>
           ))}
         </div>
       </div>
@@ -141,6 +160,17 @@ export function Services({ servicios }: ServicesProps) {
           border: 1px solid rgba(255,255,255,0.08);
           border-radius: 100px;
           padding: 4px 10px;
+        }
+        .product-meta .price-badge {
+          color: #22d3ee;
+          border-color: rgba(34,211,238,0.25);
+          font-weight: 600;
+          background: rgba(34,211,238,0.06);
+        }
+        .product-meta .price-usd {
+          color: var(--color-text-dim);
+          border-color: transparent;
+          font-size: 0.62rem;
         }
         @media (max-width: 980px) { .products-grid { grid-template-columns: repeat(2, 1fr) } }
         @media (max-width: 720px) { .products-grid { grid-template-columns: 1fr } }

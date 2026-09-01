@@ -1,6 +1,7 @@
 import { sanityFetch } from "@/lib/sanity"
 import Link from "next/link"
 import type { Metadata } from "next"
+import { getDolarVentaBancoNacion, formatARS, formatUSD } from "@/lib/dolar"
 
 export const metadata: Metadata = {
   title: "Productos — PixelArch",
@@ -42,15 +43,19 @@ function formatPrice(precio: number) {
   return `$${(precio / 100).toFixed(0)}`
 }
 
-function priceLabel(precioBasico: number) {
+function priceLabel(precioBasico: number, rate: number | null) {
   if (!precioBasico) return null
+  if (rate) return `Desde ${formatARS(precioBasico, rate)}/mes`
   return `Desde ${formatPrice(precioBasico)}/mes`
 }
 
 export default async function ProductosPage() {
-  const servicios = await sanityFetch<
-    { titulo: string; slug: string; descripcion: string; icono: string; tags: string[]; precioUnico: number; precioBasico: number; precioMantenimiento: number }[]
-  >(SERVICIOS_QUERY)
+  const [servicios, rate] = await Promise.all([
+    sanityFetch<
+      { titulo: string; slug: string; descripcion: string; icono: string; tags: string[]; precioUnico: number; precioBasico: number; precioMantenimiento: number }[]
+    >(SERVICIOS_QUERY),
+    getDolarVentaBancoNacion(),
+  ])
 
   const displayServicios = servicios || []
 
@@ -81,7 +86,8 @@ export default async function ProductosPage() {
                   <h3>{s.titulo}</h3>
                   <p>{s.descripcion || "Descubrí cómo este servicio puede potenciar tu negocio."}</p>
                   <div className="product-meta">
-                    {priceLabel(s.precioBasico) && <span>{priceLabel(s.precioBasico)}</span>}
+                    {priceLabel(s.precioBasico, rate) && <span className="price-badge">{priceLabel(s.precioBasico, rate)}</span>}
+                    {rate && s.precioBasico > 0 && <span className="price-usd">≈ {formatUSD(s.precioBasico)}/mes</span>}
                     {(s.tags?.length ? s.tags : FALLBACK_TAGS[s.titulo] || []).slice(0, 3).map((tag) => (
                       <span key={tag}>{tag}</span>
                     ))}
@@ -150,6 +156,17 @@ export default async function ProductosPage() {
           border: 1px solid rgba(255,255,255,0.08);
           border-radius: 100px;
           padding: 4px 10px;
+        }
+        .product-meta .price-badge {
+          color: #22d3ee;
+          border-color: rgba(34,211,238,0.25);
+          font-weight: 600;
+          background: rgba(34,211,238,0.06);
+        }
+        .product-meta .price-usd {
+          color: var(--color-text-dim);
+          border-color: transparent;
+          font-size: 0.62rem;
         }
         @media (max-width: 980px) { .products-grid { grid-template-columns: repeat(2, 1fr) } }
         @media (max-width: 720px) { .products-grid { grid-template-columns: 1fr } }

@@ -1,8 +1,6 @@
 [build]
-buildCommand = "npm run build"
-watchPatterns = ["src/**", "prisma/**", "public/**", "package.json", "package-lock.json", "next.config.ts", "middleware.ts"]
+watchPatterns = ["src/**", "prisma/**", "public/**", "package.json", "package-lock.json", "next.config.ts", "middleware.ts", "Dockerfile", ".dockerignore", "railway.toml"]
 
 [deploy]
-startCommand = "npm run start"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 300

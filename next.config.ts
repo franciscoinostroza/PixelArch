@@ -15,6 +15,7 @@ const csp = [
   "object-src 'none'",
 ].join("; ")
 const nextConfig: NextConfig = {
+  output: "standalone",
   images: {
     remotePatterns: [
       {

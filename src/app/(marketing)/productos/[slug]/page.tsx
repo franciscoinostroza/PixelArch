@@ -135,7 +135,7 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
           </div>
 
           {servicioDB && (
-            <div className="planes-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "22px", marginTop: "24px" }}>
+            <div className="planes-grid">
               <article className="plan-card">
                 <div className="plan-card-content">
                   <div className="plan-icon"><svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
@@ -207,7 +207,7 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
       </section>
 
       <style>{`
-        .planes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+        .planes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 24px; }
         .plan-card {
           background: var(--color-panel);
           border: 1px solid rgba(255,255,255,0.08);

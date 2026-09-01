@@ -69,7 +69,7 @@ export default function PropuestaPage() {
 
         {/* Services */}
         <h2 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", marginBottom: "28px" }}>Nuestros Servicios</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "18px", marginBottom: "52px", textAlign: "left" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "18px", marginBottom: "52px", textAlign: "left" }}>
           {servicios.map((s, i) => (
             <div key={i} style={{
               background: "var(--color-panel)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px",

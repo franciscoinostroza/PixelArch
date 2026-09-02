@@ -35,7 +35,7 @@ export default function CuentaPage() {
     <div className="space-y-6">
       <PageHeader title="Mi cuenta" subtitle="Información y configuración de tu perfil." />
 
-      <div className="rounded-xl border border-border bg-panel p-6">
+      <div className="rounded-2xl border border-border bg-panel p-6">
         <div className="flex items-center gap-4">
           {user.imageUrl ? (
             <img
@@ -55,7 +55,7 @@ export default function CuentaPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-panel">
+      <div className="rounded-2xl border border-border bg-panel">
         <div className="flex items-center gap-2 border-b border-border/40 px-6 py-4">
           <Mail className="h-4 w-4 text-violet" />
           <h2 className="text-sm font-semibold text-text">Emails</h2>
@@ -79,7 +79,7 @@ export default function CuentaPage() {
       </div>
 
       {accounts.length > 0 && (
-        <div className="rounded-xl border border-border bg-panel">
+        <div className="rounded-2xl border border-border bg-panel">
           <div className="flex items-center gap-2 border-b border-border/40 px-6 py-4">
             <ExternalLink className="h-4 w-4 text-violet" />
             <h2 className="text-sm font-semibold text-text">Cuentas conectadas</h2>
@@ -105,7 +105,7 @@ export default function CuentaPage() {
 
       <button
         onClick={() => signOut({ redirectUrl: "/" })}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20"
       >
         <LogOut className="h-4 w-4" />
         Cerrar sesión

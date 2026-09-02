@@ -104,8 +104,8 @@ export default async function PortalPage({
       )}
 
       <div className="mb-5 flex items-center justify-between">
-        <p className="font-display text-[0.95rem] font-bold">Mis servicios</p>
-        <Link href="/productos" className="text-xs font-mono text-violet hover:underline">+ Agregar producto</Link>
+        <p className="font-display text-lg font-bold">Mis servicios</p>
+        <Link href="/productos" className="text-sm font-medium text-violet transition-colors hover:text-text">+ Agregar producto</Link>
       </div>
 
       <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -127,29 +127,29 @@ export default async function PortalPage({
                   <CancelSubscriptionButton suscripcionId={s.id} />
                 )}
               </div>
-              <p className="font-display text-[0.95rem] font-bold mb-1">{s.servicio.nombre}</p>
+              <p className="font-display text-base font-bold mb-1">{s.servicio.nombre}</p>
               {s.estado === "ACTIVE" && <ApplyDiscount suscripcionId={s.id} />}
-              <p className="text-xs text-text-dim leading-relaxed mb-3">{config.descripcion}</p>
+              <p className="text-sm text-text-dim leading-relaxed mb-4">{config.descripcion}</p>
 
               {s.estado === "READY" && (
-                <div className="flex flex-col gap-1.5 mb-3">
+                <div className="flex flex-col gap-2 mb-4">
                   {s.servicio.polarProductIdBasico && (
-                    <CheckoutButton polarProductId={s.servicio.polarProductIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label={`Básico ${price(s.servicio.precioBasico)}${rate ? " ARS" : ""}/mes${priceRef(s.servicio.precioBasico) ? ` (${priceRef(s.servicio.precioBasico)})` : ""} — mantener online`} size="sm" className="w-full" />
+                    <CheckoutButton polarProductId={s.servicio.polarProductIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label={`Básico ${price(s.servicio.precioBasico)}${rate ? " ARS" : ""}/mes${priceRef(s.servicio.precioBasico) ? ` (${priceRef(s.servicio.precioBasico)})` : ""} — mantener online`} size="default" variant="gradient" className="w-full" />
                   )}
                   {s.servicio.polarProductIdMantenimiento && (
-                    <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label={`Mantenimiento ${price(s.servicio.precioMantenimiento)}${rate ? " ARS" : ""}/mes${priceRef(s.servicio.precioMantenimiento) ? ` (${priceRef(s.servicio.precioMantenimiento)})` : ""} — online + cambios`} size="sm" className="w-full" />
+                    <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label={`Mantenimiento ${price(s.servicio.precioMantenimiento)}${rate ? " ARS" : ""}/mes${priceRef(s.servicio.precioMantenimiento) ? ` (${priceRef(s.servicio.precioMantenimiento)})` : ""} — online + cambios`} size="default" variant="outline" className="w-full" />
                   )}
                 </div>
               )}
 
               <div className="mt-auto pt-3 border-t border-border/50 flex items-center justify-between">
-                <p className="font-display text-[0.95rem] font-bold">
+                <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem" }}>
                   {s.estado === "READY" ? price(s.servicio.precioMantenimiento) : s.estado === "PENDING" ? price(s.servicio.precioUnico) : s.plan === "MANTENIMIENTO" ? price(s.servicio.precioMantenimiento) : price(s.servicio.precioBasico)}
-                  {s.estado !== "PENDING" && s.estado !== "READY" && <span className="text-[11px] font-normal text-text-dim">/mes</span>}
-                  {rate && <span className="ml-1.5 text-[11px] font-normal text-text-dim">≈ {formatUSD(s.estado === "READY" ? s.servicio.precioMantenimiento : s.estado === "PENDING" ? s.servicio.precioUnico : s.plan === "MANTENIMIENTO" ? s.servicio.precioMantenimiento : s.servicio.precioBasico)}</span>}
+                  {s.estado !== "PENDING" && s.estado !== "READY" && <span className="text-xs font-normal text-text-dim">/mes</span>}
+                  {rate && <span className="ml-1.5 text-xs font-normal text-text-dim">≈ {formatUSD(s.estado === "READY" ? s.servicio.precioMantenimiento : s.estado === "PENDING" ? s.servicio.precioUnico : s.plan === "MANTENIMIENTO" ? s.servicio.precioMantenimiento : s.servicio.precioBasico)}</span>}
                 </p>
                 {s.proximoPago && (
-                  <span className={cn("text-[11px]", s.estado === "PAST_DUE" ? "text-red-400" : "text-text-dim")}>
+                  <span className={cn("text-xs", s.estado === "PAST_DUE" ? "text-red-400" : "text-text-dim")}>
                     {s.estado === "PAST_DUE" ? "⚠ Vence " : "Renueva "}{new Date(s.proximoPago).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
                   </span>
                 )}
@@ -168,9 +168,9 @@ export default async function PortalPage({
 
       {ultimosPagos.length > 0 && (
         <>
-          <div className="mb-3 flex items-center justify-between">
-            <p className="font-display text-[0.95rem] font-bold">Últimos pagos</p>
-            <Link href="/portal/facturacion" className="text-xs font-mono text-violet hover:underline">Ver historial completo</Link>
+          <div className="mb-5 flex items-center justify-between">
+            <p className="font-display text-lg font-bold">Últimos pagos</p>
+            <Link href="/portal/facturacion" className="text-sm font-medium text-violet transition-colors hover:text-text">Ver historial completo</Link>
           </div>
           <div className="brand-table overflow-x-auto">
             <table className="w-full">

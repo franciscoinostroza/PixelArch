@@ -3,6 +3,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { PortalNav } from "@/components/ui/portal-nav"
 import { PortalUserButton } from "@/components/ui/portal-user-button"
+import SpaceCanvas from "@/components/layout/space-canvas"
 
 export default async function PortalLayout({
   children,
@@ -20,48 +21,57 @@ export default async function PortalLayout({
     : "??"
 
   return (
-    <div className="min-h-screen bg-bg" style={{ position: "relative" }}>
-      <section className="section--compact" style={{ position: "relative", zIndex: 1, overflow: "hidden", minHeight: "100svh" }}>
-        <div className="section-divider section-divider--violet" aria-hidden="true" />
-        <div className="section-band section-band--violet" aria-hidden="true" />
-        <div className="section-glow section-glow--violet" style={{ width: "450px", height: "450px", left: "-100px", top: "-5%" }} aria-hidden="true" />
-      <header className="border-b border-border bg-panel" style={{ position: "relative", zIndex: 2 }}>
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: "9px" }}>
-            <svg width="18" height="18" viewBox="0 0 32 32" aria-hidden="true">
-              <rect x="4" y="4" width="11" height="11" rx="2" fill="url(#portalLogoGrad)"/>
-              <rect x="17" y="17" width="11" height="11" rx="2" fill="url(#portalLogoGrad)" opacity=".5"/>
-              <defs>
-                <linearGradient id="portalLogoGrad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stopColor="#8b5cf6"/>
-                  <stop offset="1" stopColor="#22d3ee"/>
-                </linearGradient>
-              </defs>
-            </svg>
-            <span className="font-display text-lg font-bold text-text" style={{ position: "relative", display: "inline-block", paddingBottom: "2px", overflow: "hidden" }}>
-              Pixel<span className="text-violet">Arch</span>
-              <span aria-hidden="true" style={{
-                position: "absolute", left: "-45%", bottom: 0, width: "45%", height: "2px",
-                background: "linear-gradient(90deg,transparent,#22d3ee,#8b5cf6,transparent)",
-                animation: "logo-scan 3.2s ease-in-out infinite",
-                pointerEvents: "none",
-              }} />
-            </span>
-          </Link>
-          <PortalNav />
-          <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet/15 font-display text-[11px] font-bold text-violet">
-              {iniciales}
+    <div className="relative min-h-screen">
+      <SpaceCanvas />
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed -left-40 top-[-10%] z-[1] h-[450px] w-[450px] rounded-full blur-[130px]"
+        style={{ background: "rgba(139,92,246,0.20)" }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed -right-40 bottom-[-10%] z-[1] h-[400px] w-[400px] rounded-full blur-[130px]"
+        style={{ background: "rgba(34,211,238,0.13)" }}
+      />
+
+      <div className="relative z-10">
+        <header className="sticky top-0 z-40 border-b border-white/[0.06] backdrop-blur-xl" style={{ background: "rgba(7,6,12,0.6)" }}>
+          <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+            <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: "9px" }}>
+              <svg width="18" height="18" viewBox="0 0 32 32" aria-hidden="true">
+                <rect x="4" y="4" width="11" height="11" rx="2" fill="url(#portalLogoGrad)"/>
+                <rect x="17" y="17" width="11" height="11" rx="2" fill="url(#portalLogoGrad)" opacity=".5"/>
+                <defs>
+                  <linearGradient id="portalLogoGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stopColor="#8b5cf6"/>
+                    <stop offset="1" stopColor="#22d3ee"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+              <span className="font-display text-lg font-bold text-text" style={{ position: "relative", display: "inline-block", paddingBottom: "2px", overflow: "hidden" }}>
+                Pixel<span className="text-violet">Arch</span>
+                <span aria-hidden="true" style={{
+                  position: "absolute", left: "-45%", bottom: 0, width: "45%", height: "2px",
+                  background: "linear-gradient(90deg,transparent,#22d3ee,#8b5cf6,transparent)",
+                  animation: "logo-scan 3.2s ease-in-out infinite",
+                  pointerEvents: "none",
+                }} />
+              </span>
+            </Link>
+            <PortalNav />
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet/15 font-display text-[11px] font-bold text-violet">
+                {iniciales}
+              </div>
+              <span className="hidden text-sm text-text md:block">{nombre}</span>
+              <PortalUserButton />
             </div>
-            <span className="hidden text-sm text-text md:block">{nombre}</span>
           </div>
-            <PortalUserButton />
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-5xl px-6 py-10" style={{ position: "relative", zIndex: 1 }}>{children}</main>
-      </section>
+        </header>
+
+        <main className="mx-auto max-w-5xl px-6 py-12">{children}</main>
+      </div>
     </div>
   )
 }

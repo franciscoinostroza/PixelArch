@@ -60,24 +60,23 @@ export default async function FacturacionPage({
             <p className="font-mono text-sm text-text-dim">No hay pagos registrados</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {pagos.map((p) => (
-              <div key={p.id} className="brand-card--static brand-card">
-                <div className="flex items-center justify-between p-5">
-                  <div>
-                    <p className="font-display text-sm font-medium text-text">
-                      {p.suscripcion?.servicio.nombre ?? "Pago"}
-                    </p>
-                    <p className="text-xs text-text-dim font-mono">
-                      {new Date(p.creadoEn).toLocaleDateString("es-AR")}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <p className="font-mono font-medium text-text">
-                      US${(p.monto / 100).toFixed(2)}
-                    </p>
-                    <StatusPill estado={p.estadoPago} />
-                  </div>
+          <div className="brand-card--static brand-card overflow-hidden">
+            {pagos.map((p, i) => (
+              <div
+                key={p.id}
+                className={`flex flex-wrap items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-white/[0.02] ${i > 0 ? "border-t border-border/40" : ""}`}
+              >
+                <div>
+                  <p className="font-display text-sm font-medium text-text">
+                    {p.suscripcion?.servicio.nombre ?? "Pago"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-text-dim font-mono">
+                    {new Date(p.creadoEn).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <p className="font-mono font-semibold text-text">US${(p.monto / 100).toFixed(2)}</p>
+                  <StatusPill estado={p.estadoPago} />
                 </div>
               </div>
             ))}

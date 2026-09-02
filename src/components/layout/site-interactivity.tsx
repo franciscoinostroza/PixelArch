@@ -6,6 +6,7 @@ export default function SiteInteractivity() {
   useEffect(() => {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     const fine = window.matchMedia("(pointer: fine)").matches
+    let cleanup: (() => void) | undefined
 
     /* scroll progress bar */
     const scrollProgress = document.getElementById("scrollProgress")
@@ -83,23 +84,68 @@ export default function SiteInteractivity() {
     if (fine && !reduceMotion) {
       const glow = document.getElementById("cursorGlow")
       if (glow) {
-        let tx = 0, ty = 0, cx = 0, cy = 0, cursorActive = false
-        document.addEventListener("mousemove", (e) => {
+        let tx = 0, ty = 0, cx = 0, cy = 0, cursorActive = false, overlayOpen = false, rafId = 0
+
+        const setNativeCursor = (native: boolean) => {
+          document.body.classList.toggle("cursor-hidden", !native)
+          if (native) glow.classList.remove("is-active")
+        }
+
+        const checkOverlay = () => {
+          const open = !!document.querySelector('[role="dialog"], [aria-modal="true"], .cl-rootBox, .cl-modalBackdrop')
+          if (open === overlayOpen) return
+          overlayOpen = open
+          if (open) {
+            setNativeCursor(true)
+          } else if (cursorActive) {
+            setNativeCursor(false)
+          }
+        }
+
+        const overlayObserver = new MutationObserver(checkOverlay)
+        overlayObserver.observe(document.body, { childList: true, subtree: true })
+
+        const onMove = (e: MouseEvent) => {
           tx = e.clientX; ty = e.clientY
-          if (!cursorActive) { cx = tx; cy = ty; cursorActive = true; document.body.classList.add("cursor-hidden") }
+          if (!cursorActive) {
+            cx = tx; cy = ty; cursorActive = true
+            if (!overlayOpen) document.body.classList.add("cursor-hidden")
+          }
           glow.classList.add("is-active")
-        })
-        document.addEventListener("mouseleave", () => glow.classList.remove("is-active"))
-        ;(function cursorLoop() {
+        }
+        const onLeave = () => glow.classList.remove("is-active")
+
+        const cursorLoop = () => {
           cx += (tx - cx) * 0.18; cy += (ty - cy) * 0.18
           glow.style.left = cx + "px"
           glow.style.top = cy + "px"
-          requestAnimationFrame(cursorLoop)
-        })()
-        document.querySelectorAll("a, button, .product-card, .review-card").forEach((el) => {
-          el.addEventListener("mouseenter", () => glow.classList.add("is-hover"))
-          el.addEventListener("mouseleave", () => glow.classList.remove("is-hover"))
+          rafId = requestAnimationFrame(cursorLoop)
+        }
+
+        const hoverEls = Array.from(document.querySelectorAll("a, button, .product-card, .review-card"))
+        const addHover = () => glow.classList.add("is-hover")
+        const removeHover = () => glow.classList.remove("is-hover")
+
+        document.addEventListener("mousemove", onMove)
+        document.addEventListener("mouseleave", onLeave)
+        hoverEls.forEach((el) => {
+          el.addEventListener("mouseenter", addHover)
+          el.addEventListener("mouseleave", removeHover)
         })
+        cursorLoop()
+
+        cleanup = () => {
+          overlayObserver.disconnect()
+          cancelAnimationFrame(rafId)
+          document.removeEventListener("mousemove", onMove)
+          document.removeEventListener("mouseleave", onLeave)
+          hoverEls.forEach((el) => {
+            el.removeEventListener("mouseenter", addHover)
+            el.removeEventListener("mouseleave", removeHover)
+          })
+          document.body.classList.remove("cursor-hidden")
+          glow.classList.remove("is-active", "is-hover")
+        }
       }
     }
 
@@ -162,6 +208,7 @@ export default function SiteInteractivity() {
       window.removeEventListener("resize", updateScrollProgress)
       window.removeEventListener("scroll", requestTrackUpdate)
       window.removeEventListener("resize", requestTrackUpdate)
+      cleanup?.()
     }
   }, [])
 

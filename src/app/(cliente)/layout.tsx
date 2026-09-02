@@ -26,7 +26,7 @@ export default async function PortalLayout({
         <div className="section-band section-band--violet" aria-hidden="true" />
         <div className="section-glow section-glow--violet" style={{ width: "450px", height: "450px", left: "-100px", top: "-5%" }} aria-hidden="true" />
       <header className="border-b border-border bg-panel" style={{ position: "relative", zIndex: 2 }}>
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: "9px" }}>
             <svg width="18" height="18" viewBox="0 0 32 32" aria-hidden="true">
               <rect x="4" y="4" width="11" height="11" rx="2" fill="url(#portalLogoGrad)"/>
@@ -60,7 +60,7 @@ export default async function PortalLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-6 py-10" style={{ position: "relative", zIndex: 1 }}>{children}</main>
+      <main className="mx-auto max-w-5xl px-6 py-10" style={{ position: "relative", zIndex: 1 }}>{children}</main>
       </section>
     </div>
   )

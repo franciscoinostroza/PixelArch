@@ -43,7 +43,7 @@ export function WhatsappButton() {
 
       <span
         aria-hidden="true"
-        className={`pointer-events-none fixed bottom-7 right-[76px] z-50 hidden rounded-lg border border-white/10 bg-panel px-3 py-1.5 font-mono text-xs text-text transition-opacity duration-200 sm:block ${
+        className={`pointer-events-none fixed bottom-7 right-[74px] z-50 hidden whitespace-nowrap font-display text-[13px] text-text transition-opacity duration-200 sm:block ${
           showTip ? "opacity-100" : "opacity-0"
         }`}
       >

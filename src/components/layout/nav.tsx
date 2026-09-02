@@ -22,12 +22,9 @@ function AdminNavLink() {
   if (role !== "admin") return null
 
   return (
-    <Link
-      href="/admin/dashboard"
-      className="text-sm text-text-dim transition-colors hover:text-text"
-      style={{ fontFamily: "var(--font-display)", fontWeight: 500 }}
-    >
+    <Link href="/admin/dashboard" className="nav-auth-link">
       Admin
+      <span className="nav-underline" aria-hidden="true" />
     </Link>
   )
 }
@@ -60,22 +57,17 @@ function ClerkAuthSection() {
     <>
       <Show when="signed-out">
         <SignInButton mode="modal">
-          <span
-            className="text-sm text-text-dim transition-colors hover:text-text"
-            style={{ fontFamily: "var(--font-display)", fontWeight: 500, cursor: "pointer" }}
-          >
+          <span className="nav-auth-link" style={{ cursor: "pointer" }}>
             Ingresar
+            <span className="nav-underline" aria-hidden="true" />
           </span>
         </SignInButton>
       </Show>
       <Show when="signed-in">
         <div className="flex items-center gap-4">
-          <Link
-            href="/portal"
-            className="text-sm text-text-dim transition-colors hover:text-text"
-            style={{ fontFamily: "var(--font-display)", fontWeight: 500 }}
-          >
+          <Link href="/portal" className="nav-auth-link">
             Portal
+            <span className="nav-underline" aria-hidden="true" />
           </Link>
           <AdminNavLink />
           <UserButton />

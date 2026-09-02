@@ -359,6 +359,29 @@ section { padding: clamp(88px, 10vw, 132px) 0 }
 .main-nav a:hover { color: var(--color-text) }
 .main-nav a:hover .nav-underline { right: 0 }
 
+/* auth links en nav unificados con los links del menu */
+.nav-auth-link {
+  position: relative;
+  display: inline-flex;
+  padding-bottom: 2px;
+  color: var(--color-text-dim);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.nav-auth-link:hover { color: var(--color-text) }
+.nav-auth-link .nav-underline {
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: 0;
+  height: 1.5px;
+  background: linear-gradient(135deg, #8b5cf6, #22d3ee);
+  transition: right 0.3s cubic-bezier(.19,1,.22,1);
+}
+.nav-auth-link:hover .nav-underline { right: 0 }
+
 .nav-toggle {
   display: none;
   flex-direction: column;
@@ -401,6 +424,13 @@ section { padding: clamp(88px, 10vw, 132px) 0 }
   font-weight: 500;
 }
 .mobile-menu a:hover { background: var(--color-panel-2) }
+.mobile-menu .nav-auth-link {
+  display: block;
+  padding: 14px 12px;
+  border-radius: 8px;
+}
+.mobile-menu .nav-auth-link .nav-underline { display: none }
+.mobile-menu .nav-auth-link:hover { background: var(--color-panel-2) }
 .mobile-menu-auth {
   border-top: 1px solid rgba(255,255,255,0.08);
   margin-top: 8px;

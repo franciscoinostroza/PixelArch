@@ -115,14 +115,14 @@ export function AuditModal() {
             <button
               onClick={close}
               aria-label="Cerrar"
-              className="absolute right-3.5 top-3.5 flex h-8 w-8 items-center justify-center rounded-full text-text-dim transition-colors hover:bg-white/5 hover:text-text"
+              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-text-dim transition-colors hover:bg-white/5 hover:text-text"
             >
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M6 6l12 12M18 6L6 18" />
               </svg>
             </button>
 
-            <div className="p-7 sm:p-8">
+            <div className="p-8 sm:p-10">
               <div
                 className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl"
                 style={{

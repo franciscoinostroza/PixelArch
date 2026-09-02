@@ -40,8 +40,8 @@ export function SubscriptionActions({ suscripcionId, estado, cancelAtPeriodEnd, 
   if (estado !== "ACTIVE" && estado !== "PAST_DUE") return null
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-1">
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-2">
         {cancelAtPeriodEnd ? (
           <Button variant="ghost" size="sm" onClick={() => action("uncancel")} disabled={!!loading} title="Revertir cancelacion">
             {loading === "uncancel" ? <Loader2 size={14} className="animate-spin" /> : <Undo2 size={14} />}

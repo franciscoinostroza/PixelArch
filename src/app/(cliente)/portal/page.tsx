@@ -9,6 +9,8 @@ import { CancelSubscriptionButton } from "@/components/ui/cancel-subscription-bu
 import { PaymentPortalLink } from "@/components/ui/payment-portal-link"
 import { CheckoutButton } from "@/components/ui/checkout-button"
 import { ApplyDiscount } from "@/components/ui/apply-discount"
+import { PageHeader } from "@/components/ui/page-header"
+import { StatusPill } from "@/components/ui/status-pill"
 import { getDolarVentaBancoNacion, formatARS, formatUSD } from "@/lib/dolar"
 
 export default async function PortalPage({
@@ -85,22 +87,18 @@ export default async function PortalPage({
 
   return (
     <div>
-      <div className="section-head" style={{ maxWidth: "600px", marginBottom: "40px" }}>
-        <p className="eyebrow">Portal</p>
-        <h2 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", marginBottom: "10px" }}>Hola, {primerNombre}</h2>
-        <p style={{ color: "var(--color-text-dim)", fontSize: ".9rem" }}>Estos son tus servicios activos con PixelArch.</p>
-      </div>
+      <PageHeader title={`Hola, ${primerNombre}`} subtitle="Estos son tus servicios activos con PixelArch." />
 
       {success === "true" && (
-        <div className="mb-5 flex items-center gap-3 rounded-lg border border-mint/30 bg-mint/5 px-4 py-3 text-[13px] text-mint font-mono">
-          <CheckCircle2 size={18} /> Pago exitoso. Tu suscripcion se activara en breve.
+        <div className="mb-5 flex items-center gap-3 rounded-xl border border-mint/30 bg-mint/5 px-4 py-3 text-[13px] text-mint">
+          <CheckCircle2 size={18} className="shrink-0" /> Pago exitoso. Tu suscripción se activará en breve.
         </div>
       )}
 
       {tienePagoFallido && (
-        <div className="mb-5 flex items-center gap-3 rounded-lg border border-red-500/25 bg-red-500/5 px-5 py-4 text-[13px] text-red-300">
+        <div className="mb-5 flex items-center gap-3 rounded-xl border border-red-500/25 bg-red-500/5 px-4 py-3 text-[13px] text-red-300">
           <AlertTriangle size={16} className="shrink-0" />
-          <span className="flex-1 leading-relaxed"><strong className="text-red-200">Tu pago reciente fallo.</strong> Actualiza tu metodo de pago.</span>
+          <span className="flex-1 leading-relaxed"><strong className="text-red-200">Tu pago reciente falló.</strong> Actualiza tu método de pago.</span>
           <PaymentPortalLink />
         </div>
       )}
@@ -112,23 +110,19 @@ export default async function PortalPage({
 
       <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {suscripciones.length === 0 && (
-          <Link href="/productos" className="col-span-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/40 px-6 py-12 transition-colors hover:border-violet/40 hover:bg-violet/[0.04] brand-card relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet/40 to-cyan/40" />
+          <Link href="/productos" className="col-span-full flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/40 bg-panel px-6 py-14 transition-colors hover:border-violet/40 hover:bg-violet/[0.04]">
             <span className="text-2xl text-text-faint">+</span>
             <span className="text-[13px] text-text-faint">Agregar un<br />nuevo producto</span>
           </Link>
         )}
 
         {suscripciones.map((s) => {
-          const config = estadoUI(s)
+          const config = estadoConfig(s)
           return (
             <div key={s.id} className="brand-card p-5 relative overflow-hidden">
               <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${s.estado === "ACTIVE" ? "from-mint to-cyan" : s.estado === "PAST_DUE" ? "from-red-400 to-red-500" : s.estado === "PENDING" ? "from-yellow-400 to-yellow-500" : s.estado === "READY" ? "from-violet to-cyan" : "from-text-faint to-text-dim"}`} />
               <div className="mb-3 flex items-center justify-between">
-                <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]", config.badgeBg, config.badgeColor)}>
-                  <span className={cn("w-[5px] h-[5px] rounded-full", s.estado === "ACTIVE" && "animate-pulse")} style={{ backgroundColor: "currentColor" }} />
-                  {config.label}
-                </span>
+                <StatusPill estado={s.estado} label={config.label} pulse={s.estado === "ACTIVE"} />
                 {(s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
                   <CancelSubscriptionButton suscripcionId={s.id} />
                 )}
@@ -140,7 +134,7 @@ export default async function PortalPage({
               {s.estado === "READY" && (
                 <div className="flex flex-col gap-1.5 mb-3">
                   {s.servicio.polarProductIdBasico && (
-                    <CheckoutButton polarProductId={s.servicio.polarProductIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label={`Basico ${price(s.servicio.precioBasico)}${rate ? " ARS" : ""}/mes${priceRef(s.servicio.precioBasico) ? ` (${priceRef(s.servicio.precioBasico)})` : ""} — mantener online`} size="sm" className="w-full" />
+                    <CheckoutButton polarProductId={s.servicio.polarProductIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label={`Básico ${price(s.servicio.precioBasico)}${rate ? " ARS" : ""}/mes${priceRef(s.servicio.precioBasico) ? ` (${priceRef(s.servicio.precioBasico)})` : ""} — mantener online`} size="sm" className="w-full" />
                   )}
                   {s.servicio.polarProductIdMantenimiento && (
                     <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label={`Mantenimiento ${price(s.servicio.precioMantenimiento)}${rate ? " ARS" : ""}/mes${priceRef(s.servicio.precioMantenimiento) ? ` (${priceRef(s.servicio.precioMantenimiento)})` : ""} — online + cambios`} size="sm" className="w-full" />
@@ -152,10 +146,10 @@ export default async function PortalPage({
                 <p className="font-display text-[0.95rem] font-bold">
                   {s.estado === "READY" ? price(s.servicio.precioMantenimiento) : s.estado === "PENDING" ? price(s.servicio.precioUnico) : s.plan === "MANTENIMIENTO" ? price(s.servicio.precioMantenimiento) : price(s.servicio.precioBasico)}
                   {s.estado !== "PENDING" && s.estado !== "READY" && <span className="text-[11px] font-normal text-text-dim">/mes</span>}
-                  {rate && <span className="ml-1.5 text-[10px] font-normal text-text-dim">≈ {formatUSD(s.estado === "READY" ? s.servicio.precioMantenimiento : s.estado === "PENDING" ? s.servicio.precioUnico : s.plan === "MANTENIMIENTO" ? s.servicio.precioMantenimiento : s.servicio.precioBasico)}</span>}
+                  {rate && <span className="ml-1.5 text-[11px] font-normal text-text-dim">≈ {formatUSD(s.estado === "READY" ? s.servicio.precioMantenimiento : s.estado === "PENDING" ? s.servicio.precioUnico : s.plan === "MANTENIMIENTO" ? s.servicio.precioMantenimiento : s.servicio.precioBasico)}</span>}
                 </p>
                 {s.proximoPago && (
-                  <span className={cn("text-[11px]", s.estado === "PAST_DUE" ? "text-[#fac775]" : "text-text-dim")}>
+                  <span className={cn("text-[11px]", s.estado === "PAST_DUE" ? "text-red-400" : "text-text-dim")}>
                     {s.estado === "PAST_DUE" ? "⚠ Vence " : "Renueva "}{new Date(s.proximoPago).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
                   </span>
                 )}
@@ -165,7 +159,7 @@ export default async function PortalPage({
         })}
 
         {suscripciones.length > 0 && (
-          <Link href="/productos" className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/40 px-6 py-3 transition-colors hover:border-violet/40 hover:bg-violet/[0.04]">
+          <Link href="/productos" className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/40 bg-panel px-6 py-4 transition-colors hover:border-violet/40 hover:bg-violet/[0.04]">
             <span className="text-xl text-text-faint">+</span>
             <span className="text-[13px] text-text-faint text-center">Agregar un<br />nuevo producto</span>
           </Link>
@@ -175,36 +169,30 @@ export default async function PortalPage({
       {ultimosPagos.length > 0 && (
         <>
           <div className="mb-3 flex items-center justify-between">
-            <p className="font-display text-[0.95rem] font-bold">Ultimos pagos</p>
+            <p className="font-display text-[0.95rem] font-bold">Últimos pagos</p>
             <Link href="/portal/facturacion" className="text-xs font-mono text-violet hover:underline">Ver historial completo</Link>
           </div>
           <div className="brand-table overflow-x-auto">
-            <div className="h-[2px] bg-gradient-to-r from-violet/20 to-cyan/20" />
             <table className="w-full">
               <thead>
-                <tr>
-                  <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal border-b border-border/50">Descripcion</th>
-                  <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal border-b border-border/50">Fecha</th>
-                  <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal border-b border-border/50">Monto</th>
-                  <th className="text-right text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal border-b border-border/50">Estado</th>
+                <tr className="border-b border-border/50">
+                  <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">Descripción</th>
+                  <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">Fecha</th>
+                  <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">Monto</th>
+                  <th className="text-right text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">Estado</th>
                 </tr>
               </thead>
               <tbody>
-                {ultimosPagos.map((p) => {
-                  const ep = p.estadoPago === "SUCCEEDED" ? { label: "Pagado", key: "ok" } : p.estadoPago === "FAILED" ? { label: "Fallido", key: "fail" } : { label: p.estadoPago, key: "pending" }
-                  return (
-                    <tr key={p.id} className="border-b border-border/30 last:border-b-0">
-                      <td className="px-5 py-3 text-xs text-text">{p.suscripcion?.servicio.nombre ?? "Pago"}</td>
-                      <td className="px-5 py-3 text-xs text-text-dim font-mono">{new Date(p.creadoEn).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}</td>
-                      <td className="px-5 py-3 text-xs text-text font-mono font-medium">${(p.monto / 100).toFixed(0)}</td>
-                      <td className="px-5 py-3 text-right">
-                        <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]", ep.key === "ok" ? "bg-mint/10 text-mint" : ep.key === "fail" ? "bg-red-500/10 text-red-300" : "bg-[#ef9f27]/10 text-[#fac775]")}>
-                          {ep.key === "ok" ? "✓ " : ep.key === "fail" ? "✗ " : ""}{ep.label}
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
+                {ultimosPagos.map((p) => (
+                  <tr key={p.id} className="border-b border-border/30 last:border-b-0 transition-colors hover:bg-panel/50">
+                    <td className="px-5 py-3 text-xs text-text">{p.suscripcion?.servicio.nombre ?? "Pago"}</td>
+                    <td className="px-5 py-3 text-xs text-text-dim font-mono">{new Date(p.creadoEn).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}</td>
+                    <td className="px-5 py-3 text-xs text-text font-mono font-medium">US${(p.monto / 100).toFixed(2)}</td>
+                    <td className="px-5 py-3 text-right">
+                      <StatusPill estado={p.estadoPago} />
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -214,14 +202,14 @@ export default async function PortalPage({
   )
 }
 
-function estadoUI(s: { estado: string; servicio: { nombre: string } }) {
-  const maps: Record<string, { label: string; descripcion: string; badgeBg: string; badgeColor: string }> = {
-    PENDING: { label: "En desarrollo", descripcion: "Tu proyecto esta en curso. Te avisamos cuando este listo.", badgeBg: "bg-yellow-400/10", badgeColor: "text-yellow-400" },
-    READY: { label: "Entregado", descripcion: "Proyecto entregado. Elegi un plan mensual para mantenerlo online.", badgeBg: "bg-purple-400/10", badgeColor: "text-purple-400" },
-    ACTIVE: { label: "Activo", descripcion: "Tu servicio esta online y funcionando.", badgeBg: "bg-mint/10", badgeColor: "text-mint" },
-    PAST_DUE: { label: "Pago fallido", descripcion: "Tu ultimo pago fallo. Actualiza tu metodo de pago para evitar la suspension del servicio.", badgeBg: "bg-red-500/10", badgeColor: "text-red-300" },
-    PAUSED: { label: "Pausado", descripcion: "Suscripcion pausada. Contacta a soporte para reactivar.", badgeBg: "bg-text-faint/10", badgeColor: "text-text-dim" },
-    CANCELED: { label: "Cancelado", descripcion: "Suscripcion cancelada. El servicio ya no esta online.", badgeBg: "bg-text-faint/10", badgeColor: "text-text-dim" },
+function estadoConfig(s: { estado: string; servicio: { nombre: string } }) {
+  const maps: Record<string, { label: string; descripcion: string }> = {
+    PENDING: { label: "En desarrollo", descripcion: "Tu proyecto está en curso. Te avisamos cuando esté listo." },
+    READY: { label: "Entregado", descripcion: "Proyecto entregado. Elegí un plan mensual para mantenerlo online." },
+    ACTIVE: { label: "Activo", descripcion: "Tu servicio está online y funcionando." },
+    PAST_DUE: { label: "Pago fallido", descripcion: "Tu último pago falló. Actualizá tu método de pago para evitar la suspensión del servicio." },
+    PAUSED: { label: "Pausado", descripcion: "Suscripción pausada. Contacta a soporte para reactivar." },
+    CANCELED: { label: "Cancelado", descripcion: "Suscripción cancelada. El servicio ya no está online." },
   }
-  return maps[s.estado] ?? { label: s.estado, descripcion: "", badgeBg: "bg-text-faint/10", badgeColor: "text-text-dim" }
+  return maps[s.estado] ?? { label: s.estado, descripcion: "" }
 }

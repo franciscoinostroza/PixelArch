@@ -43,7 +43,7 @@ export function CheckoutButton({ polarProductId, tipo = "UNICO", label, size = "
   return (
     <div>
       <Button size={size} variant={variant} className={className} onClick={handleCheckout} disabled={loading}>
-        {loading && <Loader2 size={16} className="animate-spin mr-2" />}
+        {loading && <Loader2 size={16} className="animate-spin" />}
         {label || "Contratar"}
       </Button>
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}

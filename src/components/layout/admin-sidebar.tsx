@@ -14,7 +14,7 @@ const sections = [
     ],
   },
   {
-    label: "Gestion",
+    label: "Gestión",
     items: [
       { href: "/admin/clientes", label: "Clientes", icon: Users },
       { href: "/admin/servicios", label: "Productos", icon: Wrench },

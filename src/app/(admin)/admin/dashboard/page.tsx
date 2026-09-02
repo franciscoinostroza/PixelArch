@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import Script from "next/script"
 import { ArrowUpRight, ArrowDownRight } from "lucide-react"
+import { PageHeader } from "@/components/ui/page-header"
 
 function initials(name: string) {
   return name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -11,7 +12,7 @@ function initials(name: string) {
 
 function ClientAvatar({ name }: { name: string }) {
   return (
-    <div className="w-[36px] h-[36px] rounded-[10px] flex items-center justify-center shrink-0 font-display font-bold text-[.8rem] text-[#07060c]" style={{ background: "linear-gradient(135deg,#8b5cf6,#22d3ee)" }}>
+    <div className="w-[36px] h-[36px] rounded-full flex items-center justify-center shrink-0 font-display font-bold text-[.8rem] text-[#07060c]" style={{ background: "linear-gradient(135deg,#8b5cf6,#22d3ee)" }}>
       {initials(name)}
     </div>
   )
@@ -114,11 +115,7 @@ export default async function AdminDashboard() {
 
   return (
     <div>
-      <div className="section-head" style={{ maxWidth: "600px", marginBottom: "32px" }}>
-        <p className="eyebrow">Panel</p>
-        <h2 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", marginBottom: "8px" }}>Dashboard</h2>
-        <p style={{ color: "var(--color-text-dim)", fontSize: ".9rem" }}>Bienvenido, admin</p>
-      </div>
+      <PageHeader title="Dashboard" subtitle="Bienvenido, admin" />
 
       {pagosVencidos > 0 && (
         <div className="flex items-center gap-3 rounded-xl border border-red-500/25 bg-red-500/6 px-4 py-3 mb-6" style={{ fontSize: ".8rem", color: "#fca5a5" }}>
@@ -136,10 +133,10 @@ export default async function AdminDashboard() {
               <div className={`w-[44px] h-[44px] rounded-[12px] flex items-center justify-center mb-4 ${s.iconBg}`}>
                 <StatIcon icon={s.icon} />
               </div>
-              <p className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-text-faint mb-1.5 leading-tight">{s.label}</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint mb-1.5 leading-tight">{s.label}</p>
               <p className={`font-display text-[1.9rem] font-bold tracking-[-0.02em] ${s.icon === "alert" ? "text-red-400" : "text-text"}`}>{s.value}</p>
               {s.delta && (
-                <p className={`flex items-center gap-1 text-[.72rem] mt-2 ${s.delta.positive ? "text-mint" : "text-red-400"}`}>
+                <p className={`flex items-center gap-1 text-[11px] mt-2 ${s.delta.positive ? "text-mint" : "text-red-400"}`}>
                   {s.delta.positive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
                   {s.delta.positive ? "+" : ""}{s.delta.value}% vs anterior
                 </p>
@@ -151,9 +148,9 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-6">
-        <div className="rounded-[18px] border border-border bg-panel-2 p-6">
+        <div className="rounded-2xl border border-border bg-panel p-6">
           <div className="flex items-center justify-between mb-4">
-            <p className="font-display text-[.95rem] font-bold">Clientes recientes</p>
+            <p className="font-display text-[0.95rem] font-bold">Clientes recientes</p>
             <Link href="/admin/clientes" className="font-mono text-[11px] text-violet inline-flex items-center gap-1">
               Ver todos →
             </Link>
@@ -161,21 +158,21 @@ export default async function AdminDashboard() {
           <div className="h-px" style={{ background: "linear-gradient(90deg,rgba(139,92,246,.25),rgba(34,211,238,.15),transparent)", marginBottom: "14px" }} />
           <div className="flex flex-col gap-2">
             {ultimosClientes.map((c) => (
-              <Link key={c.id} href={`/admin/clientes/${c.id}`} className="flex items-center gap-3 rounded-[10px] px-1.5 py-2.5 transition-colors hover:bg-white/[0.02]">
+              <Link key={c.id} href={`/admin/clientes/${c.id}`} className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-white/[0.02]">
                 <ClientAvatar name={c.nombre} />
                 <div className="flex-1 min-w-0">
                   <p className="font-display font-semibold text-[.85rem] truncate">{c.nombre}</p>
-                  <p className="text-[.72rem] text-text-dim truncate">{c.email}</p>
+                  <p className="text-[11px] text-text-dim truncate">{c.email}</p>
                 </div>
-                <span className="font-mono text-[.7rem] text-text-dim border border-border rounded-full px-2 py-0.5 shrink-0">{c._count.suscripciones} susc.</span>
+                <span className="font-mono text-[11px] text-text-dim shrink-0">{c._count.suscripciones} susc.</span>
               </Link>
             ))}
           </div>
         </div>
 
-        <div className="rounded-[18px] border border-border bg-panel-2 p-6">
-          <p className="font-display text-[.95rem] font-bold mb-4">Estado de suscripciones</p>
-          <div className="h-px" style={{ background: "linear-gradient(90deg,rgba(34,211,238,.25),rgba(139,92,246,.15),transparent)", marginBottom: "14px" }} />
+        <div className="rounded-2xl border border-border bg-panel p-6">
+          <p className="font-display text-[0.95rem] font-bold mb-4">Estado de suscripciones</p>
+          <div className="h-px" style={{ background: "linear-gradient(90deg,rgba(139,92,246,.25),rgba(34,211,238,.15),transparent)", marginBottom: "14px" }} />
           <div className="flex flex-col gap-4">
             {suscripcionesPorEstado.map((g) => {
               const barGradient = g.estado === "ACTIVE" ? "linear-gradient(90deg,#34d399,#22d3ee)" : g.estado === "PAST_DUE" ? "linear-gradient(90deg,#f87171,#ef4444)" : "linear-gradient(90deg,#645f74,#a29cb3)"
@@ -187,7 +184,7 @@ export default async function AdminDashboard() {
                       <span className="w-2 h-2 rounded-full" style={{ background: dotColor }} />
                       {mapLabel(g.estado)}
                     </span>
-                    <span className="font-mono text-[.75rem] text-text-dim">{g._count.id}</span>
+                    <span className="font-mono text-xs text-text-dim">{g._count.id}</span>
                   </div>
                   <div className="h-[7px] rounded-full bg-bg overflow-hidden">
                     <div className="h-full rounded-full" style={{ width: `${Math.max((g._count.id / maxCount) * 100, 8)}%`, background: barGradient }} />
@@ -249,7 +246,7 @@ export default async function AdminDashboard() {
           min-width: 230px;
           background: var(--color-panel);
           border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 18px;
+          border-radius: 16px;
           padding: 22px;
           transition: transform 0.35s cubic-bezier(.19,1,.22,1), border-color 0.35s;
         }

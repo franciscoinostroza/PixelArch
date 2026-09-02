@@ -2,6 +2,7 @@
 
 import { useUser, useClerk } from "@clerk/nextjs"
 import { Mail, ExternalLink, LogOut } from "lucide-react"
+import { PageHeader } from "@/components/ui/page-header"
 
 const providers: Record<string, string> = {
   google: "Google",
@@ -32,10 +33,7 @@ export default function CuentaPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-xl font-bold text-text">Mi cuenta</h1>
-        <p className="mt-1 text-sm text-text-dim">Información y configuración de tu perfil.</p>
-      </div>
+      <PageHeader title="Mi cuenta" subtitle="Información y configuración de tu perfil." />
 
       <div className="rounded-xl border border-border bg-panel p-6">
         <div className="flex items-center gap-4">
@@ -60,7 +58,7 @@ export default function CuentaPage() {
       <div className="rounded-xl border border-border bg-panel">
         <div className="flex items-center gap-2 border-b border-border/40 px-6 py-4">
           <Mail className="h-4 w-4 text-violet" />
-          <h2 className="text-sm font-semibold text-text">Email addresses</h2>
+          <h2 className="text-sm font-semibold text-text">Emails</h2>
         </div>
         <div>
           {user.emailAddresses.map((email, i) => (
@@ -69,13 +67,11 @@ export default function CuentaPage() {
               className={`flex items-center justify-between px-6 py-3 ${i < user.emailAddresses.length - 1 ? "border-b border-border/40" : ""}`}
             >
               <span className="text-sm text-text">{email.emailAddress}</span>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-3 shrink-0">
                 {email.id === primaryEmail?.id && (
-                  <span className="rounded-full bg-violet/15 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-violet">
-                    Primary
-                  </span>
+                  <span className="text-[11px] font-medium text-violet">Primaria</span>
                 )}
-                <span className="text-[11px] text-mint font-medium">Verified</span>
+                <span className="text-[11px] font-medium text-mint">Verificada</span>
               </div>
             </div>
           ))}
@@ -86,7 +82,7 @@ export default function CuentaPage() {
         <div className="rounded-xl border border-border bg-panel">
           <div className="flex items-center gap-2 border-b border-border/40 px-6 py-4">
             <ExternalLink className="h-4 w-4 text-violet" />
-            <h2 className="text-sm font-semibold text-text">Connected accounts</h2>
+            <h2 className="text-sm font-semibold text-text">Cuentas conectadas</h2>
           </div>
           <div>
             {accounts.map((acc, i) => (
@@ -100,7 +96,7 @@ export default function CuentaPage() {
                     <span className="text-sm text-text-dim">• {acc.emailAddress}</span>
                   )}
                 </div>
-                <span className="text-[11px] text-mint font-medium">Connected</span>
+                <span className="text-[11px] font-medium text-mint">Conectada</span>
               </div>
             ))}
           </div>
@@ -112,7 +108,7 @@ export default function CuentaPage() {
         className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20"
       >
         <LogOut className="h-4 w-4" />
-        Cerrar sesion
+        Cerrar sesión
       </button>
     </div>
   )

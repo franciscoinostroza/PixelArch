@@ -50,12 +50,12 @@ export default async function PortalLayout({
           </Link>
           <PortalNav />
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-full border border-border/20 bg-panel px-3 py-1">
-              <div className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full bg-violet/20 font-display text-[11px] font-bold text-violet">
-                {iniciales}
-              </div>
-              <span className="text-xs text-text">{nombre}</span>
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet/15 font-display text-[11px] font-bold text-violet">
+              {iniciales}
             </div>
+            <span className="hidden text-sm text-text md:block">{nombre}</span>
+          </div>
             <PortalUserButton />
           </div>
         </div>

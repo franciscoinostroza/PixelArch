@@ -25,7 +25,7 @@ export function PaymentPortalLink() {
     <div className="flex flex-col gap-1">
       <Button size="sm" variant="outline" onClick={openPortal} disabled={loading}>
         {loading ? <Loader2 size={14} className="animate-spin" /> : <ExternalLink size={14} />}
-        <span className="ml-2">Actualizar pago</span>
+        Actualizar pago
       </Button>
       {error && <p className="text-xs text-red-400">{error}</p>}
     </div>

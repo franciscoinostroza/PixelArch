@@ -1,13 +1,11 @@
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PageHeader } from "@/components/ui/page-header"
+import { StatusPill } from "@/components/ui/status-pill"
+import { Pagination } from "@/components/ui/pagination"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { ChevronLeft, ChevronRight } from "lucide-react"
 
 const PER_PAGE = 20
 
@@ -47,11 +45,7 @@ export default async function AdminClientes({
 
   return (
     <div>
-      <div className="section-head" style={{ maxWidth: "600px", marginBottom: "40px" }}>
-        <p className="eyebrow">Gestión</p>
-        <h2 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", marginBottom: "10px" }}>Clientes</h2>
-        <p style={{ color: "var(--color-text-dim)", fontSize: ".9rem" }}>Gestiona tus clientes</p>
-      </div>
+      <PageHeader title="Clientes" subtitle="Gestiona tus clientes" />
 
       <div className="mb-5">
         <form>
@@ -105,17 +99,7 @@ export default async function AdminClientes({
                     {c._count.suscripciones}
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]",
-                        c.activo
-                          ? "bg-mint/10 text-mint"
-                          : "bg-text-faint/10 text-text-dim"
-                      )}
-                    >
-                      <span className={cn("w-[5px] h-[5px] rounded-full", c.activo ? "bg-mint" : "bg-text-faint")} />
-                      {c.activo ? "Activo" : "Inactivo"}
-                    </span>
+                    <StatusPill estado={c.activo ? "ACTIVE" : "INACTIVE"} />
                   </td>
                 </tr>
               ))
@@ -124,33 +108,11 @@ export default async function AdminClientes({
         </table>
       </div>
 
-      {totalPages > 1 && (
-        <div className="mt-5 flex items-center justify-center gap-4">
-          <Link
-            href={`/admin/clientes?page=${currentPage - 1}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              currentPage <= 1 && "pointer-events-none opacity-40"
-            )}
-            aria-disabled={currentPage <= 1}
-          >
-            <ChevronLeft size={14} /> Anterior
-          </Link>
-          <span className="text-xs text-text-dim font-mono">
-            Pagina {currentPage} de {totalPages}
-          </span>
-          <Link
-            href={`/admin/clientes?page=${currentPage + 1}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              currentPage >= totalPages && "pointer-events-none opacity-40"
-            )}
-            aria-disabled={currentPage >= totalPages}
-          >
-            Siguiente <ChevronRight size={14} />
-          </Link>
-        </div>
-      )}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        buildHref={(p) => `/admin/clientes?page=${p}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+      />
     </div>
   )
 }

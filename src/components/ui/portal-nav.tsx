@@ -6,14 +6,14 @@ import { cn } from "@/lib/utils"
 
 const links = [
   { href: "/portal", label: "Mis servicios" },
-  { href: "/portal/facturacion", label: "Facturacion" },
+  { href: "/portal/facturacion", label: "Facturación" },
 ]
 
 export function PortalNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="flex items-center gap-6 text-sm font-mono">
+    <nav className="flex items-center gap-6 font-display text-sm font-medium">
       {links.map(({ href, label }) => (
         <Link
           key={href}
@@ -21,7 +21,7 @@ export function PortalNav() {
           className={cn(
             "transition-colors",
             pathname === href
-              ? "text-text font-medium"
+              ? "text-violet"
               : "text-text-dim hover:text-text"
           )}
         >

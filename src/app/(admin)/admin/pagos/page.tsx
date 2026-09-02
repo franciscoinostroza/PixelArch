@@ -1,11 +1,11 @@
-import { Card, CardContent } from "@/components/ui/card"
 import { Button, buttonVariants } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { PageHeader } from "@/components/ui/page-header"
+import { StatusPill } from "@/components/ui/status-pill"
+import { Pagination } from "@/components/ui/pagination"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, ChevronRight } from "lucide-react"
 
 const PER_PAGE = 20
 
@@ -70,11 +70,7 @@ export default async function AdminPagos({
 
   return (
     <div>
-      <div className="section-head" style={{ maxWidth: "600px", marginBottom: "40px" }}>
-        <p className="eyebrow">Facturación</p>
-        <h2 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", marginBottom: "10px" }}>Pagos</h2>
-        <p style={{ color: "var(--color-text-dim)", fontSize: ".9rem" }}>Historial completo de transacciones</p>
-      </div>
+      <PageHeader title="Pagos" subtitle="Historial completo de transacciones" />
 
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <form className="flex flex-wrap items-center gap-3">
@@ -104,7 +100,7 @@ export default async function AdminPagos({
           />
           <Button type="submit" size="sm" variant="outline">Filtrar</Button>
           {(estado || desde || hasta) && (
-            <Link href="/admin/pagos" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+            <Link href="/admin/pagos" className={buttonVariants({ variant: "ghost", size: "sm" })}>
               Limpiar
             </Link>
           )}
@@ -142,7 +138,7 @@ export default async function AdminPagos({
               </tr>
             ) : (
               pagos.map((p) => (
-                <tr key={p.id} className="border-t border-border/50">
+                <tr key={p.id} className="border-t border-border/50 transition-colors hover:bg-panel/50">
                   <td className="px-5 py-3 text-xs text-text">{p.cliente.nombre}</td>
                   <td className="px-5 py-3 text-xs text-text-dim">
                     {p.suscripcion?.servicio.nombre ?? "—"}
@@ -151,36 +147,15 @@ export default async function AdminPagos({
                     {new Date(p.creadoEn).toLocaleDateString("es-AR")}
                   </td>
                   <td className="px-5 py-3 text-xs text-text font-mono font-medium">
-                    ${(p.monto / 100).toFixed(2)} {p.moneda.toUpperCase()}
+                    US${(p.monto / 100).toFixed(2)}
                     {p.discountAmount ? (
-                      <span className="ml-1 text-[10px] text-violet">
+                      <span className="ml-1.5 text-[11px] text-violet">
                         (-${(p.discountAmount / 100).toFixed(0)})
                       </span>
                     ) : null}
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]",
-                        p.estadoPago === "SUCCEEDED"
-                          ? "bg-mint/10 text-mint"
-                          : p.estadoPago === "FAILED"
-                            ? "bg-red-500/10 text-red-400"
-                            : "bg-text-faint/10 text-text-dim"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "w-[5px] h-[5px] rounded-full",
-                          p.estadoPago === "SUCCEEDED"
-                            ? "bg-mint"
-                            : p.estadoPago === "FAILED"
-                              ? "bg-red-400"
-                              : "bg-text-faint"
-                        )}
-                      />
-                      {mapEstado(p.estadoPago)}
-                    </span>
+                    <StatusPill estado={p.estadoPago} />
                   </td>
                 </tr>
               ))
@@ -189,27 +164,11 @@ export default async function AdminPagos({
         </table>
       </div>
 
-      {totalPages > 1 && (
-        <div className="mt-5 flex items-center justify-center gap-4">
-          <Link
-            href={`/admin/pagos?${queryString(currentPage - 1)}`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), currentPage <= 1 && "pointer-events-none opacity-40")}
-            aria-disabled={currentPage <= 1}
-          >
-            <ChevronLeft size={14} /> Anterior
-          </Link>
-          <span className="text-xs text-text-dim font-mono">
-            Pagina {currentPage} de {totalPages}
-          </span>
-          <Link
-            href={`/admin/pagos?${queryString(currentPage + 1)}`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), currentPage >= totalPages && "pointer-events-none opacity-40")}
-            aria-disabled={currentPage >= totalPages}
-          >
-            Siguiente <ChevronRight size={14} />
-          </Link>
-        </div>
-      )}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        buildHref={(p) => `/admin/pagos?${queryString(p)}`}
+      />
     </div>
   )
 }

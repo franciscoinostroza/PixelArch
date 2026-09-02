@@ -36,7 +36,7 @@ export function EntregarButton({ suscripcionId }: { suscripcionId: string }) {
     <div className="flex flex-col gap-1">
       <Button size="sm" variant="outline" onClick={entregar} disabled={loading}>
         {loading ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-        <span className="ml-2">Marcar como entregado</span>
+        Marcar como entregado
       </Button>
       {error && <p className="text-xs text-red-400">{error}</p>}
     </div>

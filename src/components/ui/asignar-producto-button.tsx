@@ -16,7 +16,7 @@ export function AsignarProductoButton({ clienteId, servicios }: { clienteId: str
   return (
     <>
       <Button size="sm" variant="accent2" onClick={() => setOpen(true)}>
-        <Plus size={14} className="mr-1" />
+        <Plus size={14} />
         Asignar producto
       </Button>
       <AsignarProductoModal isOpen={open} onClose={() => setOpen(false)} clienteId={clienteId} servicios={servicios} />

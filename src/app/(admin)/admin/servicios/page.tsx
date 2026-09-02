@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { cn } from "@/lib/utils"
+import { PageHeader } from "@/components/ui/page-header"
+import { StatusPill } from "@/components/ui/status-pill"
 
 export default async function AdminServicios() {
   const admin = await requireAdmin()
@@ -12,11 +13,7 @@ export default async function AdminServicios() {
 
   return (
     <div>
-      <div className="section-head" style={{ maxWidth: "600px", marginBottom: "40px" }}>
-        <p className="eyebrow">Catálogo</p>
-        <h2 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", marginBottom: "10px" }}>Servicios</h2>
-        <p style={{ color: "var(--color-text-dim)", fontSize: ".9rem" }}>Catálogo de servicios</p>
-      </div>
+      <PageHeader title="Servicios" subtitle="Catálogo de servicios" />
 
       <div className="brand-table overflow-x-auto">
         <table className="w-full">
@@ -45,26 +42,16 @@ export default async function AdminServicios() {
               </tr>
             ) : (
               servicios.map((s) => (
-                <tr key={s.id} className="border-t border-border/50">
+                <tr key={s.id} className="border-t border-border/50 transition-colors hover:bg-panel/50">
                   <td className="px-5 py-3 text-xs text-text">{s.nombre}</td>
                   <td className="px-5 py-3 text-xs text-text-dim max-w-[200px] lg:max-w-xs truncate">
                     {s.descripcion}
                   </td>
                   <td className="px-5 py-3 text-xs text-text font-mono font-medium">
-                    ${(s.precioUnico / 100).toFixed(0)} unico · {s.precioBasico > 0 ? `$${(s.precioBasico / 100).toFixed(0)}/mes` : "—"} · {s.precioMantenimiento > 0 ? `$${(s.precioMantenimiento / 100).toFixed(0)}/mes` : "—"}
+                    ${(s.precioUnico / 100).toFixed(0)} único · {s.precioBasico > 0 ? `$${(s.precioBasico / 100).toFixed(0)}/mes` : "—"} · {s.precioMantenimiento > 0 ? `$${(s.precioMantenimiento / 100).toFixed(0)}/mes` : "—"}
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]",
-                        s.activo
-                          ? "bg-mint/10 text-mint"
-                          : "bg-text-faint/10 text-text-dim"
-                      )}
-                    >
-                      <span className={cn("w-[5px] h-[5px] rounded-full", s.activo ? "bg-mint" : "bg-text-faint")} />
-                      {s.activo ? "Activo" : "Inactivo"}
-                    </span>
+                    <StatusPill estado={s.activo ? "ACTIVE" : "INACTIVE"} />
                   </td>
                 </tr>
               ))

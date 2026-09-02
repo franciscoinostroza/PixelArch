@@ -4,8 +4,9 @@ import { notFound, redirect } from "next/navigation"
 import { DeployConfig } from "@/components/ui/deploy-config"
 import { EntregarButton } from "@/components/ui/entregar-button"
 import { SubscriptionActions } from "@/components/ui/subscription-actions"
-import { cn } from "@/lib/utils"
 import { AsignarProductoButton } from "@/components/ui/asignar-producto-button"
+import { PageHeader } from "@/components/ui/page-header"
+import { StatusPill } from "@/components/ui/status-pill"
 
 const mapEstado = (e: string) => {
   switch (e) {
@@ -25,16 +26,6 @@ const mapLabel = (e: string) => {
     case "CANCELED": return "Cancelado"
     case "PENDING": return "En desarrollo"
     case "READY": return "Entregado"
-    default: return e
-  }
-}
-
-const mapEstadoPago = (e: string) => {
-  switch (e) {
-    case "SUCCEEDED": return "Pagado"
-    case "FAILED": return "Fallido"
-    case "REFUNDED": return "Reembolsado"
-    case "PENDING": return "Pendiente"
     default: return e
   }
 }
@@ -69,25 +60,10 @@ export default async function ClienteDetalle({
 
   return (
     <div>
-      <div className="section-head" style={{ maxWidth: "600px", marginBottom: "40px" }}>
-        <p className="eyebrow">Cliente</p>
-        <h2 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", marginBottom: "10px" }}>{cliente.nombre}</h2>
-        <p style={{ color: "var(--color-text-dim)", fontSize: ".9rem" }}>{cliente.email}</p>
-      </div>
-      <div className="flex items-center gap-3">
-          <AsignarProductoButton clienteId={cliente.id} servicios={servicios} />
-          <span
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px]",
-            cliente.activo
-              ? "bg-mint/10 text-mint"
-              : "bg-text-faint/10 text-text-dim"
-          )}
-        >
-          <span className={cn("w-[5px] h-[5px] rounded-full", cliente.activo ? "bg-mint" : "bg-text-faint")} />
-          {cliente.activo ? "Cliente activo" : "Inactivo"}
-        </span>
-      </div>
+      <PageHeader title={cliente.nombre} subtitle={cliente.email}>
+        <AsignarProductoButton clienteId={cliente.id} servicios={servicios} />
+        <StatusPill estado={cliente.activo ? "ACTIVE" : "INACTIVE"} label={cliente.activo ? "Cliente activo" : "Inactivo"} />
+      </PageHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
         <div className="brand-card p-5">
@@ -97,7 +73,7 @@ export default async function ClienteDetalle({
               <p className="text-text">{cliente.empresa || "—"}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.1em] text-text-faint mb-1">Telefono</p>
+              <p className="text-[10px] uppercase tracking-[0.1em] text-text-faint mb-1">Teléfono</p>
               <p className="text-text">{cliente.telefono || "—"}</p>
             </div>
             <div>
@@ -114,57 +90,33 @@ export default async function ClienteDetalle({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
         <div className="brand-card p-5">
-          <p className="font-display text-sm font-bold mb-4">
-
-        Suscripciones ({cliente.suscripciones.length})
+          <p className="font-display text-[0.95rem] font-bold mb-4">
+            Suscripciones ({cliente.suscripciones.length})
           </p>
           {cliente.suscripciones.length === 0 ? (
             <p className="text-xs text-text-dim py-4 text-center">Sin suscripciones</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {cliente.suscripciones.map((s) => (
                 <div
                   key={s.id}
-                  className="rounded-lg border border-border px-3 py-2.5"
+                  className="rounded-xl border border-border px-3.5 py-3"
                 >
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs text-text">
                         {s.servicio.nombre}
-                        {s.plan && <span className="text-[10px] text-text-dim ml-1">· {s.plan === "UNICO" ? "Pago unico" : s.plan === "BASICO" ? "Basico" : "Mantenimiento"}</span>}
+                        {s.plan && <span className="text-[11px] text-text-dim ml-1.5">· {s.plan === "UNICO" ? "Pago único" : s.plan === "BASICO" ? "Básico" : "Mantenimiento"}</span>}
                       </p>
                       <p className="text-[11px] text-text-dim font-mono">
-                        {s.plan === "MANTENIMIENTO" ? `$${(s.servicio.precioMantenimiento / 100).toFixed(2)}/mes` : s.plan === "BASICO" ? `$${(s.servicio.precioBasico / 100).toFixed(2)}/mes` : `$${(s.servicio.precioUnico / 100).toFixed(2)} pago unico`}
+                        {s.plan === "MANTENIMIENTO" ? `$${(s.servicio.precioMantenimiento / 100).toFixed(2)}/mes` : s.plan === "BASICO" ? `$${(s.servicio.precioBasico / 100).toFixed(2)}/mes` : `$${(s.servicio.precioUnico / 100).toFixed(2)} pago único`}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]",
-                          s.estado === "ACTIVE" || s.estado === "READY"
-                            ? "bg-mint/10 text-mint"
-                            : s.estado === "PAST_DUE"
-                              ? "bg-red-500/10 text-red-400"
-                              : s.estado === "PENDING"
-                                ? "bg-yellow-400/10 text-yellow-400"
-                                : "bg-text-faint/10 text-text-dim"
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "w-[5px] h-[5px] rounded-full",
-                            s.estado === "ACTIVE" || s.estado === "READY"
-                              ? "bg-mint"
-                              : s.estado === "PAST_DUE"
-                                ? "bg-red-400"
-                                : s.estado === "PENDING"
-                                  ? "bg-yellow-400"
-                                  : "bg-text-faint"
-                          )}
-                        />
-                        {mapLabel(s.estado)}
+                      <span className="inline-flex items-center gap-1.5">
+                        <StatusPill estado={s.estado} label={mapLabel(s.estado)} />
                         {s.polarDiscountId && (
-                          <span className="ml-1 rounded-full bg-violet/10 px-1.5 py-px text-[10px] text-violet font-mono">
+                          <span className="rounded-full bg-violet/10 px-2 py-0.5 text-[10px] text-violet font-mono">
                             Dto.
                           </span>
                         )}
@@ -194,13 +146,13 @@ export default async function ClienteDetalle({
 
       <div className="brand-table overflow-x-auto">
         <div className="px-5 pt-4 pb-3">
-          <p className="font-display text-sm font-bold">
+          <p className="font-display text-[0.95rem] font-bold">
             Historial de pagos ({cliente.pagos.length})
           </p>
         </div>
         <table className="w-full">
           <thead>
-            <tr className="border-t border-border">
+            <tr>
               <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 py-3 font-mono font-normal">
                 Servicio
               </th>
@@ -224,7 +176,7 @@ export default async function ClienteDetalle({
               </tr>
             ) : (
               cliente.pagos.map((p) => (
-                <tr key={p.id} className="border-t border-border/50">
+                <tr key={p.id} className="border-t border-border/50 transition-colors hover:bg-panel/50">
                   <td className="px-5 py-3 text-xs text-text">
                     {p.suscripcion?.servicio.nombre ?? "—"}
                   </td>
@@ -232,31 +184,10 @@ export default async function ClienteDetalle({
                     {new Date(p.creadoEn).toLocaleDateString("es-AR")}
                   </td>
                   <td className="px-5 py-3 text-xs text-text font-mono">
-                    ${(p.monto / 100).toFixed(2)} {p.moneda.toUpperCase()}
+                    US${(p.monto / 100).toFixed(2)}
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]",
-                        p.estadoPago === "SUCCEEDED"
-                          ? "bg-mint/10 text-mint"
-                          : p.estadoPago === "FAILED"
-                            ? "bg-red-500/10 text-red-400"
-                            : "bg-text-faint/10 text-text-dim"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "w-[5px] h-[5px] rounded-full",
-                          p.estadoPago === "SUCCEEDED"
-                            ? "bg-mint"
-                            : p.estadoPago === "FAILED"
-                              ? "bg-red-400"
-                              : "bg-text-faint"
-                        )}
-                      />
-                      {mapEstadoPago(p.estadoPago)}
-                    </span>
+                    <StatusPill estado={p.estadoPago} />
                   </td>
                 </tr>
               ))

@@ -77,7 +77,7 @@ export default async function AdminPagos({
           <select
             name="estado"
             defaultValue={estado ?? ""}
-            className="rounded-lg border border-border bg-panel px-3 py-2 text-xs text-text font-mono"
+            className="h-9 rounded-lg border border-border bg-panel px-3 text-xs text-text font-mono"
           >
             <option value="">Todos los estados</option>
             {estados.map((e) => (
@@ -88,14 +88,14 @@ export default async function AdminPagos({
             type="date"
             name="desde"
             defaultValue={desde ?? ""}
-            className="rounded-lg border border-border bg-panel px-3 py-2 text-xs text-text font-mono"
+            className="h-9 rounded-lg border border-border bg-panel px-3 text-xs text-text font-mono"
             title="Desde"
           />
           <input
             type="date"
             name="hasta"
             defaultValue={hasta ?? ""}
-            className="rounded-lg border border-border bg-panel px-3 py-2 text-xs text-text font-mono"
+            className="h-9 rounded-lg border border-border bg-panel px-3 text-xs text-text font-mono"
             title="Hasta"
           />
           <Button type="submit" size="sm" variant="outline">Filtrar</Button>

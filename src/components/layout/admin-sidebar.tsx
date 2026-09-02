@@ -85,7 +85,7 @@ export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
         <Menu size={20} aria-hidden="true" />
       </button>
 
-      <aside className="hidden lg:flex h-screen w-[220px] flex-col border-r border-border bg-panel shrink-0">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] flex-col border-r border-white/[0.06] lg:flex" style={{ background: "rgba(17,14,26,0.72)", backdropFilter: "blur(20px)" }}>
         <div className="flex h-full flex-col">
           <Link href="/admin/dashboard" className="px-4 pt-6 pb-4 flex items-center gap-2">
             <svg width="18" height="18" viewBox="0 0 32 32" aria-hidden="true">
@@ -115,7 +115,7 @@ export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
       {open && (
         <>
           <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setOpen(false)} />
-          <aside className="fixed inset-y-0 left-0 z-40 flex w-[220px] flex-col border-r border-border bg-panel lg:hidden">
+          <aside className="fixed inset-y-0 left-0 z-40 flex w-[220px] flex-col border-r border-white/[0.06] lg:hidden" style={{ background: "rgba(17,14,26,0.92)", backdropFilter: "blur(20px)" }}>
             <div className="flex items-center justify-between px-4 pt-6 pb-4 border-b border-border">
               <div className="flex items-center gap-2">
                 <svg width="18" height="18" viewBox="0 0 32 32" aria-hidden="true">

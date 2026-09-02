@@ -5,18 +5,7 @@ import Link from "next/link"
 import Script from "next/script"
 import { ArrowUpRight, ArrowDownRight } from "lucide-react"
 import { PageHeader } from "@/components/ui/page-header"
-
-function initials(name: string) {
-  return name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
-}
-
-function ClientAvatar({ name }: { name: string }) {
-  return (
-    <div className="w-[36px] h-[36px] rounded-full flex items-center justify-center shrink-0 font-display font-bold text-[.8rem] text-[#07060c]" style={{ background: "linear-gradient(135deg,#8b5cf6,#22d3ee)" }}>
-      {initials(name)}
-    </div>
-  )
-}
+import { InitialsChip } from "@/components/ui/initials-chip"
 
 export default async function AdminDashboard() {
   const admin = await requireAdmin()
@@ -159,7 +148,7 @@ export default async function AdminDashboard() {
           <div className="flex flex-col gap-2">
             {ultimosClientes.map((c) => (
               <Link key={c.id} href={`/admin/clientes/${c.id}`} className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-white/[0.02]">
-                <ClientAvatar name={c.nombre} />
+                <InitialsChip label={c.nombre} size="sm" />
                 <div className="flex-1 min-w-0">
                   <p className="font-display font-semibold text-[.85rem] truncate">{c.nombre}</p>
                   <p className="text-[11px] text-text-dim truncate">{c.email}</p>

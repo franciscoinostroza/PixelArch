@@ -25,13 +25,13 @@ export function ApplyDiscount({ suscripcionId }: { suscripcionId: string }) {
       })
       const body = await res.json()
       if (!res.ok) {
-        setError(body.error || "Codigo invalido")
+        setError(body.error || "Código inválido")
         return
       }
       setDescripcion(body.descripcion || "Descuento aplicado")
       setSuccess(true)
     } catch {
-      setError("Error de conexion")
+      setError("Error de conexión")
     } finally {
       setLoading(false)
     }
@@ -39,7 +39,7 @@ export function ApplyDiscount({ suscripcionId }: { suscripcionId: string }) {
 
   if (success) {
     return (
-      <div className="flex items-center gap-1.5 pt-2 text-xs text-mint">
+      <div className="mt-3 flex items-center gap-1.5 rounded-lg border border-mint/20 bg-mint/5 px-2.5 py-1.5 text-xs text-mint">
         <CheckCircle2 size={12} />
         {descripcion}
       </div>
@@ -50,33 +50,33 @@ export function ApplyDiscount({ suscripcionId }: { suscripcionId: string }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="pt-2 text-xs text-violet hover:underline"
+        className="mt-2 text-xs text-text-dim transition-colors hover:text-violet"
       >
-        Tengo un codigo de descuento
+        Tengo un código de descuento
       </button>
     )
   }
 
   return (
-    <div className="pt-2">
+    <div className="mt-2 rounded-lg border border-border/60 px-2.5 py-2">
       <div className="flex items-center gap-2">
         <Input
           value={codigo}
           onChange={(e) => setCodigo(e.target.value)}
-          placeholder="CODIGO"
-          className="h-7 w-28 text-xs font-mono uppercase"
+          placeholder="CÓDIGO"
+          className="h-8 w-32 font-mono text-xs uppercase"
         />
         <Button
           size="sm"
-          variant="outline"
+          variant="default"
           onClick={aplicar}
           disabled={loading || !codigo.trim()}
-          className="h-7 text-xs"
+          className="h-8 text-xs"
         >
           {loading ? <Loader2 size={12} className="animate-spin" /> : "Aplicar"}
         </Button>
       </div>
-      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-1.5 text-xs text-red-400">{error}</p>}
     </div>
   )
 }

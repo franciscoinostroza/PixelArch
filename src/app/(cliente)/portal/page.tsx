@@ -11,6 +11,7 @@ import { CheckoutButton } from "@/components/ui/checkout-button"
 import { ApplyDiscount } from "@/components/ui/apply-discount"
 import { PageHeader } from "@/components/ui/page-header"
 import { StatusPill } from "@/components/ui/status-pill"
+import { InitialsChip } from "@/components/ui/initials-chip"
 import { getDolarVentaBancoNacion, formatARS, formatUSD } from "@/lib/dolar"
 
 export default async function PortalPage({
@@ -83,8 +84,6 @@ export default async function PortalPage({
     return `$${(cents / 100).toFixed(0)}`
   }
 
-  const priceRef = (cents: number) => (rate && cents > 0 ? `≈ ${formatUSD(cents)}` : null)
-
   return (
     <div>
       <PageHeader title={`Hola, ${primerNombre}`} subtitle="Estos son tus servicios activos con PixelArch." />
@@ -108,7 +107,7 @@ export default async function PortalPage({
         <Link href="/productos" className="text-sm font-medium text-violet transition-colors hover:text-text">+ Agregar producto</Link>
       </div>
 
-      <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mb-8 grid gap-4 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
         {suscripciones.length === 0 && (
           <Link href="/productos" className="col-span-full flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/40 bg-panel px-6 py-14 transition-colors hover:border-violet/40 hover:bg-violet/[0.04]">
             <span className="text-2xl text-text-faint">+</span>
@@ -118,56 +117,70 @@ export default async function PortalPage({
 
         {suscripciones.map((s) => {
           const config = estadoConfig(s)
+          const esMant = s.plan === "MANTENIMIENTO"
+          const precioCents = s.estado === "PENDING" ? s.servicio.precioUnico : esMant ? s.servicio.precioMantenimiento : s.servicio.precioBasico
           return (
-            <div key={s.id} className="brand-card p-5 relative overflow-hidden">
-              <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${s.estado === "ACTIVE" ? "from-mint to-cyan" : s.estado === "PAST_DUE" ? "from-red-400 to-red-500" : s.estado === "PENDING" ? "from-yellow-400 to-yellow-500" : s.estado === "READY" ? "from-violet to-cyan" : "from-text-faint to-text-dim"}`} />
-              <div className="mb-3 flex items-center justify-between">
-                <StatusPill estado={s.estado} label={config.label} pulse={s.estado === "ACTIVE"} />
-                {(s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
-                  <CancelSubscriptionButton suscripcionId={s.id} />
-                )}
+            <div key={s.id} className="brand-card flex flex-col overflow-hidden">
+              <div className={`h-[2px] w-full shrink-0 bg-gradient-to-r ${s.estado === "ACTIVE" ? "from-mint to-cyan" : s.estado === "PAST_DUE" ? "from-red-400 to-red-500" : s.estado === "PENDING" ? "from-yellow-400 to-yellow-500" : s.estado === "READY" ? "from-violet to-cyan" : "from-text-faint to-text-dim"}`} />
+              <div className="flex flex-1 flex-col p-5">
+                <div className="flex items-center justify-between">
+                  <StatusPill estado={s.estado} label={config.label} pulse={s.estado === "ACTIVE"} />
+                  {(s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
+                    <CancelSubscriptionButton suscripcionId={s.id} />
+                  )}
+                </div>
+
+                <div className="mt-4 flex items-center gap-3">
+                  <InitialsChip label={s.servicio.nombre} />
+                  <div className="min-w-0">
+                    <p className="truncate font-display font-bold" style={{ fontSize: "1.05rem", lineHeight: 1.25 }}>{s.servicio.nombre}</p>
+                    {s.estado === "ACTIVE" && s.plan && (
+                      <p className="text-xs text-text-dim">Plan {s.plan === "MANTENIMIENTO" ? "Mantenimiento" : "Básico"}</p>
+                    )}
+                  </div>
+                </div>
+
+                <p className="mt-2.5 text-sm text-text-dim leading-relaxed">{config.descripcion}</p>
+
+                <div className="mt-auto pt-4">
+                  {s.estado === "READY" && (
+                    <>
+                      <div className="flex flex-col gap-2">
+                        {s.servicio.polarProductIdBasico && (
+                          <CheckoutButton polarProductId={s.servicio.polarProductIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label="Mantener online (Básico)" size="default" variant="gradient" className="w-full" />
+                        )}
+                        {s.servicio.polarProductIdMantenimiento && (
+                          <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label="Online + cambios (Mantenimiento)" size="default" variant="outline" className="w-full" />
+                        )}
+                      </div>
+                      <p className="mt-3 text-xs text-text-faint">Sin un plan mensual, el servicio deja de estar online.</p>
+                    </>
+                  )}
+
+                  {s.estado !== "READY" && (
+                    <div className="flex items-end justify-between gap-3 border-t border-border/50 pt-3">
+                      <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: "1.3rem", lineHeight: 1.1 }}>
+                        {price(precioCents)}
+                        <span className="ml-1 text-xs font-normal text-text-dim">{s.estado === "PENDING" ? (rate ? "ARS" : "") : "/mes"}</span>
+                        {rate && <span className="ml-1.5 text-xs font-normal text-text-dim">≈ {formatUSD(precioCents)}</span>}
+                      </p>
+                      {s.proximoPago && (
+                        <span className={cn("pb-0.5 text-xs", s.estado === "PAST_DUE" ? "text-red-400" : "text-text-dim")}>
+                          {s.estado === "PAST_DUE" ? "⚠ Vence " : "Renueva "}{new Date(s.proximoPago).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {s.estado === "ACTIVE" && <ApplyDiscount suscripcionId={s.id} />}
+                </div>
               </div>
-              <p className="font-display text-base font-bold mb-1">{s.servicio.nombre}</p>
-              {s.estado === "ACTIVE" && <ApplyDiscount suscripcionId={s.id} />}
-              <p className="text-sm text-text-dim leading-relaxed mb-4">{config.descripcion}</p>
-
-              {s.estado === "READY" && (
-                <div className="mb-3 flex flex-col gap-2">
-                  {s.servicio.polarProductIdBasico && (
-                    <CheckoutButton polarProductId={s.servicio.polarProductIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label="Mantener online (Básico)" size="default" variant="gradient" className="w-full" />
-                  )}
-                  {s.servicio.polarProductIdMantenimiento && (
-                    <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label="Online + cambios (Mantenimiento)" size="default" variant="outline" className="w-full" />
-                  )}
-                </div>
-              )}
-
-              {s.estado === "READY" && (
-                <p className="text-xs text-text-faint leading-relaxed">
-                  Sin un plan mensual, el servicio deja de estar online.
-                </p>
-              )}
-
-              {s.estado !== "READY" && (
-                <div className="pt-3 border-t border-border/50 flex items-center justify-between">
-                  <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem" }}>
-                    {s.estado === "PENDING" ? price(s.servicio.precioUnico) : s.plan === "MANTENIMIENTO" ? price(s.servicio.precioMantenimiento) : price(s.servicio.precioBasico)}
-                    {s.estado !== "PENDING" && <span className="text-xs font-normal text-text-dim">/mes</span>}
-                    {rate && <span className="ml-1.5 text-xs font-normal text-text-dim">≈ {formatUSD(s.estado === "PENDING" ? s.servicio.precioUnico : s.plan === "MANTENIMIENTO" ? s.servicio.precioMantenimiento : s.servicio.precioBasico)}</span>}
-                  </p>
-                  {s.proximoPago && (
-                    <span className={cn("text-xs", s.estado === "PAST_DUE" ? "text-red-400" : "text-text-dim")}>
-                      {s.estado === "PAST_DUE" ? "⚠ Vence " : "Renueva "}{new Date(s.proximoPago).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
-                    </span>
-                  )}
-                </div>
-              )}
             </div>
           )
         })}
 
         {suscripciones.length > 0 && (
-          <Link href="/productos" className="self-start flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/40 bg-panel px-6 py-6 transition-colors hover:border-violet/40 hover:bg-violet/[0.04]">
+          <Link href="/productos" className="flex min-h-[140px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/40 bg-panel px-6 py-6 self-start transition-colors hover:border-violet/40 hover:bg-violet/[0.04]">
             <span className="text-lg text-text-faint">+</span>
             <span className="text-xs text-text-faint text-center">Agregar un<br />nuevo producto</span>
           </Link>

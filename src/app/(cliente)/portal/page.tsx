@@ -12,6 +12,7 @@ import { ApplyDiscount } from "@/components/ui/apply-discount"
 import { PageHeader } from "@/components/ui/page-header"
 import { StatusPill } from "@/components/ui/status-pill"
 import { InitialsChip } from "@/components/ui/initials-chip"
+import { Reveal } from "@/components/ui/reveal"
 import { getDolarVentaBancoNacion, formatARS, formatUSD } from "@/lib/dolar"
 
 export default async function PortalPage({
@@ -86,7 +87,9 @@ export default async function PortalPage({
 
   return (
     <div>
-      <PageHeader title={`Hola, ${primerNombre}`} subtitle="Estos son tus servicios activos con PixelArch." />
+      <Reveal>
+        <div className="section-shell">
+          <PageHeader title={`Hola, ${primerNombre}`} subtitle="Estos son tus servicios activos con PixelArch." />
 
       {success === "true" && (
         <div className="mb-5 flex items-center gap-3 rounded-xl border border-mint/30 bg-mint/5 px-4 py-3 text-[13px] text-mint">
@@ -94,26 +97,30 @@ export default async function PortalPage({
         </div>
       )}
 
-      {tienePagoFallido && (
-        <div className="mb-5 flex items-center gap-3 rounded-xl border border-red-500/25 bg-red-500/5 px-4 py-3 text-[13px] text-red-300">
-          <AlertTriangle size={16} className="shrink-0" />
-          <span className="flex-1 leading-relaxed"><strong className="text-red-200">Tu pago reciente falló.</strong> Actualiza tu método de pago.</span>
-          <PaymentPortalLink />
+          {tienePagoFallido && (
+            <div className="flex items-center gap-3 rounded-xl border border-red-500/25 bg-red-500/5 px-4 py-3 text-[13px] text-red-300">
+              <AlertTriangle size={16} className="shrink-0" />
+              <span className="flex-1 leading-relaxed"><strong className="text-red-200">Tu pago reciente falló.</strong> Actualiza tu método de pago.</span>
+              <PaymentPortalLink />
+            </div>
+          )}
         </div>
-      )}
+      </Reveal>
 
-      <div className="mb-5 flex items-center justify-between">
-        <p className="font-display text-lg font-bold">Mis servicios</p>
-        <Link href="/productos" className="text-sm font-medium text-violet transition-colors hover:text-text">+ Agregar producto</Link>
-      </div>
+      <Reveal className="mt-8">
+        <div className="section-shell">
+          <div className="mb-6 flex items-center justify-between">
+            <p className="font-display text-lg font-bold">Mis servicios</p>
+            <Link href="/productos" className="text-sm font-medium text-violet transition-colors hover:text-text">+ Agregar producto</Link>
+          </div>
 
-      <div className="mb-8 grid gap-4 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
-        {suscripciones.length === 0 && (
-          <Link href="/productos" className="col-span-full flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/40 bg-panel px-6 py-14 transition-colors hover:border-violet/40 hover:bg-violet/[0.04]">
-            <span className="text-2xl text-text-faint">+</span>
-            <span className="text-[13px] text-text-faint">Agregar un<br />nuevo producto</span>
-          </Link>
-        )}
+      <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
+          {suscripciones.length === 0 && (
+            <Link href="/productos" className="col-span-full flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/40 bg-panel px-6 py-14 transition-colors hover:border-violet/40 hover:bg-violet/[0.04]">
+              <span className="text-2xl text-text-faint">+</span>
+              <span className="text-[13px] text-text-faint">Agregar un<br />nuevo producto</span>
+            </Link>
+          )}
 
         {suscripciones.map((s) => {
           const config = estadoConfig(s)
@@ -178,22 +185,26 @@ export default async function PortalPage({
             </div>
           )
         })}
+        </div>
 
         {suscripciones.length > 0 && (
-          <Link href="/productos" className="flex min-h-[140px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/40 bg-panel px-6 py-6 self-start transition-colors hover:border-violet/40 hover:bg-violet/[0.04]">
+          <Link href="/productos" className="mt-5 flex items-center justify-center gap-2.5 rounded-2xl border border-dashed border-border/40 bg-panel px-6 py-4 transition-colors hover:border-violet/40 hover:bg-violet/[0.04]">
             <span className="text-lg text-text-faint">+</span>
-            <span className="text-xs text-text-faint text-center">Agregar un<br />nuevo producto</span>
+            <span className="text-sm text-text-faint text-center">¿Querés sumar otro producto?</span>
           </Link>
         )}
-      </div>
+        </div>
+      </Reveal>
 
       {ultimosPagos.length > 0 && (
         <>
-          <div className="mb-5 flex items-center justify-between">
-            <p className="font-display text-lg font-bold">Últimos pagos</p>
-            <Link href="/portal/facturacion" className="text-sm font-medium text-violet transition-colors hover:text-text">Ver historial completo</Link>
-          </div>
-          <div className="brand-table overflow-x-auto">
+          <Reveal className="mt-8" delay={80}>
+            <div className="section-shell">
+              <div className="mb-5 flex items-center justify-between">
+                <p className="font-display text-lg font-bold">Últimos pagos</p>
+                <Link href="/portal/facturacion" className="text-sm font-medium text-violet transition-colors hover:text-text">Ver historial completo</Link>
+              </div>
+              <div className="brand-table overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border/50">
@@ -215,8 +226,10 @@ export default async function PortalPage({
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+              </table>
+              </div>
+              </div>
+            </Reveal>
         </>
       )}
     </div>

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { PageHeader } from "@/components/ui/page-header"
 import { StatusPill } from "@/components/ui/status-pill"
 import { Pagination } from "@/components/ui/pagination"
+import { Reveal } from "@/components/ui/reveal"
 
 const PER_PAGE = 20
 
@@ -52,43 +53,49 @@ export default async function FacturacionPage({
 
   return (
     <div>
-      <PageHeader title="Facturación" subtitle="Historial de pagos" />
+      <Reveal>
+        <div className="section-shell">
+          <PageHeader title="Facturación" subtitle="Historial de pagos" />
+        </div>
+      </Reveal>
 
-      <div className="mt-2">
-        {pagos.length === 0 ? (
-          <div className="brand-card--static brand-card p-8 text-center">
-            <p className="font-mono text-sm text-text-dim">No hay pagos registrados</p>
-          </div>
-        ) : (
-          <div className="brand-card--static brand-card overflow-hidden">
-            {pagos.map((p, i) => (
-              <div
-                key={p.id}
-                className={`flex flex-wrap items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-white/[0.02] ${i > 0 ? "border-t border-border/40" : ""}`}
-              >
-                <div>
-                  <p className="font-display text-sm font-medium text-text">
-                    {p.suscripcion?.servicio.nombre ?? "Pago"}
-                  </p>
-                  <p className="mt-0.5 text-xs text-text-dim font-mono">
-                    {new Date(p.creadoEn).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
-                  </p>
+      <Reveal className="mt-8" delay={80}>
+        <div className="section-shell">
+          {pagos.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border/40 bg-panel p-10 text-center">
+              <p className="font-mono text-sm text-text-dim">No hay pagos registrados</p>
+            </div>
+          ) : (
+            <div className="brand-card--static brand-card overflow-hidden">
+              {pagos.map((p, i) => (
+                <div
+                  key={p.id}
+                  className={`flex flex-wrap items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-white/[0.02] ${i > 0 ? "border-t border-border/40" : ""}`}
+                >
+                  <div>
+                    <p className="font-display text-sm font-medium text-text">
+                      {p.suscripcion?.servicio.nombre ?? "Pago"}
+                    </p>
+                    <p className="mt-0.5 text-xs text-text-dim font-mono">
+                      {new Date(p.creadoEn).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <p className="font-mono font-semibold text-text">US${(p.monto / 100).toFixed(2)}</p>
+                    <StatusPill estado={p.estadoPago} />
+                  </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <p className="font-mono font-semibold text-text">US${(p.monto / 100).toFixed(2)}</p>
-                  <StatusPill estado={p.estadoPago} />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
 
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        buildHref={(n) => `/portal/facturacion?page=${n}`}
-      />
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            buildHref={(n) => `/portal/facturacion?page=${n}`}
+          />
+        </div>
+      </Reveal>
     </div>
   )
 }

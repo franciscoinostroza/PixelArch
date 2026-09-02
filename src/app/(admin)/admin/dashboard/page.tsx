@@ -6,6 +6,7 @@ import Script from "next/script"
 import { ArrowUpRight, ArrowDownRight } from "lucide-react"
 import { PageHeader } from "@/components/ui/page-header"
 import { InitialsChip } from "@/components/ui/initials-chip"
+import { Reveal } from "@/components/ui/reveal"
 
 export default async function AdminDashboard() {
   const admin = await requireAdmin()
@@ -104,93 +105,103 @@ export default async function AdminDashboard() {
 
   return (
     <div>
-      <PageHeader title="Dashboard" subtitle="Bienvenido, admin" />
+      <Reveal>
+        <div className="section-shell">
+          <PageHeader title="Dashboard" subtitle="Bienvenido, admin" />
 
-      {pagosVencidos > 0 && (
-        <div className="flex items-center gap-3 rounded-xl border border-red-500/25 bg-red-500/6 px-4 py-3 mb-6" style={{ fontSize: ".8rem", color: "#fca5a5" }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
-          <span className="flex-1">{pagosVencidos} suscripción{pagosVencidos > 1 ? "es" : ""} vencida{pagosVencidos > 1 ? "s" : ""}. Revisa los clientes.</span>
-          <Link href="/admin/clientes?estado=PAST_DUE" className="shrink-0 text-violet font-semibold whitespace-nowrap">Ver clientes →</Link>
-        </div>
-      )}
-
-      <div className="mb-8">
-        <div className="stats-track">
-          {stats.map((s, i) => (
-            <div key={i} className="stat-card relative overflow-hidden">
-              <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${s.gradient}`} />
-              <div className={`w-[44px] h-[44px] rounded-[12px] flex items-center justify-center mb-4 ${s.iconBg}`}>
-                <StatIcon icon={s.icon} />
-              </div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint mb-1.5 leading-tight">{s.label}</p>
-              <p className={`font-display text-[1.9rem] font-bold tracking-[-0.02em] ${s.icon === "alert" ? "text-red-400" : "text-text"}`}>{s.value}</p>
-              {s.delta && (
-                <p className={`flex items-center gap-1 text-[11px] mt-2 ${s.delta.positive ? "text-mint" : "text-red-400"}`}>
-                  {s.delta.positive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-                  {s.delta.positive ? "+" : ""}{s.delta.value}% vs anterior
-                </p>
-              )}
+          {pagosVencidos > 0 && (
+            <div className="flex items-center gap-3 rounded-xl border border-red-500/25 bg-red-500/6 px-4 py-3" style={{ fontSize: ".8rem", color: "#fca5a5" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+              <span className="flex-1">{pagosVencidos} suscripción{pagosVencidos > 1 ? "es" : ""} vencida{pagosVencidos > 1 ? "s" : ""}. Revisa los clientes.</span>
+              <Link href="/admin/clientes?estado=PAST_DUE" className="shrink-0 text-violet font-semibold whitespace-nowrap">Ver clientes →</Link>
             </div>
-          ))}
+          )}
         </div>
-        <div className="stats-dots" id="statsDots" />
-      </div>
+      </Reveal>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-6">
-        <div className="rounded-2xl border border-border bg-panel p-6">
-          <div className="flex items-center justify-between mb-4">
-            <p className="font-display text-[0.95rem] font-bold">Clientes recientes</p>
-            <Link href="/admin/clientes" className="font-mono text-[11px] text-violet inline-flex items-center gap-1">
-              Ver todos →
-            </Link>
-          </div>
-          <div className="h-px" style={{ background: "linear-gradient(90deg,rgba(139,92,246,.25),rgba(34,211,238,.15),transparent)", marginBottom: "14px" }} />
-          <div className="flex flex-col gap-2">
-            {ultimosClientes.map((c) => (
-              <Link key={c.id} href={`/admin/clientes/${c.id}`} className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-white/[0.02]">
-                <InitialsChip label={c.nombre} size="sm" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-display font-semibold text-[.85rem] truncate">{c.nombre}</p>
-                  <p className="text-[11px] text-text-dim truncate">{c.email}</p>
+      <Reveal className="mt-8">
+        <div className="section-shell">
+          <div className="stats-track">
+            {stats.map((s, i) => (
+              <div key={i} className="stat-card relative overflow-hidden">
+                <div className={`absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r ${s.gradient}`} />
+                <div className={`w-[44px] h-[44px] rounded-[12px] flex items-center justify-center mb-4 ${s.iconBg}`}>
+                  <StatIcon icon={s.icon} />
                 </div>
-                <span className="font-mono text-[11px] text-text-dim shrink-0">{c._count.suscripciones} susc.</span>
-              </Link>
+                <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint mb-1.5 leading-tight">{s.label}</p>
+                <p className={`font-display text-[1.9rem] font-bold tracking-[-0.02em] ${s.icon === "alert" ? "text-red-400" : "text-text"}`}>{s.value}</p>
+                {s.delta && (
+                  <p className={`flex items-center gap-1 text-[11px] mt-2 ${s.delta.positive ? "text-mint" : "text-red-400"}`}>
+                    {s.delta.positive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+                    {s.delta.positive ? "+" : ""}{s.delta.value}% vs anterior
+                  </p>
+                )}
+              </div>
             ))}
           </div>
+          <div className="stats-dots" id="statsDots" />
         </div>
+      </Reveal>
 
-        <div className="rounded-2xl border border-border bg-panel p-6">
-          <p className="font-display text-[0.95rem] font-bold mb-4">Estado de suscripciones</p>
-          <div className="h-px" style={{ background: "linear-gradient(90deg,rgba(139,92,246,.25),rgba(34,211,238,.15),transparent)", marginBottom: "14px" }} />
-          <div className="flex flex-col gap-4">
-            {suscripcionesPorEstado.map((g) => {
-              const barGradient = g.estado === "ACTIVE" ? "linear-gradient(90deg,#34d399,#22d3ee)" : g.estado === "PAST_DUE" ? "linear-gradient(90deg,#f87171,#ef4444)" : "linear-gradient(90deg,#645f74,#a29cb3)"
-              const dotColor = g.estado === "ACTIVE" ? "#34d399" : g.estado === "PAST_DUE" ? "#f87171" : "#645f74"
-              return (
-                <div key={g.estado}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="flex items-center gap-2 font-display font-medium" style={{ fontSize: ".8rem" }}>
-                      <span className="w-2 h-2 rounded-full" style={{ background: dotColor }} />
-                      {mapLabel(g.estado)}
-                    </span>
-                    <span className="font-mono text-xs text-text-dim">{g._count.id}</span>
-                  </div>
-                  <div className="h-[7px] rounded-full bg-bg overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${Math.max((g._count.id / maxCount) * 100, 8)}%`, background: barGradient }} />
-                  </div>
-                </div>
-              )
-            })}
-            {suscripcionesPorEstado.length === 0 && (
-              <p className="text-xs text-text-dim py-8 text-center">Sin datos</p>
-            )}
+      <Reveal className="mt-8" delay={80}>
+        <div className="section-shell">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-6">
+            <div className="rounded-2xl border border-border bg-panel p-6">
+              <div className="flex items-center justify-between mb-4">
+                <p className="font-display text-[0.95rem] font-bold">Clientes recientes</p>
+                <Link href="/admin/clientes" className="font-mono text-[11px] text-violet inline-flex items-center gap-1">
+                  Ver todos →
+                </Link>
+              </div>
+              <div className="h-px" style={{ background: "linear-gradient(90deg,rgba(139,92,246,.25),rgba(34,211,238,.15),transparent)", marginBottom: "14px" }} />
+              <div className="flex flex-col gap-2">
+                {ultimosClientes.map((c) => (
+                  <Link key={c.id} href={`/admin/clientes/${c.id}`} className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-white/[0.02]">
+                    <InitialsChip label={c.nombre} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-display font-semibold text-[.85rem] truncate">{c.nombre}</p>
+                      <p className="text-[11px] text-text-dim truncate">{c.email}</p>
+                    </div>
+                    <span className="font-mono text-[11px] text-text-dim shrink-0">{c._count.suscripciones} susc.</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-panel p-6">
+              <p className="font-display text-[0.95rem] font-bold mb-4">Estado de suscripciones</p>
+              <div className="h-px" style={{ background: "linear-gradient(90deg,rgba(139,92,246,.25),rgba(34,211,238,.15),transparent)", marginBottom: "14px" }} />
+              <div className="flex flex-col gap-4">
+                {suscripcionesPorEstado.map((g) => {
+                  const barGradient = g.estado === "ACTIVE" ? "linear-gradient(90deg,#34d399,#22d3ee)" : g.estado === "PAST_DUE" ? "linear-gradient(90deg,#f87171,#ef4444)" : "linear-gradient(90deg,#645f74,#a29cb3)"
+                  const dotColor = g.estado === "ACTIVE" ? "#34d399" : g.estado === "PAST_DUE" ? "#f87171" : "#645f74"
+                  return (
+                    <div key={g.estado}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="flex items-center gap-2 font-display font-medium" style={{ fontSize: ".8rem" }}>
+                          <span className="w-2 h-2 rounded-full" style={{ background: dotColor }} />
+                          {mapLabel(g.estado)}
+                        </span>
+                        <span className="font-mono text-xs text-text-dim">{g._count.id}</span>
+                      </div>
+                      <div className="h-[7px] rounded-full bg-bg overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${Math.max((g._count.id / maxCount) * 100, 8)}%`, background: barGradient }} />
+                      </div>
+                    </div>
+                  )
+                })}
+                {suscripcionesPorEstado.length === 0 && (
+                  <p className="text-xs text-text-dim py-8 text-center">Sin datos</p>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <p className="font-mono text-[11px] text-text-faint text-center mt-7 pt-4" style={{ borderTop: "1px dashed var(--color-border)" }}>
-        Datos actualizados en tiempo real
-      </p>
+          <p className="font-mono text-[11px] text-text-faint text-center mt-7 pt-4" style={{ borderTop: "1px dashed var(--color-border)" }}>
+            Datos actualizados en tiempo real
+          </p>
+        </div>
+      </Reveal>
 
       <Script id="stats-dots">{`
         const track = document.querySelector('.stats-track');

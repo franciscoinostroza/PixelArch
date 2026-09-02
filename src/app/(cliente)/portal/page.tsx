@@ -132,36 +132,44 @@ export default async function PortalPage({
               <p className="text-sm text-text-dim leading-relaxed mb-4">{config.descripcion}</p>
 
               {s.estado === "READY" && (
-                <div className="flex flex-col gap-2 mb-4">
+                <div className="mb-3 flex flex-col gap-2">
                   {s.servicio.polarProductIdBasico && (
-                    <CheckoutButton polarProductId={s.servicio.polarProductIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label={`Básico ${price(s.servicio.precioBasico)}${rate ? " ARS" : ""}/mes${priceRef(s.servicio.precioBasico) ? ` (${priceRef(s.servicio.precioBasico)})` : ""} — mantener online`} size="default" variant="gradient" className="w-full" />
+                    <CheckoutButton polarProductId={s.servicio.polarProductIdBasico} servicioNombre={s.servicio.nombre} tipo="BASICO" label="Mantener online (Básico)" size="default" variant="gradient" className="w-full" />
                   )}
                   {s.servicio.polarProductIdMantenimiento && (
-                    <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label={`Mantenimiento ${price(s.servicio.precioMantenimiento)}${rate ? " ARS" : ""}/mes${priceRef(s.servicio.precioMantenimiento) ? ` (${priceRef(s.servicio.precioMantenimiento)})` : ""} — online + cambios`} size="default" variant="outline" className="w-full" />
+                    <CheckoutButton polarProductId={s.servicio.polarProductIdMantenimiento} servicioNombre={s.servicio.nombre} tipo="MANTENIMIENTO" label="Online + cambios (Mantenimiento)" size="default" variant="outline" className="w-full" />
                   )}
                 </div>
               )}
 
-              <div className="mt-auto pt-3 border-t border-border/50 flex items-center justify-between">
-                <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem" }}>
-                  {s.estado === "READY" ? price(s.servicio.precioMantenimiento) : s.estado === "PENDING" ? price(s.servicio.precioUnico) : s.plan === "MANTENIMIENTO" ? price(s.servicio.precioMantenimiento) : price(s.servicio.precioBasico)}
-                  {s.estado !== "PENDING" && s.estado !== "READY" && <span className="text-xs font-normal text-text-dim">/mes</span>}
-                  {rate && <span className="ml-1.5 text-xs font-normal text-text-dim">≈ {formatUSD(s.estado === "READY" ? s.servicio.precioMantenimiento : s.estado === "PENDING" ? s.servicio.precioUnico : s.plan === "MANTENIMIENTO" ? s.servicio.precioMantenimiento : s.servicio.precioBasico)}</span>}
+              {s.estado === "READY" && (
+                <p className="text-xs text-text-faint leading-relaxed">
+                  Sin un plan mensual, el servicio deja de estar online.
                 </p>
-                {s.proximoPago && (
-                  <span className={cn("text-xs", s.estado === "PAST_DUE" ? "text-red-400" : "text-text-dim")}>
-                    {s.estado === "PAST_DUE" ? "⚠ Vence " : "Renueva "}{new Date(s.proximoPago).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
-                  </span>
-                )}
-              </div>
+              )}
+
+              {s.estado !== "READY" && (
+                <div className="pt-3 border-t border-border/50 flex items-center justify-between">
+                  <p className="font-bold" style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem" }}>
+                    {s.estado === "PENDING" ? price(s.servicio.precioUnico) : s.plan === "MANTENIMIENTO" ? price(s.servicio.precioMantenimiento) : price(s.servicio.precioBasico)}
+                    {s.estado !== "PENDING" && <span className="text-xs font-normal text-text-dim">/mes</span>}
+                    {rate && <span className="ml-1.5 text-xs font-normal text-text-dim">≈ {formatUSD(s.estado === "PENDING" ? s.servicio.precioUnico : s.plan === "MANTENIMIENTO" ? s.servicio.precioMantenimiento : s.servicio.precioBasico)}</span>}
+                  </p>
+                  {s.proximoPago && (
+                    <span className={cn("text-xs", s.estado === "PAST_DUE" ? "text-red-400" : "text-text-dim")}>
+                      {s.estado === "PAST_DUE" ? "⚠ Vence " : "Renueva "}{new Date(s.proximoPago).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           )
         })}
 
         {suscripciones.length > 0 && (
-          <Link href="/productos" className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/40 bg-panel px-6 py-4 transition-colors hover:border-violet/40 hover:bg-violet/[0.04]">
-            <span className="text-xl text-text-faint">+</span>
-            <span className="text-[13px] text-text-faint text-center">Agregar un<br />nuevo producto</span>
+          <Link href="/productos" className="self-start flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/40 bg-panel px-6 py-6 transition-colors hover:border-violet/40 hover:bg-violet/[0.04]">
+            <span className="text-lg text-text-faint">+</span>
+            <span className="text-xs text-text-faint text-center">Agregar un<br />nuevo producto</span>
           </Link>
         )}
       </div>

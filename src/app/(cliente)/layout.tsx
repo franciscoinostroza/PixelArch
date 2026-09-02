@@ -1,4 +1,4 @@
-import { auth, clerkClient } from "@clerk/nextjs/server"
+import { auth } from "@clerk/nextjs/server"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { PortalNav } from "@/components/ui/portal-nav"
@@ -12,13 +12,6 @@ export default async function PortalLayout({
 }) {
   const { userId } = await auth()
   if (!userId) redirect("/sign-in")
-
-  const clerk = await clerkClient()
-  const user = await clerk.users.getUser(userId)
-  const nombre = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.emailAddresses[0]?.emailAddress
-  const iniciales = nombre
-    ? nombre.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
-    : "??"
 
   return (
     <div className="relative min-h-screen">
@@ -60,13 +53,7 @@ export default async function PortalLayout({
               </span>
             </Link>
             <PortalNav />
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet/15 font-display text-[11px] font-bold text-violet">
-                {iniciales}
-              </div>
-              <span className="hidden text-sm text-text md:block">{nombre}</span>
-              <PortalUserButton />
-            </div>
+            <PortalUserButton />
           </div>
         </header>
 

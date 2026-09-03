@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import SpaceCanvas from "@/components/layout/space-canvas"
+import "./admin.css"
 
 export default async function AdminLayout({
   children,
@@ -17,7 +18,7 @@ export default async function AdminLayout({
   })
 
   return (
-    <div className="relative flex min-h-screen">
+    <div className="relative min-h-screen">
       <SpaceCanvas />
 
       <div
@@ -31,11 +32,9 @@ export default async function AdminLayout({
         style={{ background: "rgba(34,211,238,0.10)" }}
       />
 
-      <div className="relative z-10 flex w-full">
+      <div className="relative z-10 a-shell">
         <AdminSidebar alertasActivas={alertasVencidos} />
-        <main className="min-w-0 flex-1 overflow-x-hidden px-6 py-12 lg:pl-[250px] lg:pr-10" style={{ position: "relative" }}>
-          {children}
-        </main>
+        <main className="a-main">{children}</main>
       </div>
     </div>
   )

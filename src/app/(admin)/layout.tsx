@@ -2,7 +2,7 @@ import { AdminSidebar } from "@/components/layout/admin-sidebar"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import SpaceCanvas from "@/components/layout/space-canvas"
+import StaticAmbience from "@/components/layout/static-ambience"
 import "./admin.css"
 
 export default async function AdminLayout({
@@ -19,7 +19,7 @@ export default async function AdminLayout({
 
   return (
     <div className="relative min-h-screen">
-      <SpaceCanvas />
+      <StaticAmbience />
 
       <div
         aria-hidden="true"

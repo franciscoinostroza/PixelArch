@@ -3,7 +3,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { PortalNav } from "@/components/ui/portal-nav"
 import { PortalUserButton } from "@/components/ui/portal-user-button"
-import SpaceCanvas from "@/components/layout/space-canvas"
+import StaticAmbience from "@/components/layout/static-ambience"
 import "./portal.css"
 
 export default async function PortalLayout({
@@ -16,7 +16,7 @@ export default async function PortalLayout({
 
   return (
     <div className="relative min-h-screen">
-      <SpaceCanvas />
+      <StaticAmbience />
 
       <div
         aria-hidden="true"

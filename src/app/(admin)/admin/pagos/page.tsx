@@ -1,13 +1,21 @@
-import { Button, buttonVariants } from "@/components/ui/button"
-import { PageHeader } from "@/components/ui/page-header"
-import { StatusPill } from "@/components/ui/status-pill"
 import { Pagination } from "@/components/ui/pagination"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 const PER_PAGE = 20
+
+function pillOf(estado: string) {
+  switch (estado) {
+    case "SUCCEEDED": return { cls: "a-pill mint", label: "Pagado" }
+    case "FAILED": return { cls: "a-pill red", label: "Fallido" }
+    case "REFUNDED": return { cls: "a-pill gray", label: "Reembolsado" }
+    case "PENDING": return { cls: "a-pill yellow", label: "Pendiente" }
+    default: return { cls: "a-pill gray", label: estado }
+  }
+}
 
 export default async function AdminPagos({
   searchParams,
@@ -47,16 +55,6 @@ export default async function AdminPagos({
 
   const totalPages = Math.ceil(total / PER_PAGE)
 
-  const mapEstado = (e: string) => {
-    switch (e) {
-      case "SUCCEEDED": return "Pagado"
-      case "FAILED": return "Fallido"
-      case "REFUNDED": return "Reembolsado"
-      case "PENDING": return "Pendiente"
-      default: return e
-    }
-  }
-
   const estados = ["SUCCEEDED", "FAILED", "REFUNDED", "PENDING"]
 
   const queryString = (pageNum: number) => {
@@ -70,98 +68,73 @@ export default async function AdminPagos({
 
   return (
     <div>
-      <PageHeader title="Pagos" subtitle="Historial completo de transacciones" />
-
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        <form className="flex flex-wrap items-center gap-3">
-          <select
-            name="estado"
-            defaultValue={estado ?? ""}
-            className="h-9 rounded-lg border border-border bg-panel px-3 text-xs text-text font-mono"
-          >
-            <option value="">Todos los estados</option>
-            {estados.map((e) => (
-              <option key={e} value={e}>{mapEstado(e)}</option>
-            ))}
-          </select>
-          <input
-            type="date"
-            name="desde"
-            defaultValue={desde ?? ""}
-            className="h-9 rounded-lg border border-border bg-panel px-3 text-xs text-text font-mono"
-            title="Desde"
-          />
-          <input
-            type="date"
-            name="hasta"
-            defaultValue={hasta ?? ""}
-            className="h-9 rounded-lg border border-border bg-panel px-3 text-xs text-text font-mono"
-            title="Hasta"
-          />
-          <Button type="submit" size="sm" variant="outline">Filtrar</Button>
-          {(estado || desde || hasta) && (
-            <Link href="/admin/pagos" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-              Limpiar
-            </Link>
-          )}
-        </form>
-        <span className="text-xs text-text-dim font-mono">{total} resultados</span>
+      <div className="a-greet">
+        <h1>Pagos</h1>
+        <p>Historial completo de transacciones.</p>
       </div>
 
-      <div className="brand-table overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr>
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">
-                Cliente
-              </th>
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">
-                Servicio
-              </th>
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">
-                Fecha
-              </th>
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">
-                Monto
-              </th>
-              <th className="text-right text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">
-                Estado
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {pagos.length === 0 ? (
+      <div className="a-filters">
+        <form style={{ display: "contents" }}>
+          <select name="estado" defaultValue={estado ?? ""} className="a-field">
+            <option value="">Todos los estados</option>
+            {estados.map((e) => (
+              <option key={e} value={e}>{pillOf(e).label}</option>
+            ))}
+          </select>
+          <input type="date" name="desde" defaultValue={desde ?? ""} className="a-field" title="Desde" />
+          <input type="date" name="hasta" defaultValue={hasta ?? ""} className="a-field" title="Hasta" />
+          <button type="submit" className="a-btn solid">Filtrar</button>
+          {(estado || desde || hasta) && (
+            <Link href="/admin/pagos" className="a-btn ghost">Limpiar</Link>
+          )}
+        </form>
+      </div>
+
+      <div className="a-panel" style={{ padding: 0, overflow: "hidden" }}>
+        <div className="a-head" style={{ padding: "18px 22px 0" }}>
+          <h3>Transacciones</h3>
+          <span className="a-faint">{total} resultados</span>
+        </div>
+        <div className="a-table-wrap">
+          <table className="a-table">
+            <thead>
               <tr>
-                <td colSpan={5} className="py-12 text-center text-xs text-text-dim">
-                  No hay pagos registrados
-                </td>
+                <th>Cliente</th>
+                <th>Servicio</th>
+                <th>Fecha</th>
+                <th>Monto</th>
+                <th>Estado</th>
               </tr>
-            ) : (
-              pagos.map((p) => (
-                <tr key={p.id} className="border-t border-border/50 transition-colors hover:bg-panel/50">
-                  <td className="px-5 py-3 text-xs text-text">{p.cliente.nombre}</td>
-                  <td className="px-5 py-3 text-xs text-text-dim">
-                    {p.suscripcion?.servicio.nombre ?? "—"}
-                  </td>
-                  <td className="px-5 py-3 text-xs text-text-dim font-mono">
-                    {new Date(p.creadoEn).toLocaleDateString("es-AR")}
-                  </td>
-                  <td className="px-5 py-3 text-xs text-text font-mono font-medium">
-                    US${(p.monto / 100).toFixed(2)}
-                    {p.discountAmount ? (
-                      <span className="ml-1.5 text-[11px] text-violet">
-                        (-${(p.discountAmount / 100).toFixed(0)})
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <StatusPill estado={p.estadoPago} />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {pagos.length === 0 ? (
+                <tr><td colSpan={5} className="a-empty">No hay pagos registrados</td></tr>
+              ) : (
+                pagos.map((p) => {
+                  const pill = pillOf(p.estadoPago)
+                  return (
+                    <tr key={p.id}>
+                      <td>{p.cliente.nombre}</td>
+                      <td className="a-dim">{p.suscripcion?.servicio.nombre ?? "—"}</td>
+                      <td className="a-faint">{new Date(p.creadoEn).toLocaleDateString("es-AR")}</td>
+                      <td className="a-mono">
+                        US${(p.monto / 100).toFixed(2)}
+                        {p.discountAmount ? (
+                          <span style={{ color: "#8b5cf6", fontSize: "0.72rem", marginLeft: 6 }}>
+                            (-${(p.discountAmount / 100).toFixed(0)})
+                          </span>
+                        ) : null}
+                      </td>
+                      <td>
+                        <span className={cn("a-pill", pill.cls)}><i />{pill.label}</span>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <Pagination

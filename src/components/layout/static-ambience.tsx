@@ -28,15 +28,6 @@ export default function StaticAmbience() {
         background: "radial-gradient(ellipse at 50% -20%, #150f24 0%, #07060c 55%), #07060c",
       }}
     >
-      <style>{`
-        .amb-stars i {
-          position: absolute;
-          width: 2px;
-          height: 2px;
-          background: #fff;
-          border-radius: 50%;
-        }
-      `}</style>
       <div ref={ref} className="amb-stars absolute inset-0" />
     </div>
   )

@@ -5,19 +5,7 @@ import { DeployConfig } from "@/components/ui/deploy-config"
 import { EntregarButton } from "@/components/ui/entregar-button"
 import { SubscriptionActions } from "@/components/ui/subscription-actions"
 import { AsignarProductoButton } from "@/components/ui/asignar-producto-button"
-import { PageHeader } from "@/components/ui/page-header"
-import { StatusPill } from "@/components/ui/status-pill"
-
-const mapEstado = (e: string) => {
-  switch (e) {
-    case "ACTIVE": return "active"
-    case "PAST_DUE": return "past_due"
-    case "CANCELED": return "paused"
-    case "PENDING": return "pending"
-    case "READY": return "active"
-    default: return "paused"
-  }
-}
+import { cn } from "@/lib/utils"
 
 const mapLabel = (e: string) => {
   switch (e) {
@@ -26,7 +14,31 @@ const mapLabel = (e: string) => {
     case "CANCELED": return "Cancelado"
     case "PENDING": return "En desarrollo"
     case "READY": return "Entregado"
+    case "PAUSED": return "Pausado"
     default: return e
+  }
+}
+
+function pillOf(estado: string) {
+  const label = mapLabel(estado)
+  const cls =
+    estado === "ACTIVE" || estado === "READY"
+      ? "a-pill mint"
+      : estado === "PAST_DUE"
+        ? "a-pill red"
+        : estado === "PENDING"
+          ? "a-pill yellow"
+          : "a-pill gray"
+  return { cls, label }
+}
+
+function pillOfPago(estado: string) {
+  switch (estado) {
+    case "SUCCEEDED": return { cls: "a-pill mint", label: "Pagado" }
+    case "FAILED": return { cls: "a-pill red", label: "Fallido" }
+    case "REFUNDED": return { cls: "a-pill gray", label: "Reembolsado" }
+    case "PENDING": return { cls: "a-pill yellow", label: "Pendiente" }
+    default: return { cls: "a-pill gray", label: estado }
   }
 }
 
@@ -58,142 +70,128 @@ export default async function ClienteDetalle({
 
   const servicios = await prisma.servicio.findMany({ where: { activo: true }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } })
 
+  const pillCliente = cliente.activo ? { cls: "a-pill mint", label: "Cliente activo" } : { cls: "a-pill gray", label: "Inactivo" }
+
   return (
     <div>
-      <PageHeader title={cliente.nombre} subtitle={cliente.email}>
-        <AsignarProductoButton clienteId={cliente.id} servicios={servicios} />
-        <StatusPill estado={cliente.activo ? "ACTIVE" : "INACTIVE"} label={cliente.activo ? "Cliente activo" : "Inactivo"} />
-      </PageHeader>
+      <div className="a-greet">
+        <h1>{cliente.nombre}</h1>
+        <p>{cliente.email}</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 18 }}>
+          <AsignarProductoButton clienteId={cliente.id} servicios={servicios} />
+          <span className={cn("a-pill", pillCliente.cls)}><i />{pillCliente.label}</span>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
-        <div className="brand-card p-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.1em] text-text-faint mb-1">Empresa</p>
-              <p className="text-text">{cliente.empresa || "—"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.1em] text-text-faint mb-1">Teléfono</p>
-              <p className="text-text">{cliente.telefono || "—"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.1em] text-text-faint mb-1">Registrado</p>
-              <p className="text-text">{new Date(cliente.creadoEn).toLocaleDateString("es-AR")}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.1em] text-text-faint mb-1">Polar ID</p>
-              <p className="text-text-dim text-[11px] truncate">{cliente.polarCustomerId || "—"}</p>
-            </div>
+      <div className="a-panel">
+        <div className="a-head"><h3>Datos</h3></div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+          <div>
+            <div className="a-faint" style={{ marginBottom: 4 }}>Empresa</div>
+            <div>{cliente.empresa || "—"}</div>
+          </div>
+          <div>
+            <div className="a-faint" style={{ marginBottom: 4 }}>Teléfono</div>
+            <div>{cliente.telefono || "—"}</div>
+          </div>
+          <div>
+            <div className="a-faint" style={{ marginBottom: 4 }}>Registrado</div>
+            <div>{new Date(cliente.creadoEn).toLocaleDateString("es-AR")}</div>
+          </div>
+          <div>
+            <div className="a-faint" style={{ marginBottom: 4 }}>Polar ID</div>
+            <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cliente.polarCustomerId || "—"}</div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
-        <div className="brand-card p-5">
-          <p className="font-display text-[0.95rem] font-bold mb-4">
-            Suscripciones ({cliente.suscripciones.length})
-          </p>
-          {cliente.suscripciones.length === 0 ? (
-            <p className="text-xs text-text-dim py-4 text-center">Sin suscripciones</p>
-          ) : (
-            <div className="space-y-2.5">
-              {cliente.suscripciones.map((s) => (
-                <div
-                  key={s.id}
-                  className="rounded-xl border border-border px-3.5 py-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-text">
-                        {s.servicio.nombre}
-                        {s.plan && <span className="text-[11px] text-text-dim ml-1.5">· {s.plan === "UNICO" ? "Pago único" : s.plan === "BASICO" ? "Básico" : "Mantenimiento"}</span>}
-                      </p>
-                      <p className="text-[11px] text-text-dim font-mono">
-                        {s.plan === "MANTENIMIENTO" ? `$${(s.servicio.precioMantenimiento / 100).toFixed(2)}/mes` : s.plan === "BASICO" ? `$${(s.servicio.precioBasico / 100).toFixed(2)}/mes` : `$${(s.servicio.precioUnico / 100).toFixed(2)} pago único`}
-                      </p>
+      <div className="a-panel" style={{ marginTop: 18 }}>
+        <div className="a-head">
+          <h3>Suscripciones</h3>
+          <span className="a-faint">{cliente.suscripciones.length}</span>
+        </div>
+        {cliente.suscripciones.length === 0 ? (
+          <p className="a-empty">Sin suscripciones</p>
+        ) : (
+          cliente.suscripciones.map((s) => {
+            const pill = pillOf(s.estado)
+            return (
+              <div key={s.id} className="a-prow" style={{ flexDirection: "column", alignItems: "stretch" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <div>
+                    <div className="a-name">
+                      {s.servicio.nombre}
+                      {s.plan && <span style={{ color: "var(--color-text-dim)", fontWeight: 500, marginLeft: 8 }}>· {s.plan === "UNICO" ? "Pago único" : s.plan === "BASICO" ? "Básico" : "Mantenimiento"}</span>}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5">
-                        <StatusPill estado={s.estado} label={mapLabel(s.estado)} />
-                        {s.polarDiscountId && (
-                          <span className="rounded-full bg-violet/10 px-2 py-0.5 text-[10px] text-violet font-mono">
-                            Dto.
-                          </span>
-                        )}
-                      </span>
-                      {s.estado !== "PENDING" && <SubscriptionActions suscripcionId={s.id} estado={s.estado} cancelAtPeriodEnd={s.cancelAtPeriodEnd} deploymentPlatform={s.deploymentPlatform} platformServiceId={s.platformServiceId} />}
+                    <div className="a-date">
+                      {s.plan === "MANTENIMIENTO" ? `$${(s.servicio.precioMantenimiento / 100).toFixed(2)}/mes` : s.plan === "BASICO" ? `$${(s.servicio.precioBasico / 100).toFixed(2)}/mes` : `$${(s.servicio.precioUnico / 100).toFixed(2)} pago único`}
                     </div>
                   </div>
-                  {s.estado === "PENDING" && (
-                    <div className="mt-2">
-                      <EntregarButton suscripcionId={s.id} />
-                    </div>
-                  )}
-                  {(s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span className={cn("a-pill", pill.cls)}><i />{pill.label}</span>
+                    {s.polarDiscountId && (
+                      <span className="a-pill gray">Dto.</span>
+                    )}
+                    {s.estado !== "PENDING" && <SubscriptionActions suscripcionId={s.id} estado={s.estado} cancelAtPeriodEnd={s.cancelAtPeriodEnd} deploymentPlatform={s.deploymentPlatform} platformServiceId={s.platformServiceId} />}
+                  </div>
+                </div>
+                {s.estado === "PENDING" && (
+                  <div style={{ marginTop: 10 }}>
+                    <EntregarButton suscripcionId={s.id} />
+                  </div>
+                )}
+                {(s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
+                  <div style={{ marginTop: 10 }}>
                     <DeployConfig
                       suscripcionId={s.id}
                       deploymentId={s.deploymentId}
                       deploymentPlatform={s.deploymentPlatform}
                       platformServiceId={s.platformServiceId}
                     />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                  </div>
+                )}
+              </div>
+            )
+          })
+        )}
       </div>
 
-      <div className="brand-table overflow-x-auto">
-        <div className="px-5 pt-4 pb-3">
-          <p className="font-display text-[0.95rem] font-bold">
-            Historial de pagos ({cliente.pagos.length})
-          </p>
+      <div className="a-panel" style={{ marginTop: 18, padding: 0, overflow: "hidden" }}>
+        <div className="a-head" style={{ padding: "18px 22px 0" }}>
+          <h3>Historial de pagos</h3>
+          <span className="a-faint">{cliente.pagos.length}</span>
         </div>
-        <table className="w-full">
-          <thead>
-            <tr>
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 py-3 font-mono font-normal">
-                Servicio
-              </th>
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 py-3 font-mono font-normal">
-                Fecha
-              </th>
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 py-3 font-mono font-normal">
-                Monto
-              </th>
-              <th className="text-right text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 py-3 font-mono font-normal">
-                Estado
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {cliente.pagos.length === 0 ? (
+        <div className="a-table-wrap">
+          <table className="a-table">
+            <thead>
               <tr>
-                <td colSpan={4} className="py-12 text-center text-xs text-text-dim">
-                  Sin pagos registrados
-                </td>
+                <th>Servicio</th>
+                <th>Fecha</th>
+                <th>Monto</th>
+                <th>Estado</th>
               </tr>
-            ) : (
-              cliente.pagos.map((p) => (
-                <tr key={p.id} className="border-t border-border/50 transition-colors hover:bg-panel/50">
-                  <td className="px-5 py-3 text-xs text-text">
-                    {p.suscripcion?.servicio.nombre ?? "—"}
-                  </td>
-                  <td className="px-5 py-3 text-xs text-text-dim font-mono">
-                    {new Date(p.creadoEn).toLocaleDateString("es-AR")}
-                  </td>
-                  <td className="px-5 py-3 text-xs text-text font-mono">
-                    US${(p.monto / 100).toFixed(2)}
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <StatusPill estado={p.estadoPago} />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {cliente.pagos.length === 0 ? (
+                <tr><td colSpan={4} className="a-empty">Sin pagos registrados</td></tr>
+              ) : (
+                cliente.pagos.map((p) => {
+                  const pill = pillOfPago(p.estadoPago)
+                  return (
+                    <tr key={p.id}>
+                      <td>{p.suscripcion?.servicio.nombre ?? "—"}</td>
+                      <td className="a-faint">{new Date(p.creadoEn).toLocaleDateString("es-AR")}</td>
+                      <td className="a-mono">US${(p.monto / 100).toFixed(2)}</td>
+                      <td>
+                        <span className={cn("a-pill", pill.cls)}><i />{pill.label}</span>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

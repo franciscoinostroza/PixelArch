@@ -1,13 +1,15 @@
-import { Input } from "@/components/ui/input"
-import { PageHeader } from "@/components/ui/page-header"
-import { StatusPill } from "@/components/ui/status-pill"
 import { Pagination } from "@/components/ui/pagination"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 const PER_PAGE = 20
+
+function pillOf(activo: boolean) {
+  return activo ? { cls: "a-pill mint", label: "Activo" } : { cls: "a-pill gray", label: "Inactivo" }
+}
 
 export default async function AdminClientes({
   searchParams,
@@ -45,67 +47,68 @@ export default async function AdminClientes({
 
   return (
     <div>
-      <PageHeader title="Clientes" subtitle="Gestiona tus clientes" />
-
-      <div className="mb-5">
-        <form>
-          <Input
-            name="q"
-            placeholder="Buscar por nombre, email o empresa..."
-            className="max-w-sm"
-            defaultValue={q}
-          />
-        </form>
+      <div className="a-greet">
+        <h1>Clientes</h1>
+        <p>Gestiona tus clientes.</p>
       </div>
 
-      <div className="brand-table overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr>
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">
-                Nombre
-              </th>
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">
-                Email
-              </th>
-              <th className="text-left text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">
-                Suscripciones
-              </th>
-              <th className="text-right text-[10px] uppercase tracking-[0.1em] text-text-faint px-5 pt-4 pb-3 font-mono font-normal">
-                Estado
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {clientes.length === 0 ? (
+      <div className="a-filters">
+        <form style={{ display: "contents" }}>
+          <input
+            type="search"
+            name="q"
+            placeholder="Buscar por nombre, email o empresa..."
+            defaultValue={q}
+            className="a-field"
+            style={{ width: 300, maxWidth: "100%" }}
+          />
+          <button type="submit" className="a-btn solid">Buscar</button>
+        </form>
+        {q && (
+          <Link href="/admin/clientes" className="a-btn ghost">Limpiar</Link>
+        )}
+      </div>
+
+      <div className="a-panel" style={{ padding: 0, overflow: "hidden" }}>
+        <div className="a-head" style={{ padding: "18px 22px 0" }}>
+          <h3>Listado</h3>
+          <span className="a-faint">{total} clientes</span>
+        </div>
+        <div className="a-table-wrap">
+          <table className="a-table">
+            <thead>
               <tr>
-                <td colSpan={4} className="py-12 text-center text-xs text-text-dim">
-                  No hay clientes registrados
-                </td>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Suscripciones</th>
+                <th>Estado</th>
               </tr>
-            ) : (
-              clientes.map((c) => (
-                <tr key={c.id} className="border-t border-border/50 hover:bg-panel/50 transition-colors">
-                  <td className="px-5 py-3">
-                    <Link
-                      href={`/admin/clientes/${c.id}`}
-                      className="text-xs text-text hover:text-violet transition-colors"
-                    >
-                      {c.nombre}
-                    </Link>
-                  </td>
-                  <td className="px-5 py-3 text-xs text-text-dim">{c.email}</td>
-                  <td className="px-5 py-3 text-xs text-text-dim font-mono">
-                    {c._count.suscripciones}
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <StatusPill estado={c.activo ? "ACTIVE" : "INACTIVE"} />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {clientes.length === 0 ? (
+                <tr><td colSpan={4} className="a-empty">No hay clientes registrados</td></tr>
+              ) : (
+                clientes.map((c) => {
+                  const p = pillOf(c.activo)
+                  return (
+                    <tr key={c.id}>
+                      <td>
+                        <Link href={`/admin/clientes/${c.id}`} style={{ color: "#8b5cf6", fontWeight: 600 }}>
+                          {c.nombre}
+                        </Link>
+                      </td>
+                      <td className="a-dim">{c.email}</td>
+                      <td className="a-mono">{c._count.suscripciones}</td>
+                      <td>
+                        <span className={cn("a-pill", p.cls)}><i />{p.label}</span>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <Pagination

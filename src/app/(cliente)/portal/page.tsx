@@ -126,7 +126,7 @@ export default async function PortalPage({
       </div>
 
       {success === "true" && (
-        <div className="p-row" style={{ padding: "12px 16px", border: "1px solid rgba(52,211,153,0.3)", borderRadius: 12, background: "rgba(52,211,153,0.06)", color: "#34d399", fontSize: "0.9rem", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", border: "1px solid rgba(52,211,153,0.3)", borderRadius: 12, background: "rgba(52,211,153,0.06)", color: "#34d399", fontSize: "0.9rem", marginBottom: 16 }}>
           ✓ Pago exitoso. Tu suscripción se activará en breve.
         </div>
       )}

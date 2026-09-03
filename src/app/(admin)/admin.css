@@ -1,5 +1,5 @@
 /* ===== Admin — estilos verbatim del HTML aprobado (pixelarch-admin.html) ===== */
-@layer components {
+
   .a-shell {
     display: flex;
     min-height: 100vh;
@@ -474,4 +474,3 @@
     .a-shell .a-rowc { flex-wrap: wrap }
     .a-shell .a-rowc .a-meta { align-self: flex-end; margin-left: 0 }
   }
-}

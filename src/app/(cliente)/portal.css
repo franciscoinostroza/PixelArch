@@ -1,5 +1,5 @@
 /* ===== Portal — estilos copiados verbatim del preview aprobado ===== */
-@layer components {
+
   .p-shell .p-bar {
     display: flex;
     justify-content: space-between;
@@ -297,4 +297,3 @@
     .p-shell .p-main { padding: 28px 16px 80px }
     .p-shell .p-nav { gap: 16px }
   }
-}

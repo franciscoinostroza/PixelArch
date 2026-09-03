@@ -1,10 +1,9 @@
 import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
-import { PageHeader } from "@/components/ui/page-header"
 import { StatusPill } from "@/components/ui/status-pill"
 import { Pagination } from "@/components/ui/pagination"
-import { Reveal } from "@/components/ui/reveal"
+import { cn } from "@/lib/utils"
 
 const PER_PAGE = 20
 
@@ -53,49 +52,66 @@ export default async function FacturacionPage({
 
   return (
     <div>
-      <Reveal>
-        <div className="section-shell">
-          <PageHeader title="Facturación" subtitle="Historial de pagos" />
-        </div>
-      </Reveal>
+      <div className="mb-12">
+        <h1
+          style={{
+            fontFamily: "var(--font-pixel-display)",
+            fontWeight: 700,
+            letterSpacing: 0,
+            fontSize: "clamp(1.9rem, 4vw, 2.9rem)",
+            lineHeight: 1.1,
+            marginBottom: "8px",
+          }}
+        >
+          Facturación
+        </h1>
+        <p style={{ color: "var(--color-text-dim)", fontSize: "1rem", maxWidth: "46ch", lineHeight: 1.65 }}>
+          Tu historial de pagos completo.
+        </p>
+      </div>
 
-      <Reveal className="mt-8" delay={80}>
-        <div className="section-shell">
-          {pagos.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border/40 bg-panel p-10 text-center">
-              <p className="font-mono text-sm text-text-dim">No hay pagos registrados</p>
-            </div>
-          ) : (
-            <div className="brand-card--static brand-card overflow-hidden">
-              {pagos.map((p, i) => (
-                <div
-                  key={p.id}
-                  className={`flex flex-wrap items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-white/[0.02] ${i > 0 ? "border-t border-border/40" : ""}`}
-                >
-                  <div>
-                    <p className="font-display text-sm font-medium text-text">
-                      {p.suscripcion?.servicio.nombre ?? "Pago"}
-                    </p>
-                    <p className="mt-0.5 text-xs text-text-dim font-mono">
-                      {new Date(p.creadoEn).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <p className="font-mono font-semibold text-text">US${(p.monto / 100).toFixed(2)}</p>
-                    <StatusPill estado={p.estadoPago} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+      <div className="flex items-center gap-4">
+        <h2 className="font-display text-[1.35rem] font-bold">Pagos</h2>
+        <span className="h-px flex-1" style={{ background: "linear-gradient(90deg, rgba(255,255,255,0.08), transparent)" }} aria-hidden="true" />
+      </div>
 
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            buildHref={(n) => `/portal/facturacion?page=${n}`}
-          />
-        </div>
-      </Reveal>
+      <div
+        className="mt-6 overflow-hidden rounded-[18px]"
+        style={{
+          border: "1px solid rgba(255,255,255,0.07)",
+          background: "linear-gradient(170deg, rgba(17,14,26,0.85), rgba(17,14,26,0.6))",
+          backdropFilter: "blur(10px)",
+        }}
+      >
+        {pagos.length === 0 ? (
+          <p className="px-6 py-14 text-center font-mono text-sm text-text-dim">No hay pagos registrados</p>
+        ) : (
+          pagos.map((p, i) => (
+            <div
+              key={p.id}
+              className={cn("flex flex-wrap items-center justify-between gap-3 px-6 py-4 transition-colors hover:bg-white/[0.02]", i > 0 && "border-t")}
+              style={{ borderColor: "rgba(255,255,255,0.05)" }}
+            >
+              <div>
+                <p className="text-[0.92rem] font-semibold">{p.suscripcion?.servicio.nombre ?? "Pago"}</p>
+                <p className="mt-0.5 font-mono text-[11px] text-text-faint">
+                  {new Date(p.creadoEn).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="font-mono text-[0.92rem] font-semibold">US${(p.monto / 100).toFixed(2)}</span>
+                <StatusPill estado={p.estadoPago} />
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        buildHref={(n) => `/portal/facturacion?page=${n}`}
+      />
     </div>
   )
 }

@@ -3,7 +3,6 @@ import { requireAdmin } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { AlertTriangle, ArrowUpRight, ArrowDownRight } from "lucide-react"
 
 export default async function AdminDashboard() {
   const admin = await requireAdmin()
@@ -65,17 +64,13 @@ export default async function AdminDashboard() {
     e === "ACTIVE" ? "g" : e === "PAST_DUE" ? "gr" : e === "PENDING" ? "y" : "s"
 
   const barOf = (e: string) => {
-    const color =
-      e === "ACTIVE"
-        ? "linear-gradient(90deg,#34d399,#22d3ee)"
-        : e === "PAST_DUE"
-          ? "linear-gradient(90deg,#f87171,#ef4444)"
-          : e === "PENDING"
-            ? "linear-gradient(90deg,#fbbf24,#f59e0b)"
-            : e === "READY"
-              ? "linear-gradient(90deg,#8b5cf6,#22d3ee)"
-              : "linear-gradient(90deg,#645f74,#a29cb3)"
-    return color
+    switch (e) {
+      case "ACTIVE": return "linear-gradient(90deg, #34d399, #6ee7b7)"
+      case "PAST_DUE": return "linear-gradient(90deg, #f87171, #ef4444)"
+      case "PENDING": return "linear-gradient(90deg, #fbbf24, #fcd34d)"
+      case "READY": return "linear-gradient(90deg, #8b5cf6, #22d3ee)"
+      default: return "linear-gradient(90deg, #a29cb3, #d4c9e8)"
+    }
   }
 
   const initials = (name: string) =>
@@ -84,10 +79,10 @@ export default async function AdminDashboard() {
   const stats = [
     {
       label: "Ingresos (mes)",
-      value: `$${(ingresoActual / 100).toFixed(0)}`,
+      value: `$${ingresoActual.toLocaleString("en-US")}`,
       variant: "a" as const,
       iconBg: "v" as const,
-      icon: "dollar" as const,
+      glyph: "$" as const,
       delta: deltaIngreso !== 0 ? { value: deltaIngreso, positive: deltaIngreso > 0 } : null,
     },
     {
@@ -95,7 +90,7 @@ export default async function AdminDashboard() {
       value: String(clientesActivos),
       variant: "b" as const,
       iconBg: "c" as const,
-      icon: "users" as const,
+      glyph: "◉" as const,
       delta: null,
     },
     {
@@ -103,7 +98,7 @@ export default async function AdminDashboard() {
       value: String(suscripcionesActivas),
       variant: "a" as const,
       iconBg: "v" as const,
-      icon: "card" as const,
+      glyph: "▤" as const,
       delta: null,
     },
     {
@@ -111,28 +106,21 @@ export default async function AdminDashboard() {
       value: String(pagosVencidos),
       variant: "d" as const,
       iconBg: "r" as const,
-      icon: "alert" as const,
+      glyph: "!" as const,
       delta: null,
     },
   ]
-
-  function StatIcon({ icon }: { icon: string }) {
-    if (icon === "dollar") return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-    if (icon === "users") return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    if (icon === "card") return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-    return <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
-  }
 
   return (
     <div>
       <div className="a-greet">
         <h1>Dashboard</h1>
-        <p>Bienvenido de vuelta. Así va PixelArch hoy.</p>
+        <p>Bienvenido de vuelta. Aquí ves el estado de PixelArch en tiempo real.</p>
       </div>
 
       {pagosVencidos > 0 && (
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 12, background: "rgba(248,113,113,0.06)", color: "#fca5a5", fontSize: "0.9rem", marginBottom: 22 }}>
-          <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+          <span style={{ flexShrink: 0 }}>!</span>
           <span style={{ flex: 1 }}>
             {pagosVencidos} suscripción{pagosVencidos > 1 ? "es" : ""} vencida{pagosVencidos > 1 ? "s" : ""}. Revisa los clientes.
           </span>
@@ -145,15 +133,12 @@ export default async function AdminDashboard() {
       <div className="a-stats">
         {stats.map((s, i) => (
           <div key={i} className={cn("a-stat", s.variant)}>
-            <div className={cn("a-ic", s.iconBg)}>
-              <StatIcon icon={s.icon} />
-            </div>
+            <div className={cn("a-ic", s.iconBg)} aria-hidden="true">{s.glyph}</div>
             <div className="a-lbl">{s.label}</div>
-            <div className="a-val" style={s.icon === "alert" ? { color: "#f87171" } : undefined}>{s.value}</div>
+            <div className="a-val" style={s.glyph === "!" ? { color: "#f87171" } : undefined}>{s.value}</div>
             {s.delta && (
-              <div className="a-sub" style={{ display: "flex", alignItems: "center", gap: 4, color: s.delta.positive ? "#34d399" : "#f87171" }}>
-                {s.delta.positive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                {s.delta.positive ? "+" : ""}{s.delta.value}% vs anterior
+              <div className="a-sub" style={{ color: s.delta.positive ? "#34d399" : "#f87171" }}>
+                {s.delta.positive ? "▲" : "▼"} {s.delta.positive ? "+" : ""}{s.delta.value}% vs anterior
               </div>
             )}
           </div>
@@ -166,23 +151,25 @@ export default async function AdminDashboard() {
             <h3>Clientes recientes</h3>
             <Link href="/admin/clientes">Ver todos →</Link>
           </div>
-          {ultimosClientes.map((c) => (
-            <Link key={c.id} href={`/admin/clientes/${c.id}`} className="a-rowc">
-              <span className="a-av">{initials(c.nombre)}</span>
-              <div style={{ minWidth: 0 }}>
-                <div className="a-nm" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nombre}</div>
-                <div className="a-em" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.email}</div>
-              </div>
-              <span className="a-meta">{c._count.suscripciones} susc.</span>
-            </Link>
-          ))}
           {ultimosClientes.length === 0 && (
             <p style={{ fontSize: "0.85rem", color: "var(--color-text-dim)", padding: "16px 0", textAlign: "center" }}>Sin clientes todavía</p>
           )}
+          {ultimosClientes.map((c) => (
+            <Link key={c.id} href={`/admin/clientes/${c.id}`} className="a-rowc">
+              <span className="a-av" aria-hidden="true">{initials(c.nombre)}</span>
+              <span className="a-info">
+                <span className="a-nm" style={{ display: "block" }}>{c.nombre}</span>
+                <span className="a-em" style={{ display: "block" }}>{c.email}</span>
+              </span>
+              <span className="a-meta">{c._count.suscripciones} susc.</span>
+            </Link>
+          ))}
         </div>
 
         <div className="a-panel">
-          <div className="a-head"><h3>Estado de suscripciones</h3></div>
+          <div className="a-head">
+            <h3>Estado de suscripciones</h3>
+          </div>
           {suscripcionesPorEstado.length === 0 && (
             <p style={{ fontSize: "0.85rem", color: "var(--color-text-dim)", padding: "16px 0", textAlign: "center" }}>Sin datos</p>
           )}

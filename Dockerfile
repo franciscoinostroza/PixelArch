@@ -1,13 +1,11 @@
-FROM node:22-alpine AS deps
+FROM node:22-slim AS deps
 WORKDIR /app
-RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
 RUN npm ci
 
-FROM node:22-alpine AS builder
+FROM node:22-slim AS builder
 WORKDIR /app
-RUN apk add --no-cache libc6-compat
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ARG NEXT_PUBLIC_URL
 ARG NEXT_PUBLIC_SANITY_PROJECT_ID
@@ -21,9 +19,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
-FROM node:22-alpine AS runner
+FROM node:22-slim AS runner
 WORKDIR /app
-RUN apk add --no-cache libc6-compat
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

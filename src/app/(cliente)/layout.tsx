@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { PortalNav } from "@/components/ui/portal-nav"
 import { PortalUserButton } from "@/components/ui/portal-user-button"
 import SpaceCanvas from "@/components/layout/space-canvas"
+import "./portal.css"
 
 export default async function PortalLayout({
   children,
@@ -28,23 +29,17 @@ export default async function PortalLayout({
         style={{ background: "rgba(34,211,238,0.13)" }}
       />
 
-      <div className="relative z-10">
-        <header className="sticky top-4 z-40">
-          <div className="mx-auto max-w-5xl px-4">
-            <div className="flex items-center justify-between rounded-2xl border border-white/[0.06] px-5 py-3 backdrop-blur-xl sm:px-6" style={{ background: "rgba(7,6,12,0.6)" }}>
-              <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: "9px" }}>
-                <span className="block h-[20px] w-[20px] rounded-[6px]" style={{ background: "linear-gradient(135deg,#8b5cf6,#22d3ee)" }} aria-hidden="true" />
-                <span className="font-display text-lg font-bold text-text">
-                  Pixel<span className="text-violet">Arch</span>
-                </span>
-              </Link>
-              <PortalNav />
-              <PortalUserButton />
-            </div>
-          </div>
+      <div className="relative z-10 p-shell">
+        <header className="p-bar">
+          <Link href="/" className="p-logo">
+            <span className="p-mark" aria-hidden="true" />
+            <span>Pixel<span style={{ color: "#8b5cf6" }}>Arch</span></span>
+          </Link>
+          <PortalNav />
+          <PortalUserButton />
         </header>
 
-        <main className="mx-auto max-w-5xl px-6 pb-24 pt-10">{children}</main>
+        <main className="p-main">{children}</main>
       </div>
     </div>
   )

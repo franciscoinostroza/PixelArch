@@ -13,22 +13,12 @@ export function PortalNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="flex items-center gap-7">
+    <nav className="p-nav">
       {links.map(({ href, label }) => {
         const active = pathname === href
         return (
-          <Link
-            key={href}
-            href={href}
-            aria-current={active ? "page" : undefined}
-            className={cn("nav-auth-link", active && "text-violet hover:text-violet")}
-          >
+          <Link key={href} href={href} aria-current={active ? "page" : undefined} className={cn(active && "on")}>
             {label}
-            <span
-              className="nav-underline"
-              aria-hidden="true"
-              style={active ? { right: 0 } : undefined}
-            />
           </Link>
         )
       })}

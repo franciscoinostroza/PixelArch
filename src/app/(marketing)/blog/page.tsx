@@ -55,7 +55,7 @@ export default async function BlogPage() {
         ) : (
           <div className="blog-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 22 }}>
             {lista.map((a) => (
-              <Link key={a._id} href={`/blog/${a.slug}`} className="blog-card reveal" style={{ textDecoration: "none", color: "inherit" }}>
+              <Link key={a._id} href={`/blog/${a.slug}`} className="blog-card" style={{ textDecoration: "none", color: "inherit" }}>
                 <div className="blog-cover">
                   {a.portada ? (
                     <img src={a.portada} alt={a.titulo} loading="lazy" />

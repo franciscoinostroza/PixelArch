@@ -69,6 +69,12 @@ function SidebarNav({ onNavClick }: { onNavClick?: () => void }) {
 export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
   const [open, setOpen] = useState(true)
 
+  const handleNavClick = () => {
+    if (typeof window !== "undefined" && window.innerWidth <= 768) {
+      setOpen(false)
+    }
+  }
+
   return (
     <>
       <button
@@ -85,7 +91,7 @@ export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
           <span className="a-mark" aria-hidden="true" />
           <span>Pixel<b>Arch</b></span>
         </Link>
-        <SidebarNav onNavClick={() => setOpen(false)} />
+        <SidebarNav onNavClick={handleNavClick} />
       </aside>
     </>
   )

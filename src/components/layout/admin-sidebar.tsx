@@ -10,6 +10,7 @@ const ICONS: Record<string, string> = {
   clientes: "◎",
   servicios: "⚒",
   pagos: "◫",
+  blog: "📝",
 }
 
 const sections = [
@@ -23,6 +24,7 @@ const sections = [
       { key: "clientes", href: "/admin/clientes", label: "Clientes" },
       { key: "servicios", href: "/admin/servicios", label: "Productos" },
       { key: "pagos", href: "/admin/pagos", label: "Pagos" },
+      { key: "blog", href: "/admin/blog", label: "Blog" },
     ],
   },
 ]

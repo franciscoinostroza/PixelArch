@@ -38,3 +38,19 @@ export interface ContactoFields {
   github: string
   instagram: string
 }
+
+export interface ArticuloFields {
+  _id: string
+  titulo: string
+  slug: string
+  descripcion?: string
+  portada?: { asset: { url: string } }
+  fecha: string
+  autor?: string
+  tags?: string[]
+  contenido?: unknown[]
+  meta_title?: string
+  meta_description?: string
+  og_image?: { asset: { url: string } }
+  activo?: boolean
+}

@@ -9,11 +9,14 @@
 
 import { NextStudio } from 'next-sanity/studio'
 import config from '../../../../sanity.config'
-
-export const dynamic = 'force-static'
+import { requireAdmin } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 
 export { metadata, viewport } from 'next-sanity/studio'
 
-export default function StudioPage() {
+export default async function StudioPage() {
+  const admin = await requireAdmin()
+  if (!admin) redirect("/sign-in")
+
   return <NextStudio config={config} />
 }

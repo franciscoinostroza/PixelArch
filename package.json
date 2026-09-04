@@ -15,6 +15,7 @@
     "@clerk/nextjs": "^7.3.3",
     "@hookform/resolvers": "^5.2.2",
     "@polar-sh/sdk": "^0.48.1",
+    "@portabletext/react": "^8.0.1",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@react-email/components": "^1.0.12",

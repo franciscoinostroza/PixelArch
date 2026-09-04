@@ -120,11 +120,12 @@ export function AccountModal({ isOpen, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="account-modal-title"
-        className="relative flex max-h-[85vh] w-full max-w-lg min-h-0 flex-col overflow-y-auto rounded-[18px]"
+        className="relative flex max-h-[85vh] w-full max-w-xl min-h-0 flex-col overflow-y-auto rounded-[18px]"
         style={{
           background: "linear-gradient(170deg, rgba(23,19,33,0.97), rgba(17,14,26,0.93))",
           border: "1px solid rgba(139,92,246,0.14)",
           boxShadow: "0 30px 80px rgba(0,0,0,0.6), 0 0 40px rgba(139,92,246,0.06)",
+          fontFamily: "var(--font-display)",
         }}
         onClick={e => e.stopPropagation()}
       >
@@ -146,15 +147,15 @@ export function AccountModal({ isOpen, onClose }: Props) {
           </div>
         )}
 
-        <div className="flex flex-col p-6 pt-5">
+        <div className="flex flex-col p-6 pt-6">
           {/* Identidad */}
-          <div className="flex items-center gap-4 p-5" style={panelStyle}>
+          <div className="flex items-center gap-5 p-6" style={panelStyle}>
             <div className="relative shrink-0" style={{ padding: 2, borderRadius: 999, background: "linear-gradient(135deg,#8b5cf6,#22d3ee)" }}>
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatar} />
               {user.imageUrl ? (
-                <img src={user.imageUrl} alt="" onClick={() => fileRef.current?.click()} className="h-14 w-14 cursor-pointer rounded-full border-2 object-cover transition-opacity hover:opacity-80" style={{ borderColor: "rgba(7,6,12,0.9)" }} />
+                <img src={user.imageUrl} alt="" onClick={() => fileRef.current?.click()} className="h-16 w-16 cursor-pointer rounded-full border-2 object-cover transition-opacity hover:opacity-80" style={{ borderColor: "rgba(7,6,12,0.9)" }} />
               ) : (
-                <div onClick={() => fileRef.current?.click()} className="flex h-14 w-14 cursor-pointer items-center justify-center rounded-full font-display text-lg font-bold transition-opacity hover:opacity-80" style={{ background: "#141020", color: "#8b5cf6" }}>
+                <div onClick={() => fileRef.current?.click()} className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-full font-display text-lg font-bold transition-opacity hover:opacity-80" style={{ background: "#141020", color: "#8b5cf6" }}>
                   {initials}
                 </div>
               )}
@@ -191,11 +192,11 @@ export function AccountModal({ isOpen, onClose }: Props) {
           </div>
 
           {/* Emails */}
-          <div className="mt-5">
+          <div className="mt-7">
             <SectionEyebrow>Emails</SectionEyebrow>
             <div className="overflow-hidden" style={panelStyle}>
               {user.emailAddresses.map((email, i) => (
-                <div key={email.id} className="flex items-center justify-between px-5 py-3" style={{ borderBottom: i < user.emailAddresses.length - 1 ? divider : undefined }}>
+                <div key={email.id} className="flex items-center justify-between px-6 py-4" style={{ borderBottom: i < user.emailAddresses.length - 1 ? divider : undefined }}>
                   <span className="truncate text-sm" style={{ color: "#f6f5f8" }}>{email.emailAddress}</span>
                   <div className="flex shrink-0 items-center gap-2">
                     {email.id === primaryEmail?.id && (
@@ -211,13 +212,13 @@ export function AccountModal({ isOpen, onClose }: Props) {
                 </div>
               ))}
               {addingEmail ? (
-                <div className="flex items-center gap-2 px-5 py-3">
+                <div className="flex items-center gap-2 px-6 py-4">
                   <input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="nuevo@email.com" className="flex-1 rounded-lg border px-3 py-1.5 text-sm outline-none transition-colors focus:border-violet" style={inputStyle} />
                   <button onClick={addEmail} disabled={saving || !newEmail.trim()} className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity disabled:opacity-50" style={{ background: "linear-gradient(90deg,#8b5cf6,#22d3ee)", color: "#07060c" }}>{saving ? "..." : "Agregar"}</button>
                   <button onClick={() => { setAddingEmail(false); setNewEmail("") }} className="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors hover:bg-white/10" style={ghostBtn}>Cancelar</button>
                 </div>
               ) : (
-                <button onClick={() => setAddingEmail(true)} className="flex w-full items-center gap-2 px-5 py-3 text-sm transition-colors hover:brightness-150" style={{ color: "rgba(255,255,255,0.5)", background: "transparent", border: "none", cursor: "pointer" }}>
+                <button onClick={() => setAddingEmail(true)} className="flex w-full items-center gap-2 px-6 py-4 text-sm transition-colors hover:brightness-150" style={{ color: "rgba(255,255,255,0.5)", background: "transparent", border: "none", cursor: "pointer" }}>
                   <Plus size={14} />
                   Agregar email
                 </button>
@@ -227,11 +228,11 @@ export function AccountModal({ isOpen, onClose }: Props) {
 
           {/* Cuentas conectadas */}
           {user.externalAccounts.length > 0 && (
-            <div className="mt-5">
+            <div className="mt-7">
               <SectionEyebrow>Cuentas conectadas</SectionEyebrow>
               <div className="overflow-hidden" style={panelStyle}>
                 {user.externalAccounts.map((acc, i) => (
-                  <div key={acc.id} className="flex items-center px-5 py-3" style={{ borderBottom: i < user.externalAccounts.length - 1 ? divider : undefined }}>
+                  <div key={acc.id} className="flex items-center px-6 py-4" style={{ borderBottom: i < user.externalAccounts.length - 1 ? divider : undefined }}>
                     <div className="flex min-w-0 items-center gap-2">
                       <span className="truncate text-sm" style={{ color: "#f6f5f8" }}>{providers[acc.provider] ?? acc.provider}</span>
                       {acc.emailAddress && <span className="truncate text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>• {acc.emailAddress}</span>}
@@ -246,7 +247,7 @@ export function AccountModal({ isOpen, onClose }: Props) {
           )}
 
           {/* Sign out */}
-          <button onClick={() => signOut({ redirectUrl: "/" })} className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors hover:brightness-125" style={{ border: "1px solid rgba(239,68,68,0.25)", background: "rgba(239,68,68,0.08)", color: "#f87171", cursor: "pointer" }}>
+          <button onClick={() => signOut({ redirectUrl: "/" })} className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors hover:brightness-125" style={{ border: "1px solid rgba(239,68,68,0.25)", background: "rgba(239,68,68,0.08)", color: "#f87171", cursor: "pointer" }}>
             <LogOut size={16} />
             Cerrar sesión
           </button>

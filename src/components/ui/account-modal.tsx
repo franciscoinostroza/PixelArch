@@ -111,7 +111,7 @@ export function AccountModal({ isOpen, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(7,6,12,0.72)", backdropFilter: "blur(8px)" }}
       onClick={onClose}
     >
@@ -128,11 +128,12 @@ export function AccountModal({ isOpen, onClose }: Props) {
         }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Acento superior */}
-        <div aria-hidden="true" style={{ position: "absolute", top: 0, left: 24, right: 24, height: 2, borderRadius: "0 0 4px 4px", background: "linear-gradient(90deg,#8b5cf6,#22d3ee)" }} />
-
-        {/* Header */}
+        {/* Header con acento superior sticky */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-5" style={{ background: "rgba(17,14,26,0.9)" }}>
+          <div
+            aria-hidden="true"
+            style={{ position: "absolute", top: 0, left: 24, right: 24, height: 2, borderRadius: "0 0 4px 4px", background: "linear-gradient(90deg,#8b5cf6,#22d3ee)" }}
+          />
           <h1 id="account-modal-title" className="font-display text-xl font-bold" style={{ color: "#f6f5f8" }}>Mi cuenta</h1>
           <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-white/10" style={{ color: "rgba(255,255,255,0.5)" }} aria-label="Cerrar">
             <X size={16} />

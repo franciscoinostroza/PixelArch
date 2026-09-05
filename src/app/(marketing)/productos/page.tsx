@@ -43,10 +43,10 @@ function formatPrice(precio: number) {
   return `$${(precio / 100).toFixed(0)}`
 }
 
-function priceLabel(precioBasico: number, rate: number | null) {
+function priceAmount(precioBasico: number, rate: number | null) {
   if (!precioBasico) return null
-  if (rate) return `Desde ${formatARS(precioBasico, rate)}/mes`
-  return `Desde ${formatPrice(precioBasico)}/mes`
+  if (rate) return formatARS(precioBasico, rate)
+  return formatPrice(precioBasico)
 }
 
 export default async function ProductosPage() {
@@ -80,17 +80,33 @@ export default async function ProductosPage() {
             displayServicios.map((s) => (
               <Link key={s.slug} href={`/productos/${s.slug}`} style={{ textDecoration: "none", color: "inherit" }}>
                 <article className="product-card">
+                  <span className="product-line" aria-hidden="true" />
                   <div className="product-icon" dangerouslySetInnerHTML={{
                     __html: ICONS[s.titulo] || s.icono || "⚡",
                   }} />
                   <h3>{s.titulo}</h3>
                   <p>{s.descripcion || "Descubrí cómo este servicio puede potenciar tu negocio."}</p>
-                  <div className="product-meta">
-                    {priceLabel(s.precioBasico, rate) && <span className="price-badge">{priceLabel(s.precioBasico, rate)}</span>}
-                    {rate && s.precioBasico > 0 && <span className="price-usd">≈ {formatUSD(s.precioBasico)}/mes</span>}
-                    {(s.tags?.length ? s.tags : FALLBACK_TAGS[s.titulo] || []).slice(0, 3).map((tag) => (
+                  <div className="product-tags">
+                    {(s.tags?.length ? s.tags : FALLBACK_TAGS[s.titulo] || []).map((tag) => (
                       <span key={tag}>{tag}</span>
                     ))}
+                  </div>
+                  <div className="product-foot">
+                    <div className="product-price">
+                      {priceAmount(s.precioBasico, rate) && (
+                        <>
+                          <span className="product-from">Desde</span>
+                          <span className="product-amount">
+                            {priceAmount(s.precioBasico, rate)}
+                            <small>{rate ? "ARS/mes" : "/mes"}</small>
+                            {rate && s.precioBasico > 0 && (
+                              <span className="product-usd">≈ {formatUSD(s.precioBasico)}</span>
+                            )}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <span className="product-more">Ver planes →</span>
                   </div>
                 </article>
               </Link>
@@ -106,15 +122,26 @@ export default async function ProductosPage() {
           gap: 22px;
         }
         .product-card {
-          background: var(--color-panel);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 16px;
-          padding: 32px 28px;
+          background: linear-gradient(160deg, #171321 0%, #110e1a 60%, #141020 100%);
+          border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 18px;
+          padding: 30px 28px 26px;
           position: relative;
           overflow: hidden;
-          transition: transform 0.4s cubic-bezier(.19,1,.22,1), border-color 0.4s cubic-bezier(.19,1,.22,1), background 0.4s cubic-bezier(.19,1,.22,1);
+          display: flex;
+          flex-direction: column;
+          transition: transform 0.35s cubic-bezier(.19,1,.22,1), border-color 0.35s cubic-bezier(.19,1,.22,1), box-shadow 0.35s cubic-bezier(.19,1,.22,1);
           cursor: pointer;
           height: 100%;
+        }
+        .product-line {
+          position: absolute;
+          top: 0;
+          left: 22px;
+          right: 22px;
+          height: 2px;
+          border-radius: 0 0 4px 4px;
+          background: linear-gradient(90deg, #8b5cf6, #22d3ee);
         }
         .product-card::before {
           content: "";
@@ -124,50 +151,70 @@ export default async function ProductosPage() {
           padding: 1px;
           background: linear-gradient(135deg, #8b5cf6, #22d3ee);
           opacity: 0;
-          transition: opacity 0.4s cubic-bezier(.19,1,.22,1);
+          transition: opacity 0.35s cubic-bezier(.19,1,.22,1);
           -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
           -webkit-mask-composite: xor;
           mask-composite: exclude;
           pointer-events: none;
         }
-        .product-card:hover { transform: translateY(-6px); background: var(--color-panel-2) }
+        .product-card:hover {
+          transform: translateY(-6px);
+          border-color: rgba(139,92,246,0.4);
+          box-shadow: 0 24px 60px -24px rgba(0,0,0,0.7), 0 0 40px -16px rgba(139,92,246,0.35);
+        }
         .product-card:hover::before { opacity: 1 }
         .product-icon {
-          width: 52px;
-          height: 52px;
-          border-radius: 13px;
+          width: 56px;
+          height: 56px;
+          border-radius: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(139,92,246,0.14);
-          color: #8b5cf6;
-          margin-bottom: 24px;
-          transition: background 0.35s, color 0.35s, transform 0.35s;
+          font-size: 26px;
+          line-height: 1;
+          margin-bottom: 22px;
+          transition: transform 0.35s cubic-bezier(.19,1,.22,1), background 0.35s cubic-bezier(.19,1,.22,1);
         }
-        .product-card:nth-child(even) .product-icon { background: rgba(34,211,238,0.14); color: #22d3ee }
-        .product-card:hover .product-icon { background: linear-gradient(135deg, #8b5cf6, #22d3ee); color: #07060c; transform: scale(1.06) rotate(-4deg) }
-        .product-card h3 { font-size: 1.12rem; margin-bottom: 10px }
-        .product-card p { color: var(--color-text-dim); font-size: 0.9rem; margin-bottom: 20px; line-height: 1.65 }
-        .product-meta { display: flex; flex-wrap: wrap; gap: 7px }
-        .product-meta span {
+        .products-grid > a:nth-child(odd) .product-icon { background: rgba(139,92,246,0.13) }
+        .products-grid > a:nth-child(even) .product-icon { background: rgba(34,211,238,0.11) }
+        .product-card:hover .product-icon { transform: scale(1.08) rotate(-4deg); background: linear-gradient(135deg, #8b5cf6, #22d3ee) }
+        .product-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 10px; line-height: 1.25 }
+        .product-card p { color: var(--color-text-dim); font-size: 0.9rem; margin-bottom: 20px; line-height: 1.65; flex: 1 }
+        .product-tags { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 22px }
+        .product-tags span { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.04em; color: rgba(164,156,179,0.6) }
+        .product-foot {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 12px;
+          border-top: 1px solid rgba(255,255,255,0.06);
+          padding-top: 18px;
+        }
+        .product-from {
           font-family: var(--font-mono);
-          font-size: 0.68rem;
+          font-size: 0.66rem;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           color: var(--color-text-faint);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 100px;
-          padding: 4px 10px;
+          margin-bottom: 4px;
+          display: block;
         }
-        .product-meta .price-badge {
-          color: #22d3ee;
-          border-color: rgba(34,211,238,0.25);
+        .product-amount { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; display: block }
+        .product-amount small { font-weight: 400; font-size: 0.78rem; color: var(--color-text-dim); margin-left: 2px }
+        .product-usd { display: block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--color-text-faint); margin-top: 4px; font-weight: 500 }
+        .product-more {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 0.82rem;
           font-weight: 600;
-          background: rgba(34,211,238,0.06);
+          color: #8b5cf6;
+          opacity: 0;
+          transform: translateX(-4px);
+          transition: opacity 0.3s, transform 0.3s;
+          white-space: nowrap;
         }
-        .product-meta .price-usd {
-          color: var(--color-text-dim);
-          border-color: transparent;
-          font-size: 0.62rem;
-        }
+        .product-card:hover .product-more { opacity: 1; transform: translateX(0) }
         @media (max-width: 980px) { .products-grid { grid-template-columns: repeat(2, 1fr) } }
         @media (max-width: 720px) { .products-grid { grid-template-columns: 1fr } }
       `}</style>

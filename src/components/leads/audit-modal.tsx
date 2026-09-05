@@ -4,39 +4,46 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useEffect, useRef, useState } from "react"
 import { whatsappUrl, AUDIT_MESSAGE } from "@/lib/contact"
 
-const DELAY_MS = 20000
+const MIN_PAGE_MS = 8000
+const INACTIVITY_MS = 10000
 const STORAGE_KEY = "pa-audit-seen"
+
+const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "wheel"] as const
 
 export function AuditModal() {
   const [open, setOpen] = useState(false)
   const accumulated = useRef(0)
   const lastActive = useRef(0)
+  const lastActivity = useRef(0)
   const shown = useRef(false)
 
   useEffect(() => {
     if (typeof window === "undefined") return
     if (sessionStorage.getItem(STORAGE_KEY)) return
 
-    lastActive.current = Date.now()
+    const now = Date.now()
+    lastActive.current = now
+    lastActivity.current = now
 
     const tick = () => {
       if (document.hidden) return
-      const now = Date.now()
-      accumulated.current += now - lastActive.current
-      lastActive.current = now
+      const now2 = Date.now()
+      accumulated.current += now2 - lastActive.current
+      lastActive.current = now2
 
-      if (accumulated.current >= DELAY_MS) {
+      if (accumulated.current < MIN_PAGE_MS) return
+      if (now2 - lastActivity.current >= INACTIVITY_MS) {
         tryShow()
       }
     }
 
     const onVisibility = () => {
-      if (document.hidden) {
-        lastActive.current = Date.now()
-      } else {
-        lastActive.current = Date.now()
-        window.setTimeout(tick, 300)
-      }
+      lastActive.current = Date.now()
+      if (!document.hidden) window.setTimeout(tick, 300)
+    }
+
+    const onActivity = () => {
+      lastActivity.current = Date.now()
     }
 
     const tryShow = () => {
@@ -53,12 +60,14 @@ export function AuditModal() {
       setOpen(true)
     }
 
-    const interval = window.setInterval(tick, 500)
+    const interval = window.setInterval(tick, 1000)
     document.addEventListener("visibilitychange", onVisibility)
+    ACTIVITY_EVENTS.forEach((ev) => window.addEventListener(ev, onActivity, { passive: true }))
 
     return () => {
       window.clearInterval(interval)
       document.removeEventListener("visibilitychange", onVisibility)
+      ACTIVITY_EVENTS.forEach((ev) => window.removeEventListener(ev, onActivity))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

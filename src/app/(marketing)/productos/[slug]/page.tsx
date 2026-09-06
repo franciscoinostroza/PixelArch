@@ -72,7 +72,7 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
     offers: [
       ...(servicioDB.polarProductIdUnico ? [{
         "@type": "Offer",
-        name: "Pago Único",
+        name: "Compra del Código",
         price: (servicioDB.precioUnico / 100).toFixed(0),
         priceCurrency: "USD",
         availability: "https://schema.org/OnlineOnly",
@@ -137,20 +137,22 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
           {servicioDB && (
             <div className="planes-grid">
               <article className="plan-card">
+                <div className="plan-badge plan-badge--optional">Opcional</div>
                 <div className="plan-card-content">
                   <div className="plan-icon"><svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
-                  <p className="plan-label">Pago Único</p>
+                  <p className="plan-label">Compra del Código</p>
                   <p className="plan-price">{price(servicioDB.precioUnico)}<span className="plan-period">{period(false)}</span></p>
                   {priceRef(servicioDB.precioUnico) && <p className="plan-price-ref">{priceRef(servicioDB.precioUnico)}</p>}
-                  <p className="plan-desc">Desarrollo y entrega del proyecto completo.</p>
+                  <p className="plan-desc">Entrega del código fuente completo. El servicio online requiere un plan mensual.</p>
                   <ul className="plan-features">
                     <li>✅ Código y activos incluidos</li>
+                    <li>✅ Sumable a cualquier plan</li>
                     <li>❌ Sin hosting incluido</li>
                     <li>❌ Sin soporte continuo</li>
                   </ul>
                   {servicioDB.polarProductIdUnico && (
                     <div className="plan-cta">
-                      <CheckoutButton polarProductId={servicioDB.polarProductIdUnico} servicioNombre={servicioSanity.titulo} tipo="UNICO" label={`Contratar ${servicioSanity.titulo}`} size="default" className="w-full" />
+                      <CheckoutButton polarProductId={servicioDB.polarProductIdUnico} servicioNombre={servicioSanity.titulo} tipo="UNICO" label="Comprar el código" size="default" className="w-full" />
                     </div>
                   )}
                 </div>
@@ -256,6 +258,11 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
           padding: 3px 10px;
           border-radius: 100px;
           font-weight: 600;
+        }
+        .plan-badge--optional {
+          background: transparent;
+          border: 1px solid rgba(34,211,238,0.35);
+          color: #22d3ee;
         }
         .plan-card-content { padding: 32px 28px; position: relative; z-index: 1; display: flex; flex-direction: column; flex: 1; }
         .plan-cta { margin-top: auto; }

@@ -70,14 +70,19 @@ export function Hero({
           margin-inline: auto;
           padding-inline: clamp(20px, 5vw, 56px);
           width: 100%;
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
         .hero-title {
           font-family: var(--font-pixel-display);
           font-weight: 700;
           letter-spacing: 0;
           font-size: clamp(2.4rem, 5.6vw, 4.3rem);
-          max-width: 16ch;
+          max-width: 18ch;
           margin-bottom: 26px;
+          margin-inline: auto;
         }
         .hero-title .grad {
           background: linear-gradient(135deg, #8b5cf6, #22d3ee);
@@ -89,12 +94,14 @@ export function Hero({
           font-size: clamp(1.02rem, 1.5vw, 1.18rem);
           color: var(--color-text-dim);
           max-width: 50ch;
+          margin-inline: auto;
           margin-bottom: 38px;
         }
         .hero-cta {
           display: flex;
           flex-wrap: wrap;
           gap: 16px;
+          justify-content: center;
           margin-bottom: 64px;
         }
         .scroll-cue {

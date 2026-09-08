@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils"
 import { useUser } from "@clerk/nextjs"
 
 const links = [
-  { href: "/#resenas", label: "Reseñas" },
   { href: "/#productos", label: "Productos" },
   { href: "/#proceso", label: "Proceso" },
   { href: "/blog", label: "Blog" },

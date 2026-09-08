@@ -4,6 +4,7 @@ import SpaceCanvas from "@/components/layout/space-canvas"
 import SiteInteractivity from "@/components/layout/site-interactivity"
 import { WhatsappButton } from "@/components/leads/whatsapp-button"
 import { AuditModal } from "@/components/leads/audit-modal"
+import { ChatWidget } from "@/components/leads/chat-widget"
 
 export default function MarketingLayout({
   children,
@@ -21,6 +22,7 @@ export default function MarketingLayout({
       <SiteInteractivity />
       <WhatsappButton />
       <AuditModal />
+      <ChatWidget />
     </>
   )
 }

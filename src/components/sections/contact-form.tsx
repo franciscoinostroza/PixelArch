@@ -6,6 +6,7 @@ import { contactSchema, type ContactFormValues } from "@/lib/validations"
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/toast"
+import { whatsappUrl, AUDIT_MESSAGE } from "@/lib/contact"
 
 export function ContactForm() {
   const [status, setStatus] = useState<"idle" | "loading">("idle")
@@ -29,7 +30,7 @@ export function ContactForm() {
         body: JSON.stringify(data),
       })
       if (!res.ok) throw new Error()
-      toast("success", "Mensaje enviado. Te responderemos pronto.")
+      toast("success", "Mensaje enviado. Te respondemos en menos de 24hs.")
       reset()
     } catch {
       toast("error", "Error al enviar. Intentalo de nuevo.")
@@ -47,12 +48,28 @@ export function ContactForm() {
         <div className="section-head">
           <p className="eyebrow">Contacto</p>
           <h2>Hablemos de tu proyecto</h2>
-          <p>Completá el formulario y te respondemos a la brevedad.</p>
+          <p>Completá el formulario y te respondemos en menos de 24hs.</p>
+        </div>
+
+        <div className="audit-banner">
+          <div className="audit-banner-icon" aria-hidden="true">🔍</div>
+          <div className="audit-banner-copy">
+            <h3>¿Ya tenés infraestructura corriendo?</h3>
+            <p>Te regalo una auditoría exprés de tu sitio: velocidad, SEO, conversión y seguridad. Sin cargo y sin compromiso.</p>
+          </div>
+          <a
+            href={whatsappUrl(AUDIT_MESSAGE)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-wa audit-banner-cta"
+          >
+            Quiero mi auditoría gratis <span className="btn-arrow" aria-hidden="true">→</span>
+          </a>
         </div>
 
         <div className="contact-grid">
           <div className="contact-info">
-            <p>Contanos qué necesitás y en qué etapa está tu proyecto. Si ya tenés infraestructura corriendo, también podemos auditarla.</p>
+            <p>Contanos qué necesitás y en qué etapa está tu proyecto.</p>
             <div className="contact-item">
               <span>Email</span>
               <a href="mailto:hola@pixelarch.dev">hola@pixelarch.dev</a>
@@ -101,6 +118,37 @@ export function ContactForm() {
           backdrop-filter: blur(3px);
         }
         .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px }
+        .audit-banner {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          border: 1px solid rgba(139,92,246,0.35);
+          border-radius: 16px;
+          background: linear-gradient(160deg, rgba(139,92,246,0.1), rgba(34,211,238,0.06));
+          padding: 26px 30px;
+          margin-bottom: 48px;
+          flex-wrap: wrap;
+        }
+        .audit-banner-icon {
+          width: 52px;
+          height: 52px;
+          border-radius: 14px;
+          background: rgba(139,92,246,0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 26px;
+          flex-shrink: 0;
+        }
+        .audit-banner-copy { flex: 1; min-width: 240px }
+        .audit-banner h3 { font-size: 1.15rem; margin-bottom: 6px }
+        .audit-banner p { color: var(--color-text-dim); font-size: 0.88rem; max-width: 56ch; line-height: 1.6; margin: 0 }
+        .btn-wa {
+          background: #25d366;
+          color: #07060c;
+        }
+        .btn-wa:hover { transform: translateY(-2px); box-shadow: 0 14px 34px -12px rgba(37,211,102,0.5) }
+        .audit-banner-cta { flex-shrink: 0 }
         .contact-info p { color: var(--color-text-dim); margin-bottom: 28px; max-width: 44ch }
         .contact-item { margin-bottom: 22px }
         .contact-item span { display: block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--color-text-faint); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px }
@@ -128,6 +176,7 @@ export function ContactForm() {
         .contact-form .btn { width: 100%; margin-top: 6px }
 
         @media (max-width: 980px) { .contact-grid { grid-template-columns: 1fr; gap: 44px } }
+        @media (max-width: 680px) { .audit-banner-cta { width: 100%; justify-content: center } }
       `}</style>
     </section>
   )

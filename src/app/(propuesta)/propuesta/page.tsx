@@ -138,15 +138,15 @@ export default function PropuestaPage() {
             </a>
           </p>
             <p style={{ fontFamily: "var(--font-mono)", fontSize: ".7rem", color: "var(--color-text-faint)", letterSpacing: ".08em", marginBottom: "24px" }}>
-            Visitá nuestras reseñas y conocé la experiencia de clientes reales
+            Visitá nuestros servicios y conocé lo que ofrecemos
           </p>
-          <a href="https://pixelarch.dev/#resenas" target="_blank" rel="noopener" style={{
+          <a href="https://pixelarch.dev/#productos" target="_blank" rel="noopener" style={{
             display: "inline-flex", alignItems: "center", gap: "8px",
             background: "linear-gradient(135deg,#8b5cf6,#22d3ee)",
             color: "#07060c", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: ".88rem",
             padding: "14px 30px", borderRadius: "10px", textDecoration: "none",
           }}>
-            Ver reseñas →
+            Ver servicios →
           </a>
         </div>
 

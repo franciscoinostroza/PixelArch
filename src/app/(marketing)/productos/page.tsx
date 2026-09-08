@@ -108,6 +108,7 @@ export default async function ProductosPage() {
                     </div>
                     <span className="product-more">Ver planes →</span>
                   </div>
+                  <span className="product-note">Precio mensual · incluye hosting y soporte</span>
                 </article>
               </Link>
             ))
@@ -215,6 +216,19 @@ export default async function ProductosPage() {
           white-space: nowrap;
         }
         .product-card:hover .product-more { opacity: 1; transform: translateX(0) }
+        .product-note {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          margin-top: 16px;
+          padding-top: 12px;
+          border-top: 1px solid rgba(255,255,255,0.05);
+          font-family: var(--font-mono);
+          font-size: 0.62rem;
+          letter-spacing: 0.05em;
+          color: var(--color-mint, #34d399);
+        }
+        .product-note::before { content: "●"; font-size: 0.5rem; color: var(--color-mint, #34d399) }
         @media (max-width: 980px) { .products-grid { grid-template-columns: repeat(2, 1fr) } }
         @media (max-width: 720px) { .products-grid { grid-template-columns: 1fr } }
       `}</style>

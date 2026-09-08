@@ -1,9 +1,8 @@
 import { sanityFetch } from "@/lib/sanity"
 import { Hero } from "@/components/sections/hero"
-import { Reviews } from "@/components/sections/reviews"
+import { About } from "@/components/sections/about"
 import { Services } from "@/components/sections/services"
 import { Process } from "@/components/sections/process"
-import { About } from "@/components/sections/about"
 import { ContactForm } from "@/components/sections/contact-form"
 import { getDolarVentaBancoNacion } from "@/lib/dolar"
 import type { LandingFields } from "@/types/sanity"
@@ -45,10 +44,9 @@ export default async function LandingPage() {
         ctaPrimario={landing?.hero_cta_primario}
         ctaSecundario={landing?.hero_cta_secundario}
       />
-      <Reviews />
+      <About />
       <Services servicios={servicios || []} rate={rate} />
       <Process pasos={landing?.proceso_pasos || []} />
-      <About />
       <ContactForm />
     </>
   )

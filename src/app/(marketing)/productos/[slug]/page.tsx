@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { CheckoutButton } from "@/components/ui/checkout-button"
+import { ProductFaq } from "@/components/ui/product-faq"
 import { getDolarVentaBancoNacion, formatARS, formatUSD } from "@/lib/dolar"
 
 const SERVICIO_QUERY = `*[_type == "servicio" && slug.current == $slug][0]{
@@ -52,16 +53,11 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
   if (!servicioSanity) notFound()
 
   const price = (cents: number) => {
-    if (rate) return `${formatARS(cents, rate)}`
+    if (rate) return formatARS(cents, rate)
     return `$${(cents / 100).toFixed(0)}`
   }
 
-  const period = (monthly: boolean) => {
-    if (!monthly) return rate ? "ARS" : ""
-    return rate ? "ARS/mes" : "/mes"
-  }
-
-  const priceRef = (cents: number) => (rate && cents > 0 ? `≈ ${formatUSD(cents)}` : null)
+  const priceRef = (cents: number) => (rate && cents > 0 ? `≈ ${formatUSD(cents)}/mes` : null)
 
   const jsonLd = servicioDB ? {
     "@context": "https://schema.org",
@@ -102,32 +98,24 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       )}
-      <section style={{ position: "relative", zIndex: 1, overflow: "hidden", padding: "clamp(88px, 10vw, 132px) 0" }}>
+      <section className="producto-section" style={{ position: "relative", zIndex: 1, overflow: "hidden", padding: "clamp(88px, 10vw, 132px) 0" }}>
         <div className="section-divider section-divider--violet" aria-hidden="true" />
         <div className="section-band section-band--violet" aria-hidden="true" />
         <div className="section-glow section-glow--violet" style={{ width: "420px", height: "420px", left: "-140px", top: "10%" }} aria-hidden="true" />
         <div className="section-glow section-glow--cyan" style={{ width: "320px", height: "320px", right: "-100px", bottom: "10%" }} aria-hidden="true" />
         <div className="wrap" style={{ maxWidth: "var(--maxw, 1180px)", marginInline: "auto", paddingInline: "clamp(20px, 5vw, 56px)" }}>
-          <a href="/productos" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontFamily: "var(--font-mono)", fontSize: ".75rem", color: "var(--color-text-dim)", marginBottom: "32px", transition: "color 0.2s" }}>← Volver a productos</a>
+          <a href="/productos" className="producto-back">← Volver a productos</a>
 
-          <div className="producto-header" style={{ display: "flex", alignItems: "flex-start", gap: "28px", marginBottom: "48px" }}>
-            <div className="producto-icon" style={{
-              width: "72px", height: "72px", borderRadius: "18px", flexShrink: 0,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              background: "rgba(139,92,246,0.14)", color: "#8b5cf6",
-            }} dangerouslySetInnerHTML={{ __html: ICONS[servicioSanity.titulo] || servicioSanity.icono || "⚡" }} />
+          <div className="producto-header">
+            <div className="producto-icon" dangerouslySetInnerHTML={{ __html: ICONS[servicioSanity.titulo] || servicioSanity.icono || "⚡" }} />
             <div>
-              <p className="eyebrow" style={{ marginBottom: "10px" }}>Planes y precios</p>
-              <h1 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(2rem, 4vw, 3.2rem)", marginBottom: "14px" }}>{servicioSanity.titulo}</h1>
-              <p style={{ color: "var(--color-text-dim)", fontSize: "1.02rem", maxWidth: "50ch", lineHeight: 1.65 }}>{servicioSanity.descripcion}</p>
+              <p className="eyebrow">Planes y precios</p>
+              <h1>{servicioSanity.titulo}</h1>
+              <p className="producto-desc">{servicioSanity.descripcion}</p>
               {servicioSanity.tags?.length > 0 && (
-                <div className="producto-tags" style={{ display: "flex", flexWrap: "wrap", gap: "7px", marginTop: "20px" }}>
+                <div className="producto-tags">
                   {servicioSanity.tags.map((tag) => (
-                    <span key={tag} style={{
-                      fontFamily: "var(--font-mono)", fontSize: ".68rem",
-                      color: "var(--color-text-faint)", border: "1px solid rgba(255,255,255,0.08)",
-                      borderRadius: "100px", padding: "4px 10px",
-                    }}>{tag}</span>
+                    <span key={tag}>{tag}</span>
                   ))}
                 </div>
               )}
@@ -135,196 +123,387 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
           </div>
 
           {servicioDB && (
-            <div className="planes-grid">
-              <article className="plan-card">
-                <div className="plan-badge plan-badge--optional">Opcional</div>
-                <div className="plan-card-content">
-                  <div className="plan-icon"><svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+            <>
+              <div className="planes-grid">
+                <article className="plan-card plan-card--optional">
+                  <span className="plan-line" aria-hidden="true" />
+                  <span className="plan-badge plan-badge--optional">Opcional</span>
+                  <div className="plan-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 6 2 12l6 6M16 6l6 6-6 6"/></svg>
+                  </div>
                   <p className="plan-label">Compra del Código</p>
-                  <p className="plan-price">{price(servicioDB.precioUnico)}<span className="plan-period">{period(false)}</span></p>
-                  {priceRef(servicioDB.precioUnico) && <p className="plan-price-ref">{priceRef(servicioDB.precioUnico)}</p>}
+                  {servicioDB.precioUnico > 0 && (
+                    <>
+                      <span className="plan-from">Pago único</span>
+                      <span className="plan-price">{formatUSD(servicioDB.precioUnico)}</span>
+                      <span className="plan-ref">Código fuente completo · tuyo para siempre</span>
+                    </>
+                  )}
                   <p className="plan-desc">Entrega del código fuente completo. El servicio online requiere un plan mensual.</p>
                   <ul className="plan-features">
-                    <li>✅ Código y activos incluidos</li>
-                    <li>✅ Sumable a cualquier plan</li>
-                    <li>❌ Sin hosting incluido</li>
-                    <li>❌ Sin soporte continuo</li>
+                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Código y activos incluidos</li>
+                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Sumable a cualquier plan</li>
+                    <li><span className="pf pf-no"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span>Sin hosting incluido</li>
+                    <li><span className="pf pf-no"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span>Sin soporte continuo</li>
                   </ul>
                   {servicioDB.polarProductIdUnico && (
                     <div className="plan-cta">
-                      <CheckoutButton polarProductId={servicioDB.polarProductIdUnico} servicioNombre={servicioSanity.titulo} tipo="UNICO" label="Comprar el código" size="default" className="w-full" />
+                      <CheckoutButton polarProductId={servicioDB.polarProductIdUnico} servicioNombre={servicioSanity.titulo} tipo="UNICO" label="Comprar el código" size="default" variant="outline" className="w-full" />
                     </div>
                   )}
-                </div>
-              </article>
+                </article>
 
-              <article className="plan-card plan-card--featured">
-                <div className="plan-badge">Recomendado</div>
-                <div className="plan-card-content">
-                  <div className="plan-icon"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5z"/></svg></div>
+                <article className="plan-card plan-card--featured">
+                  <span className="plan-line" aria-hidden="true" />
+                  <span className="plan-badge">Recomendado</span>
+                  <div className="plan-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2 3 7v5c0 5 3.8 9.3 9 10 5.2-.7 9-5 9-10V7l-9-5z"/><path d="m9 12 2 2 4-4"/></svg>
+                  </div>
                   <p className="plan-label">Plan Básico</p>
-                  <p className="plan-price">{price(servicioDB.precioBasico)}<span className="plan-period">{period(true)}</span></p>
-                  {priceRef(servicioDB.precioBasico) && <p className="plan-price-ref">{priceRef(servicioDB.precioBasico)}/mes</p>}
-                  <p className="plan-desc">Servicio online, hosting incluido, sin cambios.</p>
+                  {servicioDB.precioBasico > 0 && (
+                    <>
+                      <span className="plan-from">Desde</span>
+                      <span className="plan-price">{price(servicioDB.precioBasico)}<small>ARS/mes</small></span>
+                      {priceRef(servicioDB.precioBasico) && <span className="plan-ref">{priceRef(servicioDB.precioBasico)}</span>}
+                    </>
+                  )}
+                  <p className="plan-desc">Servicio online, hosting incluido, sin cambios. Ideal para tener presencia sin preocuparte por la infraestructura.</p>
                   <ul className="plan-features">
-                    <li>✅ Hosting incluido</li>
-                    <li>✅ SSL y monitoreo</li>
-                    <li>❌ Sin cambios ni soporte</li>
+                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Hosting incluido</li>
+                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>SSL y monitoreo</li>
+                    <li><span className="pf pf-no"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span>Sin cambios ni soporte</li>
                   </ul>
                   {servicioDB.polarProductIdBasico && (
                     <div className="plan-cta">
                       <CheckoutButton polarProductId={servicioDB.polarProductIdBasico} servicioNombre={servicioSanity.titulo} tipo="BASICO" label="Activar Básico" size="default" variant="gradient" className="w-full" />
                     </div>
                   )}
-                </div>
-              </article>
+                </article>
 
-              <article className="plan-card">
-                <div className="plan-card-content">
-                  <div className="plan-icon"><svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="9"/><path d="M5 5l4 4M19 5l-4 4M5 19l4-4M19 19l-4-4"/></svg></div>
+                <article className="plan-card">
+                  <span className="plan-line" aria-hidden="true" />
+                  <div className="plan-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="22" height="22"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/></svg>
+                  </div>
                   <p className="plan-label">Plan Mantenimiento</p>
-                  <p className="plan-price">{price(servicioDB.precioMantenimiento)}<span className="plan-period">{period(true)}</span></p>
-                  {priceRef(servicioDB.precioMantenimiento) && <p className="plan-price-ref">{priceRef(servicioDB.precioMantenimiento)}/mes</p>}
-                  <p className="plan-desc">Hosting + cambios + soporte prioritario.</p>
+                  {servicioDB.precioMantenimiento > 0 && (
+                    <>
+                      <span className="plan-from">Desde</span>
+                      <span className="plan-price">{price(servicioDB.precioMantenimiento)}<small>ARS/mes</small></span>
+                      {priceRef(servicioDB.precioMantenimiento) && <span className="plan-ref">{priceRef(servicioDB.precioMantenimiento)}</span>}
+                    </>
+                  )}
+                  <p className="plan-desc">Todo lo del Básico, más cambios mensuales y soporte prioritario. Para que tu producto evolucione sin fricción.</p>
                   <ul className="plan-features">
-                    <li>✅ Todo lo del Básico</li>
-                    <li>✅ Cambios mensuales</li>
-                    <li>✅ Soporte prioritario</li>
+                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Todo lo del Básico</li>
+                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Cambios mensuales</li>
+                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Soporte prioritario</li>
                   </ul>
                   {servicioDB.polarProductIdMantenimiento && (
                     <div className="plan-cta">
                       <CheckoutButton polarProductId={servicioDB.polarProductIdMantenimiento} servicioNombre={servicioSanity.titulo} tipo="MANTENIMIENTO" label="Activar Mantenimiento" size="default" className="w-full" />
                     </div>
                   )}
-                </div>
-              </article>
-            </div>
-          )}
+                </article>
+              </div>
 
-          <p style={{ textAlign: "center", fontSize: ".85rem", color: "var(--color-text-faint)", marginTop: "36px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "28px" }}>
-            {rate ? "Precios en ARS según dólar venta Banco Nación (fuente: ComparaDolar), se actualizan automáticamente. " : ""}
-            El cobro se realiza en USD. Sin un plan mensual, el servicio deja de estar online. Cancelación con 7 días de aviso.
-          </p>
+              <div className="plan-trust">
+                <div className="trust-item">
+                  <div className="trust-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2 3 7v5c0 5 3.8 9.3 9 10 5.2-.7 9-5 9-10V7l-9-5z"/><path d="m9 12 2 2 4-4"/></svg></div>
+                  <div><b>Hosting incluido</b><span>En cada plan mensual</span></div>
+                </div>
+                <div className="trust-item">
+                  <div className="trust-icon"><svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M5 5l4 4M19 5l-4 4M5 19l4-4M19 19l-4-4"/></svg></div>
+                  <div><b>SSL + monitoreo</b><span>Activo las 24hs</span></div>
+                </div>
+                <div className="trust-item">
+                  <div className="trust-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 14 4 9l4-4M14 9l5-5-5 4"/><path d="M14 17l5 5M17 20h-3a8 8 0 0 1-8-8"/></svg></div>
+                  <div><b>Cancelá cuando quieras</b><span>Con 7 días de aviso</span></div>
+                </div>
+                <div className="trust-item">
+                  <div className="trust-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.3c-1.6 0-3.1-.4-4.4-1.2L3 20l1.4-5A8.3 8.3 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3.2a8.4 8.4 0 0 1 8.5 8.3z"/><path d="m9 10 2 2 4-4"/></svg></div>
+                  <div><b>Respuesta &lt;24hs</b><span>En consultas y soporte</span></div>
+                </div>
+              </div>
+
+              <div className="plan-assure">
+                <div className="assure-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2 3 7v5c0 5 3.8 9.3 9 10 5.2-.7 9-5 9-10V7l-9-5z"/><path d="m9 12 2 2 4-4"/></svg>
+                </div>
+                <p><b>Trabajamos por hitos.</b> Revisás cada entrega antes de avanzar a la siguiente. Si en la entrega final algo no cumple lo acordado, lo corregimos sin cargo.</p>
+              </div>
+
+              <ProductFaq />
+
+              <p className="plan-note">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M12 12v4"/></svg>
+                {rate ? "Precios en ARS según dólar venta Banco Nación (fuente: ComparaDolar), se actualizan automáticamente. " : ""}
+                El cobro se realiza en USD. Sin un plan mensual, el servicio deja de estar online. Cancelación con 7 días de aviso.
+              </p>
+            </>
+          )}
         </div>
       </section>
 
       <style>{`
-        .planes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 24px; }
+        .producto-back {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-family: var(--font-mono);
+          font-size: 0.75rem;
+          color: var(--color-text-dim);
+          margin-bottom: 36px;
+          transition: color 0.2s;
+        }
+        .producto-back:hover { color: var(--color-cyan) }
+        .producto-header { display: flex; align-items: flex-start; gap: 26px; margin-bottom: 56px }
+        .producto-icon {
+          width: 72px;
+          height: 72px;
+          border-radius: 19px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, rgba(139,92,246,0.18), rgba(34,211,238,0.12));
+          border: 1px solid rgba(139,92,246,0.25);
+          color: #b9a6ff;
+        }
+        .producto-header h1 {
+          font-family: var(--font-pixel-display);
+          font-weight: 700;
+          letter-spacing: 0;
+          font-size: clamp(2rem, 4vw, 3.2rem);
+          margin-bottom: 14px;
+        }
+        .producto-desc {
+          color: var(--color-text-dim);
+          font-size: 1.02rem;
+          max-width: 52ch;
+          line-height: 1.65;
+          margin-bottom: 18px;
+        }
+        .producto-tags { display: flex; flex-wrap: wrap; gap: 6px 16px }
+        .producto-tags span {
+          font-family: var(--font-mono);
+          font-size: 0.68rem;
+          letter-spacing: 0.05em;
+          color: rgba(164,156,179,0.6);
+        }
+
+        .planes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; align-items: stretch }
         .plan-card {
-          background: var(--color-panel);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 16px;
           position: relative;
-          overflow: hidden;
+          border-radius: 18px;
+          padding: 34px 30px 30px;
           display: flex;
           flex-direction: column;
-          transition: transform 0.4s cubic-bezier(.19,1,.22,1), border-color 0.4s cubic-bezier(.19,1,.22,1), background 0.4s cubic-bezier(.19,1,.22,1);
+          overflow: hidden;
+          background: linear-gradient(160deg, #171321 0%, #110e1a 60%, #141020 100%);
+          border: 1px solid rgba(255,255,255,0.07);
+          transition: transform 0.35s cubic-bezier(.19,1,.22,1), border-color 0.35s cubic-bezier(.19,1,.22,1), box-shadow 0.35s cubic-bezier(.19,1,.22,1);
         }
-        .plan-card::before {
-          content: "";
+        .plan-card:hover {
+          transform: translateY(-6px);
+          border-color: rgba(139,92,246,0.4);
+          box-shadow: 0 24px 60px -24px rgba(0,0,0,0.7), 0 0 40px -16px rgba(139,92,246,0.35);
+        }
+        .plan-line {
           position: absolute;
-          inset: -1px;
-          border-radius: inherit;
-          padding: 1px;
-          background: linear-gradient(135deg, #8b5cf6, #22d3ee);
-          opacity: 0;
-          transition: opacity 0.4s cubic-bezier(.19,1,.22,1);
-          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-          -webkit-mask-composite: xor;
-          mask-composite: exclude;
-          pointer-events: none;
+          top: 0;
+          left: 22px;
+          right: 22px;
+          height: 2px;
+          border-radius: 0 0 4px 4px;
+          background: linear-gradient(90deg, #8b5cf6, #22d3ee);
         }
-        .plan-card:hover { transform: translateY(-6px); background: var(--color-panel-2) }
-        .plan-card:hover::before { opacity: 1 }
-
         .plan-card--featured {
-          border: 1.5px solid rgba(139,92,246,0.35);
-          background: linear-gradient(180deg, rgba(139,92,246,0.06), var(--color-panel));
-          transform: translateY(-8px);
+          background: linear-gradient(160deg, rgba(139,92,246,0.10), #110e1a 45%, #141020 100%);
+          border: 1px solid rgba(139,92,246,0.45);
+          box-shadow: 0 0 50px -18px rgba(139,92,246,0.45);
         }
-        .plan-card--featured:hover { transform: translateY(-14px) }
-        .plan-card--featured::before { opacity: 1 }
+        .plan-card--featured:hover { border-color: rgba(139,92,246,0.65) }
+        .plan-card--optional { background: rgba(17,14,26,0.55); border-style: dashed; border-color: rgba(255,255,255,0.12) }
+        .plan-card--optional:hover { border-color: rgba(34,211,238,0.4) }
 
         .plan-badge {
           position: absolute;
-          top: 12px;
-          right: 12px;
+          top: 16px;
+          right: 16px;
           font-family: var(--font-mono);
-          font-size: .6rem;
-          letter-spacing: .08em;
+          font-size: 0.6rem;
+          letter-spacing: 0.08em;
           text-transform: uppercase;
+          padding: 4px 11px;
+          border-radius: 999px;
+          font-weight: 600;
+          z-index: 1;
           background: linear-gradient(135deg, #8b5cf6, #22d3ee);
           color: #07060c;
-          padding: 3px 10px;
-          border-radius: 100px;
-          font-weight: 600;
         }
-        .plan-badge--optional {
-          background: transparent;
-          border: 1px solid rgba(34,211,238,0.35);
-          color: #22d3ee;
-        }
-        .plan-card-content { padding: 32px 28px; position: relative; z-index: 1; display: flex; flex-direction: column; flex: 1; }
-        .plan-cta { margin-top: auto; }
+        .plan-badge--optional { background: transparent; border: 1px solid rgba(34,211,238,0.35); color: var(--color-cyan) }
+
         .plan-icon {
-          width: 44px; height: 44px; border-radius: 12px;
-          display: flex; align-items: center; justify-content: center;
-          background: rgba(139,92,246,0.14); color: #8b5cf6;
+          width: 48px;
+          height: 48px;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           margin-bottom: 20px;
+          background: rgba(139,92,246,0.13);
+          color: #b9a6ff;
         }
-        .plan-card:nth-child(3) .plan-icon { background: rgba(34,211,238,0.14); color: #22d3ee }
+        .plan-icon svg { stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round }
+        .planes-grid > .plan-card:nth-child(3) .plan-icon { background: rgba(34,211,238,0.11); color: #7de3f5 }
+        .plan-card--optional .plan-icon { background: rgba(255,255,255,0.05); color: var(--color-text-faint) }
+
         .plan-label {
           font-family: var(--font-mono);
-          font-size: .7rem;
-          letter-spacing: .1em;
+          font-size: 0.7rem;
+          letter-spacing: 0.1em;
           text-transform: uppercase;
           color: var(--color-text-faint);
-          margin-bottom: 8px;
+          margin-bottom: 10px;
+        }
+        .plan-card--featured .plan-label { color: var(--color-cyan) }
+        .plan-from {
+          font-family: var(--font-mono);
+          font-size: 0.64rem;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--color-text-faint);
+          display: block;
+          margin-bottom: 4px;
         }
         .plan-price {
-          font-family: var(--font-display);
-          font-size: 2.2rem;
+          font-size: 2.3rem;
           font-weight: 700;
-          margin-bottom: 12px;
+          letter-spacing: -0.02em;
+          line-height: 1.05;
+          display: block;
           white-space: nowrap;
         }
-        .plan-period {
-          font-size: .9rem;
-          font-weight: 400;
-          color: var(--color-text-dim);
-        }
-        .plan-price-ref {
+        .plan-price small { font-weight: 400; font-size: 0.82rem; color: var(--color-text-dim); margin-left: 3px }
+        .plan-ref {
+          display: block;
           font-family: var(--font-mono);
-          font-size: .72rem;
+          font-size: 0.7rem;
           color: var(--color-text-faint);
-          margin: -6px 0 12px;
+          margin-top: 5px;
+          font-weight: 500;
         }
         .plan-desc {
           color: var(--color-text-dim);
-          font-size: .85rem;
+          font-size: 0.85rem;
           line-height: 1.65;
-          margin-bottom: 20px;
-          padding-bottom: 20px;
+          margin-top: 18px;
+          padding-bottom: 18px;
           border-bottom: 1px solid rgba(255,255,255,0.06);
         }
         .plan-features {
           list-style: none;
-          margin-bottom: 24px;
+          margin: 18px 0 24px;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 11px;
+          flex: 1;
         }
-        .plan-features li {
-          font-size: .82rem;
-          color: var(--color-text-dim);
+        .plan-features li { display: flex; align-items: center; gap: 10px; font-size: 0.84rem; color: var(--color-text-dim) }
+        .pf {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .pf svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round }
+        .pf-yes { background: rgba(52,211,153,0.12); color: #34d399 }
+        .pf-no { background: rgba(239,68,68,0.1); color: #f87171 }
+        .plan-cta { margin-top: auto }
+        .plan-cta .w-full { width: 100% }
+
+        .plan-trust { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 34px }
+        .trust-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 14px;
+          padding: 16px 18px;
+          background: rgba(17,14,26,0.6);
+        }
+        .trust-icon {
+          width: 38px;
+          height: 38px;
+          border-radius: 11px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(52,211,153,0.1);
+          color: #34d399;
+        }
+        .trust-icon svg { stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round }
+        .trust-item b { display: block; font-size: 0.82rem; margin-bottom: 2px }
+        .trust-item span { font-family: var(--font-mono); font-size: 0.64rem; color: var(--color-text-faint) }
+
+        .plan-assure {
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
+          border: 1px solid rgba(34,211,238,0.22);
+          border-radius: 14px;
+          background: linear-gradient(160deg, rgba(34,211,238,0.06), rgba(17,14,26,0.5));
+          padding: 20px 22px;
+          margin-top: 34px;
+        }
+        .assure-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(34,211,238,0.12);
+          color: var(--color-cyan);
+        }
+        .assure-icon svg { stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round }
+        .plan-assure p { color: var(--color-text-dim); font-size: 0.88rem; line-height: 1.7 }
+        .plan-assure b { color: var(--color-text) }
+
+        .plan-note {
+          margin-top: 44px;
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          color: var(--color-text-faint);
+          font-size: 0.78rem;
+          line-height: 1.6;
+        }
+        .plan-note svg {
+          width: 14px;
+          height: 14px;
+          flex-shrink: 0;
+          stroke: var(--color-text-faint);
+          fill: none;
+          stroke-width: 1.8;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          margin-top: 2px;
         }
 
-        @media (max-width: 980px) { .planes-grid { grid-template-columns: repeat(2, 1fr) } }
-        @media (max-width: 720px) {
-          .planes-grid { grid-template-columns: 1fr }
-          .plan-card--featured { transform: translateY(0) }
-          .plan-card--featured:hover { transform: translateY(-6px) }
-          .producto-header { flex-direction: column; align-items: center; text-align: center }
+        @media (max-width: 980px) {
+          .planes-grid { grid-template-columns: 1fr; max-width: 480px; margin-inline: auto }
+          .plan-trust { grid-template-columns: repeat(2, 1fr) }
+        }
+        @media (max-width: 680px) {
+          .plan-trust { grid-template-columns: 1fr }
+          .producto-header { flex-direction: column; align-items: flex-start; gap: 18px }
         }
       `}</style>
     </>

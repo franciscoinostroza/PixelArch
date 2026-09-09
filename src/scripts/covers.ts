@@ -137,6 +137,32 @@ function motifMonitoreo(): string {
   <text x="176" y="356" font-family="Consolas, monospace" font-size="15" fill="rgba(246,245,248,0.4)">ssl: ok</text>`
 }
 
+function motifDiscos(): string {
+  return `
+  <rect x="150" y="240" width="330" height="62" rx="9" fill="#141020" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
+  <rect x="150" y="248" width="10" height="46" rx="3" fill="#0b0913"/>
+  <rect x="200" y="264" width="130" height="14" rx="4" fill="url(#g)" opacity="0.9"/>
+  <text x="200" y="290" font-family="Consolas, monospace" font-size="13" fill="rgba(246,245,248,0.6)">M.2 NVMe · 2280</text>
+  <rect x="150" y="352" width="260" height="88" rx="12" fill="#141020" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
+  <rect x="172" y="374" width="60" height="12" rx="4" fill="rgba(255,255,255,0.16)"/>
+  <rect x="172" y="396" width="90" height="12" rx="4" fill="rgba(255,255,255,0.1)"/>
+  <text x="172" y="426" font-family="Consolas, monospace" font-size="15" fill="#7de3f5">SSD 2.5" · SATA</text>
+  <rect x="150" y="490" width="260" height="110" rx="14" fill="#141020" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
+  <circle cx="280" cy="545" r="34" fill="#0f0d1a" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+  <circle cx="280" cy="545" r="8" fill="rgba(255,255,255,0.3)"/>
+  <line x1="280" y1="511" x2="312" y2="533" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
+  <text x="172" y="584" font-family="Consolas, monospace" font-size="15" fill="#fbbf24">HDD 2.5" · SATA</text>
+  <rect x="330" y="270" width="90" height="6" rx="3" fill="rgba(255,255,255,0.08)"/>
+  <rect x="330" y="270" width="86" height="6" rx="3" fill="url(#g)"/>
+  <text x="330" y="296" font-family="Consolas, monospace" font-size="14" fill="#7de3f5">7.000 MB/s</text>
+  <rect x="330" y="382" width="90" height="6" rx="3" fill="rgba(255,255,255,0.08)"/>
+  <rect x="330" y="382" width="60" height="6" rx="3" fill="#22d3ee"/>
+  <text x="330" y="408" font-family="Consolas, monospace" font-size="14" fill="#7de3f5">550 MB/s</text>
+  <rect x="330" y="520" width="90" height="6" rx="3" fill="rgba(255,255,255,0.08)"/>
+  <rect x="330" y="520" width="32" height="6" rx="3" fill="#fbbf24"/>
+  <text x="330" y="546" font-family="Consolas, monospace" font-size="14" fill="#fbbf24">160 MB/s</text>`
+}
+
 const MOTIFS: Record<string, () => string> = {
   "landing-pages-que-convierten": motifLanding,
   "que-es-un-agente-de-ia": motifAgente,
@@ -144,6 +170,7 @@ const MOTIFS: Record<string, () => string> = {
   "hosting-compartido-vs-gestionado": motifHosting,
   "como-cobrar-online-argentina-chile": motifCobros,
   "monitoreo-24-7": motifMonitoreo,
+  "como-elegir-el-disco-de-tu-notebook": motifDiscos,
 }
 
 export function coverSvg(slug: string, title: string): string {

@@ -8,6 +8,7 @@ config({ path: ".env.local" })
 
 import { createClient } from "@sanity/client"
 import sharp from "sharp"
+import { coverSvg } from "./covers"
 
 const client = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
@@ -253,51 +254,6 @@ function blocks(items: string[]) {
   })
 }
 
-function wrapTitle(title: string, max = 22): string[] {
-  const words = title.split(" ")
-  const lines: string[] = []
-  let current = ""
-  for (const w of words) {
-    if ((current + " " + w).trim().length > max) {
-      if (current) lines.push(current)
-      current = w
-    } else {
-      current = (current + " " + w).trim()
-    }
-  }
-  if (current) lines.push(current)
-  return lines.slice(0, 4)
-}
-
-function coverSvg(title: string): string {
-  const lines = wrapTitle(title)
-  const fontSize = lines.length > 2 ? 54 : 66
-  const lineHeight = fontSize + 16
-  const startY = 380 - ((lines.length - 1) * lineHeight) / 2
-  const text = lines
-    .map((l, i) => `<text x="600" y="${startY + i * lineHeight}" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="${fontSize}" font-weight="700" fill="#f6f5f8">${l.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</text>`)
-    .join("")
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#8b5cf6"/>
-      <stop offset="1" stop-color="#22d3ee"/>
-    </linearGradient>
-  </defs>
-  <rect width="1200" height="800" fill="#0b0913"/>
-  <circle cx="180" cy="140" r="240" fill="rgba(139,92,246,0.16)"/>
-  <circle cx="1020" cy="640" r="280" fill="rgba(34,211,238,0.12)"/>
-  <circle cx="960" cy="140" r="90" fill="rgba(255,255,255,0.03)"/>
-  <rect x="40" y="40" width="1120" height="720" rx="28" fill="none" stroke="rgba(255,255,255,0.14)" stroke-width="2"/>
-  <rect x="48" y="48" width="80" height="6" rx="3" fill="url(#g)"/>
-  <text x="600" y="130" text-anchor="middle" font-family="Consolas, monospace" font-size="26" letter-spacing="8" fill="rgba(139,92,246,0.9)">PIXELARCH</text>
-  <text x="600" y="170" text-anchor="middle" font-family="Consolas, monospace" font-size="18" letter-spacing="4" fill="#645f74">BLOG</text>
-  ${text}
-  <rect x="500" y="600" width="200" height="3" rx="1.5" fill="url(#g)"/>
-  <text x="600" y="660" text-anchor="middle" font-family="Consolas, monospace" font-size="18" letter-spacing="2" fill="#645f74">pixelarch.dev</text>
-</svg>`
-}
-
 async function run() {
   console.log("Conectando a Sanity...\n")
 
@@ -308,7 +264,7 @@ async function run() {
       continue
     }
 
-    const svg = coverSvg(a.titulo)
+    const svg = coverSvg(a.slug, a.titulo)
     const png = await sharp(Buffer.from(svg)).png().toBuffer()
     const asset = await client.assets.upload("image", png, {
       contentType: "image/png",

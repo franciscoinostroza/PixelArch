@@ -114,3 +114,15 @@ enum EstadoPago {
   REFUNDED
   PENDING
 }
+
+model UptimeCheck {
+  id         String   @id @default(cuid())
+  servicio   String
+  ok         Boolean
+  statusCode Int?
+  latenciaMs Int
+  creadoEn   DateTime @default(now())
+
+  @@index([servicio, creadoEn])
+  @@index([creadoEn])
+}

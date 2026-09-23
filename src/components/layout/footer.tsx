@@ -13,6 +13,7 @@ const PRODUCTOS = [
 const EMPRESA = [
   { href: "/nosotros", label: "Nosotros" },
   { href: "/proyectos", label: "Proyectos" },
+  { href: "/estado", label: "Estado del servicio" },
   { href: "/blog", label: "Blog" },
   { href: "/#contacto", label: "Contacto" },
 ]
@@ -20,7 +21,8 @@ const EMPRESA = [
 const RECURSOS = [
   { href: "/precios", label: "Precios" },
   { href: "/faq", label: "Preguntas frecuentes" },
-  { href: "/#contacto", label: "Auditoría gratis" },
+  { href: "/auditoria", label: "Auditoría gratis" },
+  { href: "/calculadora", label: "Calculadora de ahorro" },
   { href: "/rss.xml", label: "RSS del blog" },
 ]
 

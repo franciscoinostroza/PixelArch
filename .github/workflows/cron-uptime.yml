@@ -1,0 +1,16 @@
+name: Monitoreo de uptime
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chequear servicios
+        run: |
+          curl -sS -X GET \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            https://pixelarch.dev/api/cron/uptime

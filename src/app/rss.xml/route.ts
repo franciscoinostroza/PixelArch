@@ -47,6 +47,7 @@ ${a.descripcion ? `      <description>${escapeXml(a.descripcion)}</description>\
     .join("\n")
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/rss.xsl"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Blog — PixelArch</title>

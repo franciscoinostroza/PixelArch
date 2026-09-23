@@ -12,14 +12,16 @@ const PRODUCTOS = [
 
 const EMPRESA = [
   { href: "/nosotros", label: "Nosotros" },
+  { href: "/proyectos", label: "Proyectos" },
   { href: "/blog", label: "Blog" },
   { href: "/#contacto", label: "Contacto" },
 ]
 
 const RECURSOS = [
+  { href: "/precios", label: "Precios" },
   { href: "/faq", label: "Preguntas frecuentes" },
   { href: "/#contacto", label: "Auditoría gratis" },
-  { href: "/#productos", label: "Productos y precios" },
+  { href: "/rss.xml", label: "RSS del blog" },
 ]
 
 const LEGAL = [

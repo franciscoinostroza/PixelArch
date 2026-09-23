@@ -5,6 +5,7 @@ import Link from "next/link"
 import { PortableText, type PortableTextBlock } from "@portabletext/react"
 import { whatsappUrl, AUDIT_MESSAGE } from "@/lib/contact"
 import { ArticleShare } from "@/components/sections/article-share"
+import { estimateReadingMinutes, readingTimeLabel } from "@/lib/reading-time"
 
 const ARTICULO_QUERY = `*[_type == "articulo" && slug.current == $slug && activo == true][0]{
   titulo,
@@ -20,7 +21,14 @@ const ARTICULO_QUERY = `*[_type == "articulo" && slug.current == $slug && activo
   "og_image": og_image.asset->url
 }`
 
-const LISTA_QUERY = `*[_type == "articulo" && activo == true] | order(fecha desc){ "slug": slug.current, titulo }`
+const LISTA_QUERY = `*[_type == "articulo" && activo == true] | order(fecha desc){ "slug": slug.current, titulo, fecha, "portada": portada.asset->url }`
+
+const RELATED_QUERY = `*[_type == "articulo" && activo == true && slug.current != $slug && count(tags[@ in $tags]) > 0] | order(fecha desc)[0...3]{
+  "slug": slug.current,
+  titulo,
+  fecha,
+  "portada": portada.asset->url
+}`
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
@@ -80,10 +88,26 @@ export default async function ArticuloPage({ params }: { params: Promise<{ slug:
 
   if (!a) notFound()
 
-  const lista = (await sanityFetch<{ slug: string; titulo: string }[]>(LISTA_QUERY)) || []
+  const lista = (await sanityFetch<{ slug: string; titulo: string; fecha?: string; portada?: string }[]>(LISTA_QUERY)) || []
   const idx = lista.findIndex((x) => x.slug === slug)
   const anterior = idx > 0 ? lista[idx - 1] : null
   const siguiente = idx >= 0 && idx < lista.length - 1 ? lista[idx + 1] : null
+
+  const tags = a.tags || []
+  const relatedBase = tags.length > 0
+    ? (await sanityFetch<{ slug: string; titulo: string; fecha?: string; portada?: string }[]>(RELATED_QUERY, { slug, tags })) || []
+    : []
+  const related = [...relatedBase]
+  if (related.length < 3) {
+    for (const item of lista) {
+      if (related.length >= 3) break
+      if (item.slug === slug) continue
+      if (related.some((r) => r.slug === item.slug)) continue
+      related.push(item)
+    }
+  }
+
+  const minutes = estimateReadingMinutes(a.contenido)
 
   const fecha = a.fecha
     ? new Date(a.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" })
@@ -117,6 +141,8 @@ export default async function ArticuloPage({ params }: { params: Promise<{ slug:
             {fecha && <span className="art-date">{fecha}</span>}
             {a.autor && <span className="art-dot">·</span>}
             {a.autor && <span>{a.autor}</span>}
+            <span className="art-dot">·</span>
+            <span>{readingTimeLabel(minutes)}</span>
           </div>
           <h1>{a.titulo}</h1>
           {a.descripcion && <p className="art-lead">{a.descripcion}</p>}
@@ -169,6 +195,32 @@ export default async function ArticuloPage({ params }: { params: Promise<{ slug:
               </Link>
             ) : <span />}
           </nav>
+        )}
+
+        {/* Artículos relacionados */}
+        {related.length > 0 && (
+          <section className="art-related">
+            <h2 className="art-related-title">Artículos relacionados</h2>
+            <div className="art-related-grid">
+              {related.map((r) => (
+                <Link key={r.slug} href={`/blog/${r.slug}`} className="art-related-card">
+                  {r.portada && (
+                    <div className="art-related-cover">
+                      <img src={r.portada} alt={r.titulo} loading="lazy" />
+                    </div>
+                  )}
+                  <div className="art-related-body">
+                    {r.fecha && (
+                      <span className="art-related-date">
+                        {new Date(r.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}
+                      </span>
+                    )}
+                    <h3>{r.titulo}</h3>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
         )}
 
         {/* CTA auditoría */}
@@ -414,9 +466,48 @@ export default async function ArticuloPage({ params }: { params: Promise<{ slug:
         .art-cta-title { font-family: var(--font-display); font-weight: 700; font-size: 1.08rem; margin-bottom: 6px }
         .art-cta-text { color: var(--color-text-dim); font-size: .92rem; line-height: 1.6; max-width: 46ch }
 
+        .art-related { margin-top: 56px }
+        .art-related-title {
+          font-family: var(--font-display);
+          font-size: 1.3rem;
+          font-weight: 700;
+          margin-bottom: 20px;
+        }
+        .art-related-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 18px;
+        }
+        .art-related-card {
+          border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 16px;
+          overflow: hidden;
+          background: linear-gradient(170deg, rgba(17,14,26,0.85), rgba(17,14,26,0.6));
+          text-decoration: none;
+          color: inherit;
+          display: flex;
+          flex-direction: column;
+          transition: border-color 0.25s, transform 0.25s;
+        }
+        .art-related-card:hover { border-color: rgba(139,92,246,0.4); transform: translateY(-3px) }
+        .art-related-cover { height: 110px; overflow: hidden }
+        .art-related-cover img { width: 100%; height: 100%; object-fit: cover; display: block }
+        .art-related-body { padding: 16px 18px 18px }
+        .art-related-date {
+          font-family: var(--font-mono);
+          font-size: .64rem;
+          letter-spacing: .1em;
+          text-transform: uppercase;
+          color: var(--color-text-faint);
+          display: block;
+          margin-bottom: 8px;
+        }
+        .art-related-body h3 { font-size: .95rem; font-weight: 600; line-height: 1.4 }
+
         @media (max-width: 640px) {
           .art-nav { grid-template-columns: 1fr }
           .art-cta { flex-direction: column; align-items: flex-start }
+          .art-related-grid { grid-template-columns: 1fr }
         }
       `}</style>
     </section>

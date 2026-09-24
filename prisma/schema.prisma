@@ -8,12 +8,12 @@ datasource db {
 
 model Cliente {
   id               String   @id @default(cuid())
-  clerkUserId      String   @unique
-  polarCustomerId   String?  @unique
+  clerkUserId      String?  @unique
   nombre           String
   email            String   @unique
   empresa          String?
   telefono         String?
+  notas            String?
   activo           Boolean  @default(true)
   creadoEn         DateTime @default(now())
   actualizadoEn    DateTime @updatedAt
@@ -34,10 +34,6 @@ model Servicio {
   precioBasico               Int
   precioMantenimiento        Int
 
-  polarProductIdUnico         String?   @unique
-  polarProductIdBasico        String?   @unique
-  polarProductIdMantenimiento String?   @unique
-
   activo                     Boolean   @default(true)
   orden                      Int       @default(0)
 
@@ -50,17 +46,16 @@ model Suscripcion {
   servicioId              String
   plan                    PlanTipo
   estado                  Estado
-  polarSubscriptionId    String?     @unique
-  polarTransactionId     String?
   deploymentId            String?
   deploymentPlatform      String?
   platformServiceId       String?
   proximoPago             DateTime?
   entregadoEn             DateTime?
   cancelAtPeriodEnd       Boolean   @default(false)
-  polarDiscountId         String?
   canceladoEn             DateTime?
   pastDueEn               DateTime?
+  precioCustom            Int?
+  ultimoRecordatorioEn    DateTime?
   creadoEn                DateTime    @default(now())
   actualizadoEn           DateTime    @updatedAt
 
@@ -92,11 +87,12 @@ model Pago {
   id              String     @id @default(cuid())
   clienteId       String
   suscripcionId   String?
-  polarTransactionId String?     @unique
   monto           Int
   moneda          String     @default("usd")
-  polarDiscountId String?
-  discountAmount  Int?
+  cotizacion      Float?
+  metodo          MetodoPago?
+  nota            String?
+  registradoPor   String?
   estadoPago      EstadoPago
   creadoEn        DateTime   @default(now())
 
@@ -106,6 +102,13 @@ model Pago {
   @@index([clienteId])
   @@index([suscripcionId])
   @@index([creadoEn])
+}
+
+enum MetodoPago {
+  TRANSFERENCIA
+  MERCADOPAGO
+  EFECTIVO
+  OTRO
 }
 
 enum EstadoPago {

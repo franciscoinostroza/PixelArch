@@ -9,6 +9,7 @@ import { AdminUserButton } from "@/components/layout/admin-user-button"
 const ICONS: Record<string, string> = {
   dashboard: "▦",
   clientes: "◎",
+  cobros: "◷",
   servicios: "⚒",
   pagos: "◫",
   blog: "📝",
@@ -23,6 +24,7 @@ const sections = [
     label: "Gestión",
     items: [
       { key: "clientes", href: "/admin/clientes", label: "Clientes" },
+      { key: "cobros", href: "/admin/cobros", label: "Cobros" },
       { key: "servicios", href: "/admin/servicios", label: "Productos" },
       { key: "pagos", href: "/admin/pagos", label: "Pagos" },
       { key: "blog", href: "/admin/blog", label: "Blog" },
@@ -34,7 +36,7 @@ interface SidebarProps {
   alertasActivas?: number
 }
 
-function SidebarNav({ onNavClick }: { onNavClick?: () => void }) {
+function SidebarNav({ onNavClick, alertasActivas = 0 }: { onNavClick?: () => void; alertasActivas?: number }) {
   const pathname = usePathname()
   return (
     <>
@@ -53,6 +55,9 @@ function SidebarNav({ onNavClick }: { onNavClick?: () => void }) {
               >
                 <span className="a-ic" aria-hidden="true">{ICONS[key]}</span>
                 {label}
+                {key === "cobros" && alertasActivas > 0 && (
+                  <span className="a-nav-badge">{alertasActivas}</span>
+                )}
               </Link>
             )
           })}
@@ -91,7 +96,7 @@ export function AdminSidebar({ alertasActivas = 0 }: SidebarProps) {
           <span className="a-mark" aria-hidden="true" />
           <span>Pixel<b>Arch</b></span>
         </Link>
-        <SidebarNav onNavClick={handleNavClick} />
+        <SidebarNav onNavClick={handleNavClick} alertasActivas={alertasActivas} />
       </aside>
     </>
   )

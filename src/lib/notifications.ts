@@ -28,3 +28,18 @@ export async function sendPaymentReceipt(
     `Hola ${nombre},\n\nTu pago de $${formatted} ${moneda.toUpperCase()} por ${servicio} fue procesado exitosamente.\n\nSaludos,\nEquipo PixelArch`
   )
 }
+
+export async function sendPaymentReminder(
+  email: string,
+  nombre: string,
+  servicio: string,
+  montoTexto: string,
+  fechaTexto: string
+) {
+  if (!process.env.RESEND_API_KEY) return
+  await sendEmail(
+    email,
+    `Recordatorio de pago — ${servicio}`,
+    `Hola ${nombre},\n\nTe recordamos que el plan de ${servicio} tiene un pago pendiente de ${montoTexto} con vencimiento ${fechaTexto}.\n\nCuando quieras te pasamos los datos para el pago respondiendo este correo o por WhatsApp.\n\nSaludos,\nEquipo PixelArch`
+  )
+}

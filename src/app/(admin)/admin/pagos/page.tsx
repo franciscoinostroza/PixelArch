@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { formatearMonto, METODO_LABEL } from "@/lib/pagos"
 
 const PER_PAGE = 20
 
@@ -118,10 +119,10 @@ export default async function AdminPagos({
                       <td className="a-dim">{p.suscripcion?.servicio.nombre ?? "—"}</td>
                       <td className="a-faint">{new Date(p.creadoEn).toLocaleDateString("es-AR")}</td>
                       <td className="a-mono">
-                        US${(p.monto / 100).toFixed(2)}
-                        {p.discountAmount ? (
-                          <span style={{ color: "#8b5cf6", fontSize: "0.72rem", marginLeft: 6 }}>
-                            (-${(p.discountAmount / 100).toFixed(0)})
+                        {formatearMonto(p.monto, p.moneda)}
+                        {p.metodo ? (
+                          <span style={{ color: "var(--color-text-faint)", fontSize: "0.72rem", marginLeft: 6 }}>
+                            · {METODO_LABEL[p.metodo] ?? p.metodo}
                           </span>
                         ) : null}
                       </td>

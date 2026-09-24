@@ -5,7 +5,12 @@ import { DeployConfig } from "@/components/ui/deploy-config"
 import { EntregarButton } from "@/components/ui/entregar-button"
 import { SubscriptionActions } from "@/components/ui/subscription-actions"
 import { AsignarProductoButton } from "@/components/ui/asignar-producto-button"
+import { EditarClienteButton } from "@/components/ui/editar-cliente-button"
+import { RegistrarPagoButton } from "@/components/ui/registrar-pago-button"
+import { AjustesSuscripcionButton } from "@/components/ui/ajustes-suscripcion-button"
 import { cn } from "@/lib/utils"
+import { formatearMonto, METODO_LABEL, precioDePlan, convertirUsdAArs } from "@/lib/pagos"
+import { getDolarVentaBancoNacion } from "@/lib/dolar"
 
 const mapLabel = (e: string) => {
   switch (e) {
@@ -68,7 +73,10 @@ export default async function ClienteDetalle({
 
   if (!cliente) notFound()
 
-  const servicios = await prisma.servicio.findMany({ where: { activo: true }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } })
+  const [servicios, rate] = await Promise.all([
+    prisma.servicio.findMany({ where: { activo: true }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
+    getDolarVentaBancoNacion(),
+  ])
 
   const pillCliente = cliente.activo ? { cls: "a-pill mint", label: "Cliente activo" } : { cls: "a-pill gray", label: "Inactivo" }
 
@@ -79,6 +87,7 @@ export default async function ClienteDetalle({
         <p>{cliente.email}</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 18 }}>
           <AsignarProductoButton clienteId={cliente.id} servicios={servicios} />
+          <EditarClienteButton cliente={{ id: cliente.id, nombre: cliente.nombre, email: cliente.email, empresa: cliente.empresa, telefono: cliente.telefono, notas: cliente.notas, activo: cliente.activo }} />
           <span className={cn("a-pill", pillCliente.cls)}><i />{pillCliente.label}</span>
         </div>
       </div>
@@ -99,6 +108,12 @@ export default async function ClienteDetalle({
             <div>{new Date(cliente.creadoEn).toLocaleDateString("es-AR")}</div>
           </div>
         </div>
+        {cliente.notas && (
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+            <div className="a-faint" style={{ marginBottom: 6 }}>Notas internas</div>
+            <p style={{ fontSize: ".86rem", color: "var(--color-text-dim)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{cliente.notas}</p>
+          </div>
+        )}
       </div>
 
       <div className="a-panel" style={{ marginTop: 18 }}>
@@ -111,6 +126,8 @@ export default async function ClienteDetalle({
         ) : (
           cliente.suscripciones.map((s) => {
             const pill = pillOf(s.estado)
+            const precio = precioDePlan(s.plan, s.servicio, s.precioCustom)
+            const precioArs = rate ? convertirUsdAArs(precio, rate) : null
             return (
               <div key={s.id} className="a-prow" style={{ flexDirection: "column", alignItems: "stretch" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -120,12 +137,30 @@ export default async function ClienteDetalle({
                       {s.plan && <span style={{ color: "var(--color-text-dim)", fontWeight: 500, marginLeft: 8 }}>· {s.plan === "UNICO" ? "Pago único" : s.plan === "BASICO" ? "Básico" : "Mantenimiento"}</span>}
                     </div>
                     <div className="a-date">
-                      {s.plan === "MANTENIMIENTO" ? `$${(s.servicio.precioMantenimiento / 100).toFixed(2)}/mes` : s.plan === "BASICO" ? `$${(s.servicio.precioBasico / 100).toFixed(2)}/mes` : `$${(s.servicio.precioUnico / 100).toFixed(2)} pago único`}
+                      {formatearMonto(precio, "usd")}
+                      {s.plan === "UNICO" ? " pago único" : "/mes"}
+                      {s.precioCustom ? " · acordado" : ""}
+                      {s.proximoPago ? ` · vence ${new Date(s.proximoPago).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}` : ""}
                     </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                     <span className={cn("a-pill", pill.cls)}><i />{pill.label}</span>
+                    {(s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
+                      <RegistrarPagoButton
+                        suscripcionId={s.id}
+                        servicioNombre={s.servicio.nombre}
+                        precioUsd={precio}
+                        precioArs={precioArs}
+                      />
+                    )}
                     {s.estado !== "PENDING" && <SubscriptionActions suscripcionId={s.id} estado={s.estado} deploymentPlatform={s.deploymentPlatform} platformServiceId={s.platformServiceId} />}
+                    {s.estado !== "PENDING" && (
+                      <AjustesSuscripcionButton
+                        suscripcionId={s.id}
+                        precioCustom={s.precioCustom}
+                        proximoPago={s.proximoPago ? s.proximoPago.toISOString() : null}
+                      />
+                    )}
                   </div>
                 </div>
                 {s.estado === "PENDING" && (
@@ -174,7 +209,10 @@ export default async function ClienteDetalle({
                     <tr key={p.id}>
                       <td>{p.suscripcion?.servicio.nombre ?? "—"}</td>
                       <td className="a-faint">{new Date(p.creadoEn).toLocaleDateString("es-AR")}</td>
-                      <td className="a-mono">US${(p.monto / 100).toFixed(2)}</td>
+                      <td className="a-mono">
+                        {formatearMonto(p.monto, p.moneda)}
+                        {p.metodo ? <span style={{ color: "var(--color-text-faint)", fontSize: "0.72rem", marginLeft: 6 }}>· {METODO_LABEL[p.metodo] ?? p.metodo}</span> : null}
+                      </td>
                       <td>
                         <span className={cn("a-pill", pill.cls)}><i />{pill.label}</span>
                       </td>

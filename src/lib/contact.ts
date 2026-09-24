@@ -6,3 +6,9 @@ export function whatsappUrl(message?: string): string {
   const text = encodeURIComponent(message ?? WHATSAPP_MESSAGE)
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`
 }
+
+export function waLink(telefono: string, message?: string): string {
+  const digits = (telefono || "").replace(/\D/g, "")
+  const text = encodeURIComponent(message ?? WHATSAPP_MESSAGE)
+  return `https://wa.me/${digits}?text=${text}`
+}

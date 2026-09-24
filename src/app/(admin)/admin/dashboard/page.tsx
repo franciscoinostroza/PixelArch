@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { precioDePlan } from "@/lib/pagos"
 
 export default async function AdminDashboard() {
   const admin = await requireAdmin()
@@ -12,27 +13,57 @@ export default async function AdminDashboard() {
   const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1)
   const inicioMesAnterior = new Date(now.getFullYear(), now.getMonth() - 1, 1)
 
-  const [clientesActivos, suscripcionesActivas, pagosVencidos, ingresosMes, ingresosAnterior] =
-    await Promise.all([
-      prisma.cliente.count({ where: { activo: true } }),
-      prisma.suscripcion.count({ where: { estado: "ACTIVE" } }),
-      prisma.suscripcion.count({ where: { estado: "PAST_DUE" } }),
-      prisma.pago.aggregate({
-        where: { estadoPago: "SUCCEEDED", creadoEn: { gte: inicioMes } },
-        _sum: { monto: true },
-      }),
-      prisma.pago.aggregate({
-        where: { estadoPago: "SUCCEEDED", creadoEn: { gte: inicioMesAnterior, lt: inicioMes } },
-        _sum: { monto: true },
-      }),
-    ])
+  const en7dias = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
-  const ingresoActual = ingresosMes._sum.monto ?? 0
-  const ingresoAnteriorVal = ingresosAnterior._sum.monto ?? 0
+  const [
+    clientesActivos,
+    suscripcionesActivas,
+    pagosVencidos,
+    ingresosMesUsd,
+    ingresosMesArs,
+    ingresosAnteriorUsd,
+    porCobrar,
+  ] = await Promise.all([
+    prisma.cliente.count({ where: { activo: true } }),
+    prisma.suscripcion.count({ where: { estado: "ACTIVE" } }),
+    prisma.suscripcion.count({ where: { estado: "PAST_DUE" } }),
+    prisma.pago.aggregate({
+      where: { estadoPago: "SUCCEEDED", moneda: "usd", creadoEn: { gte: inicioMes } },
+      _sum: { monto: true },
+    }),
+    prisma.pago.aggregate({
+      where: { estadoPago: "SUCCEEDED", moneda: "ars", creadoEn: { gte: inicioMes } },
+      _sum: { monto: true },
+    }),
+    prisma.pago.aggregate({
+      where: { estadoPago: "SUCCEEDED", moneda: "usd", creadoEn: { gte: inicioMesAnterior, lt: inicioMes } },
+      _sum: { monto: true },
+    }),
+    prisma.suscripcion.findMany({
+      where: {
+        estado: { in: ["ACTIVE", "PAST_DUE"] },
+        proximoPago: { not: null, lte: en7dias },
+      },
+      select: {
+        plan: true,
+        precioCustom: true,
+        servicio: { select: { precioUnico: true, precioBasico: true, precioMantenimiento: true } },
+      },
+    }),
+  ])
+
+  const ingresoActualUsd = ingresosMesUsd._sum.monto ?? 0
+  const ingresoActualArs = ingresosMesArs._sum.monto ?? 0
+  const ingresoAnteriorVal = ingresosAnteriorUsd._sum.monto ?? 0
   const deltaIngreso =
     ingresoAnteriorVal > 0
-      ? Math.round(((ingresoActual - ingresoAnteriorVal) / ingresoAnteriorVal) * 100)
-      : ingresoActual > 0 ? 100 : 0
+      ? Math.round(((ingresoActualUsd - ingresoAnteriorVal) / ingresoAnteriorVal) * 100)
+      : ingresoActualUsd > 0 ? 100 : 0
+
+  const totalPorCobrar = porCobrar.reduce(
+    (acc, s) => acc + precioDePlan(s.plan, s.servicio, s.precioCustom),
+    0
+  )
 
   const suscripcionesPorEstado = await prisma.suscripcion.groupBy({
     by: ["estado"],
@@ -78,12 +109,28 @@ export default async function AdminDashboard() {
 
   const stats = [
     {
-      label: "Ingresos (mes)",
-      value: `$${ingresoActual.toLocaleString("en-US")}`,
+      label: "Ingresos USD (mes)",
+      value: `US$${(ingresoActualUsd / 100).toLocaleString("en-US")}`,
       variant: "a" as const,
       iconBg: "v" as const,
       glyph: "$" as const,
       delta: deltaIngreso !== 0 ? { value: deltaIngreso, positive: deltaIngreso > 0 } : null,
+    },
+    {
+      label: "Ingresos ARS (mes)",
+      value: `$${Math.round(ingresoActualArs / 100).toLocaleString("es-AR")}`,
+      variant: "b" as const,
+      iconBg: "v" as const,
+      glyph: "$" as const,
+      delta: null,
+    },
+    {
+      label: "Por cobrar (7 días)",
+      value: `US$${(totalPorCobrar / 100).toLocaleString("en-US")}`,
+      variant: "b" as const,
+      iconBg: "c" as const,
+      glyph: "◷" as const,
+      delta: null,
     },
     {
       label: "Clientes activos",
@@ -122,10 +169,10 @@ export default async function AdminDashboard() {
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 12, background: "rgba(248,113,113,0.06)", color: "#fca5a5", fontSize: "0.9rem", marginBottom: 22 }}>
           <span style={{ flexShrink: 0 }}>!</span>
           <span style={{ flex: 1 }}>
-            {pagosVencidos} suscripción{pagosVencidos > 1 ? "es" : ""} vencida{pagosVencidos > 1 ? "s" : ""}. Revisa los clientes.
+            {pagosVencidos} suscripción{pagosVencidos > 1 ? "es" : ""} vencida{pagosVencidos > 1 ? "s" : ""}. Revisa los cobros pendientes.
           </span>
-          <Link href="/admin/clientes?estado=PAST_DUE" style={{ color: "#8b5cf6", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
-            Ver clientes →
+          <Link href="/admin/cobros" style={{ color: "#8b5cf6", fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
+            Ver cobros →
           </Link>
         </div>
       )}

@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { NuevoClienteButton } from "@/components/ui/nuevo-cliente-button"
 
 const PER_PAGE = 20
 
@@ -50,6 +51,9 @@ export default async function AdminClientes({
       <div className="a-greet">
         <h1>Clientes</h1>
         <p>Gestiona tus clientes.</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 18 }}>
+          <NuevoClienteButton />
+        </div>
       </div>
 
       <div className="a-filters">

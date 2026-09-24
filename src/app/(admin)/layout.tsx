@@ -13,8 +13,14 @@ export default async function AdminLayout({
   const admin = await requireAdmin()
   if (!admin) redirect("/admin")
 
-  const alertasVencidos = await prisma.suscripcion.count({
-    where: { estado: "PAST_DUE" },
+  const en7dias = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  const alertasCobros = await prisma.suscripcion.count({
+    where: {
+      OR: [
+        { estado: "PAST_DUE" },
+        { estado: "ACTIVE", proximoPago: { lte: en7dias } },
+      ],
+    },
   })
 
   return (
@@ -33,7 +39,7 @@ export default async function AdminLayout({
       />
 
       <div className="relative z-10 a-shell">
-        <AdminSidebar alertasActivas={alertasVencidos} />
+        <AdminSidebar alertasActivas={alertasCobros} />
         <main className="a-main">{children}</main>
       </div>
     </div>

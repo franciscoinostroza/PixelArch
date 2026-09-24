@@ -1,8 +1,8 @@
 # PixelArch — Estado del Proyecto
 
 **Ultima actualizacion:** Septiembre 2026
-**Build:** Excelente | **TypeScript:** 0 errores | **Paginas:** 42 compiladas | **Tests:** 96 pasando
-**Deploy Railway:** Online | **BD:** PostgreSQL sincronizada | **Clerk:** Auth solo admin (gate con modal) | **Sanity:** Studio + Schemas + 9 articulos | **Pagos:** desmonte de Polar — Mercado Pago proximo + CRM manual
+**Build:** Excelente | **TypeScript:** 0 errores | **Paginas:** 39 compiladas | **Tests:** 117 pasando
+**Deploy Railway:** Online | **BD:** PostgreSQL sincronizada | **Clerk:** Auth solo admin (gate con modal) | **Sanity:** Studio + Schemas + 9 articulos | **Pagos:** CRM manual (ARS/USD) — Mercado Pago proximo
 **URL:** https://pixelarch.dev
 
 ---
@@ -56,11 +56,12 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 
 | Ruta | Funcionalidad |
 |------|--------------|
-| `/admin/dashboard` | Metricas (ingresos mes, clientes, suscripciones, vencidos) + ultimos clientes + chart estados |
-| `/admin/clientes` | Lista paginada (20/pag) con busqueda (nombre/email/empresa) |
-| `/admin/clientes/[id]` | Datos + asignar producto + entregar + deploy (pausar/reanudar) + historial de pagos |
+| `/admin/dashboard` | Metricas (ingresos USD/ARS, por cobrar 7d, clientes, suscripciones, vencidos) + ultimos clientes + chart estados |
+| `/admin/clientes` | Lista paginada (20/pag) con busqueda + **alta manual de clientes** |
+| `/admin/clientes/[id]` | Datos + editar + notas + asignar producto + entregar + **registrar pago** + **ajustes de suscripcion** (precio acordado, vencimiento) + deploy (pausar/reanudar) + historial |
+| `/admin/cobros` | **Vencidos + por vencer (7 dias)** con acciones: registrar pago, recordar (WhatsApp/email), pausar |
 | `/admin/servicios` | Catalogo de productos desde Prisma con precios y estado activo/inactivo |
-| `/admin/pagos` | Historial con filtros (estado, rango fechas) + paginacion (20/pag) |
+| `/admin/pagos` | Historial con filtros (estado, rango fechas) + paginacion + moneda/metodo |
 | `/admin/blog` | Gestion del blog (enlaza a Sanity Studio) |
 
 ### API Routes
@@ -69,7 +70,11 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 |------|--------|-----------|
 | `/api/contact` | POST | Form de contacto (Resend) |
 | `/api/audit` | POST | Auditoria web: fetch + SSL (TLS) + headers + SEO. Rate limit 8/h |
-| `/api/admin/suscripciones` | PATCH | Admin: config/pausar/reanudar deploy |
+| `/api/admin/clientes` | POST | Admin: alta manual de cliente |
+| `/api/admin/clientes/[id]` | PATCH | Admin: editar cliente / activar-desactivar |
+| `/api/admin/pagos` | POST | Admin: registrar pago (ARS o USD, metodo, nota, recibo) |
+| `/api/admin/recordar` | POST | Admin: recordatorio de pago por email (Resend) |
+| `/api/admin/suscripciones` | PATCH | Admin: activar/pausar/reactivar/cancelar/vencido + precio/vencimiento + deploy |
 | `/api/admin/entregar` | POST | Admin: marcar entregado + email |
 | `/api/admin/asignar-producto` | POST | Admin: asignar producto a cliente |
 | `/api/cron/uptime` | GET | Monitoreo: chequea 4 servicios cada 10 min (GitHub Actions) |
@@ -93,6 +98,7 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 | `dolar.ts` | Dolar venta Banco Nacion (ComparaDolar) + formatters ARS/USD |
 | `contact.ts` | Numero/mensajes de WhatsApp + `whatsappUrl()` |
 | `audit.ts` | Logica pura de la auditoria (normalizeUrl, SSRF guard, scores, findings) |
+| `pagos.ts` | Conversiones ARS/USD, vencimientos (+1 mes), precio de plan, metodos de pago |
 | `reading-time.ts` | Tiempo de lectura desde Portable Text |
 | `chat.ts` | Intents del chat demo (PixelBot) |
 | `deploy.ts` | Pausar/reanudar deploys (Railway/Vercel) |
@@ -122,12 +128,13 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 - Precios de referencia en USD (Prisma + Sanity) + conversion ARS automatica
 - **Mercado Pago** sera la pasarela (integracion proxima) y el registro manual de pagos (transferencia/efectivo) vivera en el admin
 
-### Admin — vision CRM (proxima fase)
-- Alta manual de clientes (hoy nacen solo de Clerk → pasaran a carga manual)
-- Registrar pagos a mano (ARS o USD, con metodo y nota)
-- Vista "Cobros": vencidos + por vencer 7 dias, con recordatorios WhatsApp + email
-- Acciones locales de suscripcion (pausar/cancelar/reactivar sin pasarela)
-- El acceso de la asistente sera con su correo (rol admin)
+### Admin — CRM manual (Sept 2026)
+- **Alta manual de clientes** (form + API) con notas internas
+- **Registrar pagos a mano**: ARS o USD (con cotizacion guardada), metodo (transferencia/MP/efectivo/otro), nota, recibo por email opcional; actualiza estado a ACTIVE y vencimiento +1 mes
+- **Vista "Cobros"** (`/admin/cobros`): vencidos + por vencer 7 dias, con registrar pago, recordar por WhatsApp (link prellenado) y email (Resend, registra `ultimoRecordatorioEn`), y pausar
+- **Acciones locales de suscripcion**: activar / pausar (con opcion de pausar deploy) / reactivar / cancelar / marcar vencido + precio acordado (`precioCustom`) + fijar vencimiento
+- Dashboard con ingresos USD y ARS separados + "Por cobrar 7 dias"; sidebar con badge de cobros pendientes
+- Migracion Prisma: `clerkUserId` opcional, columnas `polar*` eliminadas, `Pago.metodo/nota/registradoPor/cotizacion`, `Suscripcion.precioCustom/ultimoRecordatorioEn`
 
 ### Monitoreo propio (`/estado`)
 - Tabla `UptimeCheck` + cron cada 10 min (GitHub Actions, repo publico)
@@ -150,7 +157,6 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 
 ## Pendiente
 
-- [ ] **Fase B — Admin CRM**: alta manual de clientes, registrar pagos (ARS/USD), vista Cobros, recordatorios (WhatsApp + Resend), migracion Prisma (`clerkUserId` opcional + limpieza de columnas `polar*`)
 - [ ] **Integracion Mercado Pago** (convive con el registro manual)
 - [ ] **Analytics**: Umami Cloud (falta crear cuenta + Website ID)
 - [ ] **Newsletter**: Resend Audiences + envio automatico al publicar
@@ -162,7 +168,7 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 ## Tests
 
 ```
-✓ 14 test files | 96 tests | all passed
+✓ 15 test files | 117 tests | all passed
 ```
 
 `npm test` — correr tests
@@ -174,7 +180,7 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 Next.js 16.2.6 (Turbopack)
 Compiled successfully
 TypeScript — 0 errores
-Generating static pages (42/42)
+Generating static pages (39/39)
 ```
 
 ---

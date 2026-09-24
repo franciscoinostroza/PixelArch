@@ -9,7 +9,7 @@ function pillOf(activo: boolean) {
 
 export default async function AdminServicios() {
   const admin = await requireAdmin()
-  if (!admin) redirect("/sign-in")
+  if (!admin) redirect("/admin")
   const servicios = await prisma.servicio.findMany({
     orderBy: { nombre: "asc" },
   })

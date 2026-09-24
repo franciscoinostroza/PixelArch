@@ -16,7 +16,6 @@ interface CheckTarget {
 const TARGETS: CheckTarget[] = [
   { servicio: "Sitio web", url: `${BASE}/` },
   { servicio: "Blog", url: `${BASE}/blog` },
-  { servicio: "Portal de clientes", url: `${BASE}/portal` },
   { servicio: "API", url: `${BASE}/api/health`, expect: "api" },
   { servicio: "Base de datos", url: `${BASE}/api/health`, expect: "db" },
 ]

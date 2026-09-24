@@ -10,5 +10,5 @@ export default async function RedirectPage() {
   const role = (user.publicMetadata as { role?: string } | undefined)?.role
 
   if (role === "admin") redirect("/admin/dashboard")
-  redirect("/portal")
+  redirect("/")
 }

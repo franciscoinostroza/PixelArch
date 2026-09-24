@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export const revalidate = 60
 
-const ORDEN = ["Sitio web", "Blog", "Portal de clientes", "API", "Base de datos"]
+const ORDEN = ["Sitio web", "Blog", "API", "Base de datos"]
 
 interface LatestRow {
   servicio: string

@@ -2,9 +2,11 @@ import { sanityFetch } from "@/lib/sanity"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
-import { CheckoutButton } from "@/components/ui/checkout-button"
 import { ProductFaq } from "@/components/ui/product-faq"
 import { getDolarVentaBancoNacion, formatARS, formatUSD } from "@/lib/dolar"
+import { whatsappUrl } from "@/lib/contact"
+import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 const SERVICIO_QUERY = `*[_type == "servicio" && slug.current == $slug][0]{
   titulo,
@@ -66,21 +68,21 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
     description: servicioSanity.descripcion,
     image: servicioSanity.og_image_url || undefined,
     offers: [
-      ...(servicioDB.polarProductIdUnico ? [{
+      ...(servicioDB.precioUnico > 0 ? [{
         "@type": "Offer",
         name: "Compra del Código",
         price: (servicioDB.precioUnico / 100).toFixed(0),
         priceCurrency: "USD",
         availability: "https://schema.org/OnlineOnly",
       }] : []),
-      ...(servicioDB.polarProductIdBasico ? [{
+      ...(servicioDB.precioBasico > 0 ? [{
         "@type": "Offer",
         name: "Plan Básico",
         price: (servicioDB.precioBasico / 100).toFixed(0),
         priceCurrency: "USD",
         priceType: "https://schema.org/MonthlyRateSubscription",
       }] : []),
-      ...(servicioDB.polarProductIdMantenimiento ? [{
+      ...(servicioDB.precioMantenimiento > 0 ? [{
         "@type": "Offer",
         name: "Plan Mantenimiento",
         price: (servicioDB.precioMantenimiento / 100).toFixed(0),
@@ -146,11 +148,16 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
                     <li><span className="pf pf-no"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span>Sin hosting incluido</li>
                     <li><span className="pf pf-no"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span>Sin soporte continuo</li>
                   </ul>
-                  {servicioDB.polarProductIdUnico && (
-                    <div className="plan-cta">
-                      <CheckoutButton polarProductId={servicioDB.polarProductIdUnico} servicioNombre={servicioSanity.titulo} tipo="UNICO" label="Comprar el código" size="default" variant="outline" className="w-full" />
-                    </div>
-                  )}
+                  <div className="plan-cta">
+                    <a
+                      href={whatsappUrl(`Hola! Quiero comprar el código de ${servicioSanity.titulo}${servicioDB.precioUnico > 0 ? ` (${formatUSD(servicioDB.precioUnico)})` : ""}.`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(buttonVariants({ variant: "outline" }), "w-full")}
+                    >
+                      Comprar el código
+                    </a>
+                  </div>
                 </article>
 
                 <article className="plan-card plan-card--featured">
@@ -173,11 +180,16 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
                     <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>SSL y monitoreo</li>
                     <li><span className="pf pf-no"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span>Sin cambios ni soporte</li>
                   </ul>
-                  {servicioDB.polarProductIdBasico && (
-                    <div className="plan-cta">
-                      <CheckoutButton polarProductId={servicioDB.polarProductIdBasico} servicioNombre={servicioSanity.titulo} tipo="BASICO" label="Activar Básico" size="default" variant="gradient" className="w-full" />
-                    </div>
-                  )}
+                  <div className="plan-cta">
+                    <a
+                      href={whatsappUrl(`Hola! Quiero contratar el plan Básico de ${servicioSanity.titulo}${servicioDB.precioBasico > 0 ? ` (${price(servicioDB.precioBasico)}/mes)` : ""}.`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(buttonVariants({ variant: "gradient" }), "w-full")}
+                    >
+                      Contratar Básico
+                    </a>
+                  </div>
                 </article>
 
                 <article className="plan-card">
@@ -199,11 +211,16 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
                     <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Cambios mensuales</li>
                     <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Soporte prioritario</li>
                   </ul>
-                  {servicioDB.polarProductIdMantenimiento && (
-                    <div className="plan-cta">
-                      <CheckoutButton polarProductId={servicioDB.polarProductIdMantenimiento} servicioNombre={servicioSanity.titulo} tipo="MANTENIMIENTO" label="Activar Mantenimiento" size="default" className="w-full" />
-                    </div>
-                  )}
+                  <div className="plan-cta">
+                    <a
+                      href={whatsappUrl(`Hola! Quiero contratar el plan Mantenimiento de ${servicioSanity.titulo}${servicioDB.precioMantenimiento > 0 ? ` (${price(servicioDB.precioMantenimiento)}/mes)` : ""}.`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(buttonVariants({ variant: "default" }), "w-full")}
+                    >
+                      Contratar Mantenimiento
+                    </a>
+                  </div>
                 </article>
               </div>
 

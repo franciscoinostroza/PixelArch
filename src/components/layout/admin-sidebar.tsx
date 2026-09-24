@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { AdminUserButton } from "@/components/layout/admin-user-button"
 
 const ICONS: Record<string, string> = {
   dashboard: "▦",
@@ -59,10 +60,7 @@ function SidebarNav({ onNavClick }: { onNavClick?: () => void }) {
       ))}
       <div className="a-spacer" />
       <div className="a-side-foot">
-        <Link href="/portal" onClick={onNavClick} className="a-nav">
-          <span className="a-ic" aria-hidden="true">↗</span>
-          Portal Cliente
-        </Link>
+        <AdminUserButton />
       </div>
     </>
   )

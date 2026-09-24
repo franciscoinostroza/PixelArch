@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 
 export default async function AdminDashboard() {
   const admin = await requireAdmin()
-  if (!admin) redirect("/sign-in")
+  if (!admin) redirect("/admin")
 
   const now = new Date()
   const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1)

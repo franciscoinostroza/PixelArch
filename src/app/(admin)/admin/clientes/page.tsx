@@ -17,7 +17,7 @@ export default async function AdminClientes({
   searchParams: Promise<{ q?: string; page?: string }>
 }) {
   const admin = await requireAdmin()
-  if (!admin) redirect("/sign-in")
+  if (!admin) redirect("/admin")
 
   const { q, page } = await searchParams
   const currentPage = Math.max(1, parseInt(page ?? "1"))

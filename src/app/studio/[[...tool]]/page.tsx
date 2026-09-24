@@ -16,7 +16,7 @@ export { metadata, viewport } from 'next-sanity/studio'
 
 export default async function StudioPage() {
   const admin = await requireAdmin()
-  if (!admin) redirect("/sign-in")
+  if (!admin) redirect("/admin")
 
   return <NextStudio config={config} />
 }

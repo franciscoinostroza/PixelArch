@@ -27,7 +27,7 @@ export const CHAT_ANSWERS: Record<ChatIntent, ChatAnswer> = {
   },
   moneda: {
     intent: "moneda",
-    text: "Cobramos en USD a través de Polar. En la web ves el equivalente en ARS según el dólar del día.",
+    text: "El cobro se realiza en USD. En la web ves el equivalente en ARS según el dólar del día.",
   },
   hosting: {
     intent: "hosting",

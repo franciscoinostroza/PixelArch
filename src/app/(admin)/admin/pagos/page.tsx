@@ -23,7 +23,7 @@ export default async function AdminPagos({
   searchParams: Promise<{ page?: string; estado?: string; desde?: string; hasta?: string }>
 }) {
   const admin = await requireAdmin()
-  if (!admin) redirect("/sign-in")
+  if (!admin) redirect("/admin")
 
   const { page, estado, desde, hasta } = await searchParams
   const currentPage = Math.max(1, parseInt(page ?? "1"))

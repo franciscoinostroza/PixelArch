@@ -11,7 +11,7 @@ export default async function AdminLayout({
   children: React.ReactNode
 }) {
   const admin = await requireAdmin()
-  if (!admin) redirect("/sign-in")
+  if (!admin) redirect("/admin")
 
   const alertasVencidos = await prisma.suscripcion.count({
     where: { estado: "PAST_DUE" },

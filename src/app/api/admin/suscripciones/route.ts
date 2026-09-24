@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { polar } from "@/lib/polar"
 import { requireAdmin } from "@/lib/auth"
 import { rateLimit } from "@/lib/rate-limit"
 import { pauseDeploy, resumeDeploy } from "@/lib/deploy"
@@ -57,46 +56,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ ok: true })
     }
 
-    const suscripcion = await prisma.suscripcion.findUnique({
-      where: { id: suscripcionId },
-      select: { polarSubscriptionId: true },
-    })
-
-    if (!suscripcion?.polarSubscriptionId) {
-      return NextResponse.json({ error: "Esta suscripcion no tiene plan mensual" }, { status: 400 })
-    }
-
-    const subId = suscripcion.polarSubscriptionId
-
-    switch (accion) {
-      case "cancel": {
-        await polar().subscriptions.update({
-          id: subId,
-          subscriptionUpdate: { cancelAtPeriodEnd: true },
-        })
-        await prisma.suscripcion.update({
-          where: { id: suscripcionId },
-          data: { cancelAtPeriodEnd: true },
-        })
-        break
-      }
-      case "uncancel": {
-        await polar().subscriptions.update({
-          id: subId,
-          subscriptionUpdate: { cancelAtPeriodEnd: false },
-        })
-        await prisma.suscripcion.update({
-          where: { id: suscripcionId },
-          data: { cancelAtPeriodEnd: false },
-        })
-        break
-      }
-      default:
-        return NextResponse.json({ error: "Accion no valida" }, { status: 400 })
-    }
-
-    logger.info("Subscription action performed", { suscripcionId, accion, adminId: admin.id })
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ error: "Accion no valida" }, { status: 400 })
   } catch (error) {
     logger.error("suscripcion action error", { error: String(error) })
     return NextResponse.json({ error: "Error interno" }, { status: 500 })

@@ -1,8 +1,8 @@
 # PixelArch — Estado del Proyecto
 
-**Ultima actualizacion:** Junio 2026
-**Build:** Excelente | **TypeScript:** 0 errores | **Rutas:** 30 compiladas | **Tests:** 60 pasando
-**Deploy Railway:** Online | **BD:** PostgreSQL sincronizada | **Clerk:** Auth + Webhook svix | **Sanity:** Studio + Schemas + 9 docs | **Polar.sh:** 18 productos + Checkout + Webhooks
+**Ultima actualizacion:** Septiembre 2026
+**Build:** Excelente | **TypeScript:** 0 errores | **Paginas:** 42 compiladas | **Tests:** 96 pasando
+**Deploy Railway:** Online | **BD:** PostgreSQL sincronizada | **Clerk:** Auth solo admin (gate con modal) | **Sanity:** Studio + Schemas + 9 articulos | **Pagos:** desmonte de Polar — Mercado Pago proximo + CRM manual
 **URL:** https://pixelarch.dev
 
 ---
@@ -13,169 +13,156 @@
 |------------|---------|---------|
 | Next.js | 16.2.6 | App Router, Turbopack |
 | Tailwind | v4 | CSS-first con `@theme` |
-| Clerk | v7 | `Show`, `ClerkProvider`, svix webhooks |
+| Clerk | v7 | `Show`, `ClerkProvider`, login solo para admin/asistente |
 | Prisma | 7 | adapter `@prisma/adapter-pg` |
 | Sanity | v5 | Studio embebido en `/studio` |
-| Polar.sh | SDK v0.48 | Pagos internacionales, suscripciones (MoR) |
 | Resend | v6 | Emails transaccionales |
 | Sentry | 10.57 | Error tracking (condicional a SENTRY_DSN) |
-| Vitest | 3.2.6 | Testing (60 tests) |
+| Vitest | 3.2.6 | Testing (96 tests) |
 | Deploy | Railway | Auto-deploy desde GitHub |
 
 ---
 
 ## Estructura del proyecto
 
-### Landig (público)
+### Landing (publico)
 
 | Ruta | Funcion |
 |------|---------|
-| `/` | Hero + Stats + Services (con precios) + Process + ContactForm |
-| `/productos` | Grid de 6 productos con badge de precio ($30-60/mes) |
-| `/productos/[slug]` | Detalle con precio + boton "Contratar" (Polar.sh checkout) |
-| `/gracias` | Pagina de agradecimiento |
-| `/terminos` | Terminos del servicio |
-| `/privacidad` | Politica de privacidad |
-| `/reembolsos` | Politica de reembolsos |
-| `/studio` | Sanity Studio embebido |
+| `/` | Hero centrado + Nosotros + Productos (cards + precios ARS/USD) + Proceso + ContactForm con banner de auditoria |
+| `/productos` | Grid de 6 productos con precio y microcopy mensual |
+| `/productos/[slug]` | Planes rediseñados (Variante A) + trust strip + garantia + mini-FAQ + CTAs a WhatsApp por plan |
+| `/precios` | Tabla global 6 productos x 3 modalidades (ARS + USD) + FAQ de pagos |
+| `/faq` | Preguntas frecuentes categorizadas (acordeon) |
+| `/nosotros` | Pagina completa: historia, como trabajamos, principios, stack |
+| `/proyectos` | Caso pixelarch.dev + proyectos internos |
+| `/estado` | Status page con monitoreo propio (uptime, latencia, 90 dias, incidentes) |
+| `/auditoria` | Herramienta gratis: audita cualquier URL (velocidad, SSL, SEO, seguridad) |
+| `/calculadora` | Calculadora de ahorro por automatizacion (interactiva) |
+| `/blog` + `/blog/[slug]` | Blog con filtros por tags, tiempo de lectura, relacionados, RSS y CTA de auditoria |
+| `/rss.xml` | Feed RSS 2.0 (se renderiza con XSLT en el navegador) |
+| `/gracias`, `/terminos`, `/privacidad`, `/reembolsos`, `/studio`, `/logo` | Legales y utilidades |
 
-### Auth (Clerk)
+### Auth (Clerk) — solo admin/asistente
 
 | Ruta | Componente |
 |------|-----------|
-| `/sign-in` | `<SignIn />` con tema PixelArch completo (dark theme) |
-| `/sign-up` | `<SignUp />` con tema PixelArch completo |
+| `/sign-in` | `<SignIn />` con tema PixelArch (fallback de Clerk) |
+| `/gate/admin` | Gate: abre el modal de Clerk sobre el sitio (`openSignIn`) y redirige a `next` |
 
-### Portal Cliente (requiere login)
-
-| Ruta | Funcionalidad |
-|------|--------------|
-| `/portal` | Suscripciones activas, banner exito/fallido, cancelar suscripcion, link Polar portal |
-| `/portal/facturacion` | Historial de pagos con paginacion (20/pag) |
+El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el middleware hace rewrite al gate y aparece el modal). Registro publico desactivado.
 
 ### Admin (requiere rol "admin")
 
 | Ruta | Funcionalidad |
 |------|--------------|
-| `/admin/dashboard` | 4 metricas (ingresos mes, clientes, suscripciones, vencidos) + ultimos clientes + chart estados |
+| `/admin/dashboard` | Metricas (ingresos mes, clientes, suscripciones, vencidos) + ultimos clientes + chart estados |
 | `/admin/clientes` | Lista paginada (20/pag) con busqueda (nombre/email/empresa) |
-| `/admin/clientes/[id]` | Datos cliente + suscripciones con botones Pausar/Reanudar/Cancelar + historial pagos |
+| `/admin/clientes/[id]` | Datos + asignar producto + entregar + deploy (pausar/reanudar) + historial de pagos |
 | `/admin/servicios` | Catalogo de productos desde Prisma con precios y estado activo/inactivo |
 | `/admin/pagos` | Historial con filtros (estado, rango fechas) + paginacion (20/pag) |
+| `/admin/blog` | Gestion del blog (enlaza a Sanity Studio) |
 
 ### API Routes
 
 | Ruta | Metodo | Proposito |
 |------|--------|-----------|
 | `/api/contact` | POST | Form de contacto (Resend) |
-| `/api/payments/checkout` | POST | Crea checkout session en Polar.sh |
-| `/api/webhooks/polar` | POST | 7 eventos: order.paid, subscription.* |
-| `/api/webhooks/clerk` | POST | Sync user.created/updated/deleted + welcome email |
-| `/api/admin/suscripciones` | PATCH | Admin: pause/resume/cancel suscripcion |
-| `/api/portal/cancel-subscription` | POST | Cliente: cancelar su propia suscripcion |
-| `/api/portal/payment-portal` | POST | Cliente: sesion del customer portal de Polar |
-| `/api/cron/corte-servicios` | GET | Corte automatico de suscripciones morosas (+30 dias) |
+| `/api/audit` | POST | Auditoria web: fetch + SSL (TLS) + headers + SEO. Rate limit 8/h |
+| `/api/admin/suscripciones` | PATCH | Admin: config/pausar/reanudar deploy |
+| `/api/admin/entregar` | POST | Admin: marcar entregado + email |
+| `/api/admin/asignar-producto` | POST | Admin: asignar producto a cliente |
+| `/api/cron/uptime` | GET | Monitoreo: chequea 4 servicios cada 10 min (GitHub Actions) |
 | `/api/revalidate` | POST | ISR on-demand |
 | `/api/health` | GET | Health check con status de DB |
+| `/api/reviews/google` | GET | Reseñas de Google (widget) |
 
 ### Librerias (`src/lib/`)
 
 | Archivo | Responsabilidad |
 |---------|-----------------|
 | `prisma.ts` | Singleton PrismaClient con adapter Pg |
-| `sanity.ts` | Cliente Sanity + `sanityFetch()` generico |
-| `polar.ts` | Singleton Polar SDK |
+| `sanity.ts` | Cliente Sanity + `sanityFetch()` generico (revalidate 60s) |
 | `resend.ts` | Singleton Resend (email) |
 | `validations.ts` | `contactSchema` (Zod) |
-| `notifications.ts` | 3 emails transaccionales (bienvenida, fallido, cancelacion) |
+| `notifications.ts` | Email de recibo de pago (para el CRM) |
 | `rate-limit.ts` | Rate limiter en memoria (Map + timestamps) |
 | `logger.ts` | Logger estructurado JSON (niveles debug/info/warn/error) |
 | `env.ts` | Validacion de env vars al startup |
 | `shutdown.ts` | Graceful shutdown (SIGTERM/SIGINT) |
+| `dolar.ts` | Dolar venta Banco Nacion (ComparaDolar) + formatters ARS/USD |
+| `contact.ts` | Numero/mensajes de WhatsApp + `whatsappUrl()` |
+| `audit.ts` | Logica pura de la auditoria (normalizeUrl, SSRF guard, scores, findings) |
+| `reading-time.ts` | Tiempo de lectura desde Portable Text |
+| `chat.ts` | Intents del chat demo (PixelBot) |
+| `deploy.ts` | Pausar/reanudar deploys (Railway/Vercel) |
 
-### UI Components (`src/components/ui/`)
+### UI Components clave (`src/components/`)
 
 | Componente | Uso |
 |-----------|-----|
-| `button.tsx` | Button con variants (default, outline, ghost, accent2) |
-| `badge.tsx` | Badge (default, accent, accent2, muted) |
-| `card.tsx` | Card, CardHeader, CardTitle, CardDescription, CardContent |
-| `input.tsx` | Input estilizado |
-| `textarea.tsx` | Textarea estilizado |
-| `section-label.tsx` | Label de seccion |
-| `checkout-button.tsx` | Client: redirect a Polar checkout |
-| `cancel-subscription-button.tsx` | Client: cancelar suscripcion con confirmacion |
-| `subscription-actions.tsx` | Client: Pausar/Cancelar (admin) |
-| `payment-portal-link.tsx` | Client: abre customer portal de Polar |
-| `portal-nav.tsx` | Nav del portal con link activo |
-| `portal-user-button.tsx` | UserButton de Clerk en portal |
+| `layout/admin-gate.tsx` | Modal de ingreso al admin (openSignIn sobre el sitio) |
+| `layout/admin-user-button.tsx` | Cuenta + cerrar sesion en el sidebar del admin (AccountModal custom) |
+| `ui/account-modal.tsx` | Modal "Mi cuenta" custom (mover a admin) |
+| `ui/faq-accordion.tsx` / `ui/product-faq.tsx` | Acordeones de FAQ |
+| `sections/blog-grid.tsx` | Grid del blog con filtros por tags + tiempo de lectura |
+| `sections/audit-tool.tsx` | Herramienta de auditoria interactiva |
+| `sections/roi-calculator.tsx` | Calculadora de ahorro |
+| `leads/chat-widget.tsx` | PixelBot demo (intents → WhatsApp) |
+| `leads/audit-modal.tsx` | Popup de auditoria por inactividad (10s, min 8s en pagina) |
+| `leads/whatsapp-button.tsx` | Boton flotante de WhatsApp |
 
 ---
 
 ## Lo completado
 
-### Pagos (Polar.sh)
-- 18 productos en Polar.sh (6 servicios × 3 planes)
-- `POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET` en Railway
-- Webhook: 8 eventos (order.paid, subscription.*)
-- Checkout: boton "Contratar" → redirect a Polar checkout → vuelve a /portal
-- Customer portal: Polar customer sessions
-- Admin: cancel suscripciones desde UI
+### Pagos — desmonte de Polar (Sept 2026)
+- Eliminada la integracion Polar: SDK, webhooks, checkout, customer portal, descuentos, cron de corte por mora
+- CTAs de contratacion → **WhatsApp por plan** (mensaje prellenado con producto/precio)
+- Precios de referencia en USD (Prisma + Sanity) + conversion ARS automatica
+- **Mercado Pago** sera la pasarela (integracion proxima) y el registro manual de pagos (transferencia/efectivo) vivera en el admin
 
-### Base de datos (Prisma)
-- 4 modelos: Cliente, Servicio, Suscripcion, Pago
-- 7 paginas con queries reales (dashboard, clientes, servicios, pagos, portal)
-- Busqueda, paginacion (20/pag), filtros por estado y rango de fechas
+### Admin — vision CRM (proxima fase)
+- Alta manual de clientes (hoy nacen solo de Clerk → pasaran a carga manual)
+- Registrar pagos a mano (ARS o USD, con metodo y nota)
+- Vista "Cobros": vencidos + por vencer 7 dias, con recordatorios WhatsApp + email
+- Acciones locales de suscripcion (pausar/cancelar/reactivar sin pasarela)
+- El acceso de la asistente sera con su correo (rol admin)
 
-### Auth (Clerk)
-- Login/registro con tema oscuro premium (gradient card, glass inputs, glow focus)
-- UserProfile "Manage account" con estilos completos (~40 elementos, modales, badges, switches, avatar upload)
-- "Secured by" oculto en SignIn/SignUp y UserProfile
-- Cliente producción con dominio custom `clerk.pixelarch.dev` + Google OAuth
-- Webhook svix: sync user.created/updated/deleted → BD
-- Roles: admin (publicMetadata.role) vs cliente
-- Middleware: middleware.ts protege /admin, /portal; excluye webhooks, cron, revalidate
+### Monitoreo propio (`/estado`)
+- Tabla `UptimeCheck` + cron cada 10 min (GitHub Actions, repo publico)
+- 4 servicios: Sitio web, Blog, API, Base de datos (uptime, latencia, historial 90 dias, incidentes)
 
-### Emails transaccionales (Resend)
-- Bienvenida (user.created) — Resend
-- Pago fallido — Resend
-- Cancelacion — Resend
+### Blog
+- 9 articulos (contenido completo + portadas reales: Unsplash/Wikimedia)
+- Reading time, relacionados, filtros por tags, RSS con XSLT
 
-### Automatizacion
-- `GET /api/cron/corte-servicios`: cancela suscripciones PAST_DUE > 30 dias
-- Email de advertencia a los 23 dias (7 dias antes del corte)
-- GitHub Actions cron: corre todos los dias a las 6am UTC (3am Argentina)
+### Auditoria web gratis (`/auditoria`)
+- Chequeos reales: velocidad, SSL (certificado via TLS), SEO, headers de seguridad
+- Proteccion SSRF + rate limit 8/hora + scoring y hallazgos
 
-### UX
-- Sidebar admin responsive (hamburger en mobile, overlay)
-- Nav portal con link activo resaltado
-- UserButton con cerrar sesion en portal
-- UserProfile completo estilizado con tema dark (Manage account)
-- Banner de exito post-pago en portal
-- Banner de pago fallido con link al customer portal
+### Auth (Clerk) — solo admin
+- Login solo para admin/asistente (modal sobre el sitio via `/gate/admin`)
+- Sin registro publico, sin webhook de sync, sin portal de clientes
+- Rol admin via `publicMetadata.role`
 
 ---
 
 ## Pendiente
 
-- [ ] Generar iconos PNG reales para PWA (reemplazar SVGs placeholder)
+- [ ] **Fase B — Admin CRM**: alta manual de clientes, registrar pagos (ARS/USD), vista Cobros, recordatorios (WhatsApp + Resend), migracion Prisma (`clerkUserId` opcional + limpieza de columnas `polar*`)
+- [ ] **Integracion Mercado Pago** (convive con el registro manual)
+- [ ] **Analytics**: Umami Cloud (falta crear cuenta + Website ID)
+- [ ] **Newsletter**: Resend Audiences + envio automatico al publicar
+- [ ] Unificar "Nosotros": la seccion de la landing vs la pagina `/nosotros` (quedo pendiente definir)
+- [ ] Pasos manuales: desactivar registro en Clerk + invitar asistente · borrar webhook de Polar · borrar `POLAR_*` de Railway
 
 ---
-
-## Produccion Readiness — Implementado
-
-| Fase | Items | Estado |
-|------|-------|--------|
-| F1: Seguridad | CSP header + Rate limiting (5 endpoints) + CSRF (cubierto por Clerk) | ✅ |
-| F2: Observabilidad | Logger JSON estructurado + Sentry (condicional) + Graceful shutdown | ✅ |
-| F3: Resiliencia | Error boundaries (4 route groups) + Loading states (9 nuevos) + Env validation | ✅ |
-| F4: UX/PWA | Manifest + icons SVG + Accesibilidad (aria-*) + Code splitting (dynamic) | ✅ |
-| F5: Pulido | JSON-LD enriquecido + URLs dinámicas en emails + Plain text fallback + DRY auth + UserButton footer visible | ✅ |
 
 ## Tests
 
 ```
-✓ 10 test files | 60 tests | all passed
+✓ 14 test files | 96 tests | all passed
 ```
 
 `npm test` — correr tests
@@ -187,17 +174,7 @@
 Next.js 16.2.6 (Turbopack)
 Compiled successfully
 TypeScript — 0 errores
-Generating static pages (20/20)
-
-27 routes:
-  /, /productos, /productos/[slug], /gracias, /studio, /terminos, /privacidad, /reembolsos
-
-  /admin/dashboard, /admin/clientes, /admin/clientes/[id], /admin/servicios, /admin/pagos
-  /api/contact, /api/payments/checkout, /api/webhooks/polar, /api/webhooks/clerk
-  /api/admin/suscripciones, /api/portal/cancel-subscription, /api/portal/payment-portal
-  /api/cron/corte-servicios, /api/revalidate, /api/health
-  /sitemap.xml, /robots.txt
-  Proxy (Middleware)
+Generating static pages (42/42)
 ```
 
 ---
@@ -207,9 +184,19 @@ Generating static pages (20/20)
 ```bash
 npm run dev        # Desarrollo local
 npm run build      # Build de produccion
-npm test           # Tests unitarios + componentes + API
-npx tsc --noEmit   # Type check
+npm test           # Tests unitarios + libs
+node node_modules/typescript/bin/tsc --noEmit   # Type check
 npx prisma studio  # Explorar BD
 npx prisma db push # Sincronizar schema → BD
 npx prisma generate # Regenerar cliente
+```
+
+### Scripts propios (`src/scripts/`)
+
+```bash
+node node_modules/tsx/dist/cli.mjs src/scripts/seed-sanity.ts         # Seed Sanity (servicios/landing/seo)
+node node_modules/tsx/dist/cli.mjs src/scripts/seed-articulos.ts      # Crear articulos del blog (idempotente)
+node node_modules/tsx/dist/cli.mjs src/scripts/regenerate-covers-real.ts  # Portadas reales del blog
+node node_modules/tsx/dist/cli.mjs src/scripts/generate-brand-assets.ts   # favicon-32 + og-image 1200x630
+node node_modules/tsx/dist/cli.mjs src/scripts/covers.ts             # Generador de portadas SVG (fallback)
 ```

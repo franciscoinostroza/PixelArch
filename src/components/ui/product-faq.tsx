@@ -5,7 +5,7 @@ import { useState } from "react"
 const ITEMS = [
   {
     q: "¿Cómo se cobra y en qué moneda?",
-    a: "El cobro se realiza en USD a través de Polar, con tarjeta internacional. En la web ves el equivalente estimado en ARS según el dólar del día, que se actualiza automáticamente.",
+    a: "El cobro se realiza en USD. En la web ves el equivalente estimado en ARS según el dólar del día, que se actualiza automáticamente.",
   },
   {
     q: "¿Ya tengo hosting. ¿Puedo usarlo?",

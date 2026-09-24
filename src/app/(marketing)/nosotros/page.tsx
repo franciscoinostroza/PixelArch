@@ -31,7 +31,7 @@ const PASOS = [
 
 const STACK = [
   "Next.js", "React", "TypeScript", "PostgreSQL", "Tailwind", "Prisma",
-  "Docker", "CI/CD", "Linux", "Sanity", "Polar", "Clerk", "Resend", "Sentry",
+  "Docker", "CI/CD", "Linux", "Sanity", "Clerk", "Resend", "Sentry",
 ]
 
 export default function NosotrosPage() {

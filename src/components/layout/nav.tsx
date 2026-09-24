@@ -40,7 +40,6 @@ function ClerkAuthSection() {
       .then((mod) => {
         setClerkComponents({
           Show: mod.Show,
-          SignInButton: mod.SignInButton,
           UserButton: mod.UserButton,
         })
       })
@@ -50,30 +49,15 @@ function ClerkAuthSection() {
   if (!hasClerkKey || error || !ClerkComponents) return null
 
   const Show = ClerkComponents.Show
-  const SignInButton = ClerkComponents.SignInButton
   const UserButton = ClerkComponents.UserButton
 
   return (
-    <>
-      <Show when="signed-out">
-        <SignInButton mode="modal">
-          <span className="nav-auth-link" style={{ cursor: "pointer" }}>
-            Ingresar
-            <span className="nav-underline" aria-hidden="true" />
-          </span>
-        </SignInButton>
-      </Show>
-      <Show when="signed-in">
-        <div className="flex items-center gap-4">
-          <Link href="/portal" className="nav-auth-link">
-            Portal
-            <span className="nav-underline" aria-hidden="true" />
-          </Link>
-          <AdminNavLink />
-          <UserButton />
-        </div>
-      </Show>
-    </>
+    <Show when="signed-in">
+      <div className="flex items-center gap-4">
+        <AdminNavLink />
+        <UserButton />
+      </div>
+    </Show>
   )
 }
 

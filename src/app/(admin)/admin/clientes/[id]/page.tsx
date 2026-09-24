@@ -53,7 +53,7 @@ export default async function ClienteDetalle({
     where: { id },
     include: {
       suscripciones: {
-        include: { servicio: { select: { nombre: true, precioUnico: true, precioBasico: true, precioMantenimiento: true, polarProductIdBasico: true, polarProductIdMantenimiento: true, polarProductIdUnico: true } } },
+        include: { servicio: { select: { nombre: true, precioUnico: true, precioBasico: true, precioMantenimiento: true } } },
         orderBy: { creadoEn: "desc" },
       },
       pagos: {
@@ -64,7 +64,7 @@ export default async function ClienteDetalle({
   })
 
   const admin = await requireAdmin()
-  if (!admin) redirect("/sign-in")
+  if (!admin) redirect("/admin")
 
   if (!cliente) notFound()
 
@@ -98,10 +98,6 @@ export default async function ClienteDetalle({
             <div className="a-faint" style={{ marginBottom: 4 }}>Registrado</div>
             <div>{new Date(cliente.creadoEn).toLocaleDateString("es-AR")}</div>
           </div>
-          <div>
-            <div className="a-faint" style={{ marginBottom: 4 }}>Polar ID</div>
-            <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cliente.polarCustomerId || "—"}</div>
-          </div>
         </div>
       </div>
 
@@ -129,10 +125,7 @@ export default async function ClienteDetalle({
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <span className={cn("a-pill", pill.cls)}><i />{pill.label}</span>
-                    {s.polarDiscountId && (
-                      <span className="a-pill gray">Dto.</span>
-                    )}
-                    {s.estado !== "PENDING" && <SubscriptionActions suscripcionId={s.id} estado={s.estado} cancelAtPeriodEnd={s.cancelAtPeriodEnd} deploymentPlatform={s.deploymentPlatform} platformServiceId={s.platformServiceId} />}
+                    {s.estado !== "PENDING" && <SubscriptionActions suscripcionId={s.id} estado={s.estado} deploymentPlatform={s.deploymentPlatform} platformServiceId={s.platformServiceId} />}
                   </div>
                 </div>
                 {s.estado === "PENDING" && (

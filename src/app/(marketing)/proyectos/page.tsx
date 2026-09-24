@@ -35,7 +35,7 @@ const PROYECTOS = [
   },
 ]
 
-const STACK = ["Next.js 16", "React", "TypeScript", "PostgreSQL", "Prisma", "Tailwind v4", "Clerk", "Polar", "Sanity", "Docker", "Railway", "Sentry"]
+const STACK = ["Next.js 16", "React", "TypeScript", "PostgreSQL", "Prisma", "Tailwind v4", "Clerk", "Sanity", "Docker", "Railway", "Sentry"]
 
 export default function ProyectosPage() {
   return (
@@ -83,7 +83,7 @@ export default function ProyectosPage() {
             </div>
             <div className="case-block">
               <h3>La solución</h3>
-              <p>Next.js 16 + PostgreSQL + Clerk + Polar + Sanity, con Docker y deploys automáticos desde GitHub. Cada pieza integrada con webhooks, emails transaccionales, cron de mantenimiento y health checks.</p>
+              <p>Next.js 16 + PostgreSQL + Clerk + Sanity, con Docker y deploys automáticos desde GitHub. Cada pieza integrada con webhooks, emails transaccionales, cron de mantenimiento y health checks.</p>
             </div>
           </div>
 

@@ -2,16 +2,14 @@ import { clerkClient, clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/
 import { NextResponse } from "next/server"
 
 const ROUTES = {
-  public: ["/", "/productos(.*)", "/blog(.*)", "/nosotros(.*)", "/faq(.*)", "/precios(.*)", "/proyectos(.*)", "/estado(.*)", "/auditoria(.*)", "/calculadora(.*)", "/sign-in(.*)", "/sign-up(.*)", "/gracias", "/terminos", "/privacidad", "/reembolsos", "/studio(.*)", "/propuesta(.*)", "/logo"],
+  public: ["/", "/productos(.*)", "/blog(.*)", "/nosotros(.*)", "/faq(.*)", "/precios(.*)", "/proyectos(.*)", "/estado(.*)", "/auditoria(.*)", "/calculadora(.*)", "/gate(.*)", "/sign-in(.*)", "/gracias", "/terminos", "/privacidad", "/reembolsos", "/studio(.*)", "/propuesta(.*)", "/logo"],
   admin: ["/admin(.*)"],
-  client: ["/portal(.*)"],
 }
 
 const isPublic = createRouteMatcher(ROUTES.public)
 const isAdmin = createRouteMatcher(ROUTES.admin)
-const isClient = createRouteMatcher(ROUTES.client)
 
-async function redirect(url: string, req: Request) {
+function redirect(url: string, req: Request) {
   return NextResponse.redirect(new URL(url, req.url))
 }
 
@@ -19,20 +17,23 @@ export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth()
 
   if (isPublic(req)) return NextResponse.next()
-  if (!userId) return redirect("/sign-in", req)
 
   if (isAdmin(req)) {
+    if (!userId) {
+      const next = encodeURIComponent(req.nextUrl.pathname + req.nextUrl.search)
+      return NextResponse.rewrite(new URL(`/gate/admin?next=${next}`, req.url))
+    }
+
     const clerk = await clerkClient()
     const user = await clerk.users.getUser(userId)
     const role = (user.publicMetadata as { role?: string })?.role
-    if (role !== "admin") return redirect("/portal", req)
+    if (role !== "admin") return redirect("/", req)
     return NextResponse.next()
   }
 
-  if (isClient(req)) return NextResponse.next()
   return NextResponse.next()
 })
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next|api/webhooks|api/revalidate|api/cron|api/portal|api/contact|api/payments|api/health|api/reviews|api/audit).*)", "/", "/(api/(?!webhooks|revalidate|cron|portal|contact|payments|health|reviews|audit)|trpc)(.*)"],
+  matcher: ["/((?!.*\\..*|_next|api/revalidate|api/cron|api/contact|api/health|api/reviews|api/audit).*)", "/", "/(api/(?!revalidate|cron|contact|health|reviews|audit)|trpc)(.*)"],
 }

@@ -27,7 +27,7 @@ function Pill({ activo }: { activo: boolean }) {
 
 export default async function AdminBlog() {
   const admin = await requireAdmin()
-  if (!admin) redirect("/sign-in")
+  if (!admin) redirect("/admin")
 
   const articulos = await sanityFetch<{ _id: string; titulo: string; slug?: string; fecha?: string; tags?: string[]; activo?: boolean }[]>(ARTICULOS_QUERY)
 

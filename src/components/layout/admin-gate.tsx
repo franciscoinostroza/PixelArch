@@ -10,14 +10,10 @@ export function AdminGate({ next }: { next: string }) {
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoaded) return
-    if (isSignedIn) {
-      router.replace(next)
-      router.refresh()
-      return
-    }
-    openSignIn({})
-  }, [isLoaded, isSignedIn, openSignIn, router, next])
+    if (!isLoaded || !isSignedIn) return
+    router.replace(next)
+    router.refresh()
+  }, [isLoaded, isSignedIn, router, next])
 
   return (
     <div className="gate-card">

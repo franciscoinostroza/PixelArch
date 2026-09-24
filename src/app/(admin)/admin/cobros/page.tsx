@@ -7,6 +7,7 @@ import { getDolarVentaBancoNacion } from "@/lib/dolar"
 import { formatearMonto, precioDePlan, convertirUsdAArs } from "@/lib/pagos"
 import { waLink } from "@/lib/contact"
 import { RegistrarPagoButton } from "@/components/ui/registrar-pago-button"
+import { GenerarLinkMpButton } from "@/components/ui/generar-link-mp-button"
 import { RecordarEmailButton } from "@/components/ui/recordar-email-button"
 import { SubscriptionActions } from "@/components/ui/subscription-actions"
 import type { Metadata } from "next"
@@ -107,6 +108,13 @@ export default async function AdminCobros() {
             servicioNombre={`${s.servicio.nombre} — ${s.cliente.nombre}`}
             precioUsd={precio}
             precioArs={precioArs}
+          />
+          <GenerarLinkMpButton
+            suscripcionId={s.id}
+            servicioNombre={`${s.servicio.nombre} — ${s.cliente.nombre}`}
+            precioUsd={precio}
+            precioArs={precioArs}
+            clienteTelefono={s.cliente.telefono}
           />
           {s.cliente.telefono ? (
             <a

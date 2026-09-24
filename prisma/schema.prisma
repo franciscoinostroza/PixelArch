@@ -87,6 +87,7 @@ model Pago {
   id              String     @id @default(cuid())
   clienteId       String
   suscripcionId   String?
+  externalId      String?    @unique
   monto           Int
   moneda          String     @default("usd")
   cotizacion      Float?

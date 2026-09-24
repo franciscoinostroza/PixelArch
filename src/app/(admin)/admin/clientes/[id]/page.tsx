@@ -7,6 +7,7 @@ import { SubscriptionActions } from "@/components/ui/subscription-actions"
 import { AsignarProductoButton } from "@/components/ui/asignar-producto-button"
 import { EditarClienteButton } from "@/components/ui/editar-cliente-button"
 import { RegistrarPagoButton } from "@/components/ui/registrar-pago-button"
+import { GenerarLinkMpButton } from "@/components/ui/generar-link-mp-button"
 import { AjustesSuscripcionButton } from "@/components/ui/ajustes-suscripcion-button"
 import { cn } from "@/lib/utils"
 import { formatearMonto, METODO_LABEL, precioDePlan, convertirUsdAArs } from "@/lib/pagos"
@@ -151,6 +152,15 @@ export default async function ClienteDetalle({
                         servicioNombre={s.servicio.nombre}
                         precioUsd={precio}
                         precioArs={precioArs}
+                      />
+                    )}
+                    {(s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
+                      <GenerarLinkMpButton
+                        suscripcionId={s.id}
+                        servicioNombre={s.servicio.nombre}
+                        precioUsd={precio}
+                        precioArs={precioArs}
+                        clienteTelefono={cliente.telefono}
                       />
                     )}
                     {s.estado !== "PENDING" && <SubscriptionActions suscripcionId={s.id} estado={s.estado} deploymentPlatform={s.deploymentPlatform} platformServiceId={s.platformServiceId} />}

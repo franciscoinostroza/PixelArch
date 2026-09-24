@@ -120,6 +120,11 @@ describe("precioDePlan", () => {
     expect(precioDePlan("UNICO", precios)).toBe(25000)
   })
 
+  it("soporte usa precio custom o referencia de mantenimiento", () => {
+    expect(precioDePlan("SOPORTE", precios)).toBe(10000)
+    expect(precioDePlan("SOPORTE", precios, 3000)).toBe(3000)
+  })
+
   it("prioriza el precio custom", () => {
     expect(precioDePlan("BASICO", precios, 1800)).toBe(1800)
   })

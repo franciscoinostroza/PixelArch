@@ -6,6 +6,8 @@ import { EntregarButton } from "@/components/ui/entregar-button"
 import { SubscriptionActions } from "@/components/ui/subscription-actions"
 import { AsignarProductoButton } from "@/components/ui/asignar-producto-button"
 import { EditarClienteButton } from "@/components/ui/editar-cliente-button"
+import { NuevoProyectoButton } from "@/components/ui/nuevo-proyecto-button"
+import { ProyectoBlock } from "@/components/ui/proyecto-block"
 import { RegistrarPagoButton } from "@/components/ui/registrar-pago-button"
 import { GenerarLinkMpButton } from "@/components/ui/generar-link-mp-button"
 import { AjustesSuscripcionButton } from "@/components/ui/ajustes-suscripcion-button"
@@ -64,7 +66,14 @@ export default async function ClienteDetalle({
       },
       pagos: {
         orderBy: { creadoEn: "desc" },
-        include: { suscripcion: { include: { servicio: { select: { nombre: true } } } } },
+        include: { suscripcion: { include: { servicio: { select: { nombre: true } } } }, hito: { select: { titulo: true, proyecto: { select: { titulo: true } } } } },
+      },
+      proyectos: {
+        include: {
+          hitos: { orderBy: { orden: "asc" } },
+          servicio: { select: { nombre: true } },
+        },
+        orderBy: { creadoEn: "desc" },
       },
     },
   })
@@ -87,6 +96,7 @@ export default async function ClienteDetalle({
         <h1>{cliente.nombre}</h1>
         <p>{cliente.email}</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 18 }}>
+          <NuevoProyectoButton clienteId={cliente.id} servicios={servicios} />
           <AsignarProductoButton clienteId={cliente.id} servicios={servicios} />
           <EditarClienteButton cliente={{ id: cliente.id, nombre: cliente.nombre, email: cliente.email, empresa: cliente.empresa, telefono: cliente.telefono, notas: cliente.notas, activo: cliente.activo }} />
           <span className={cn("a-pill", pillCliente.cls)}><i />{pillCliente.label}</span>
@@ -119,7 +129,23 @@ export default async function ClienteDetalle({
 
       <div className="a-panel" style={{ marginTop: 18 }}>
         <div className="a-head">
-          <h3>Suscripciones</h3>
+          <h3>Proyectos</h3>
+          <span className="a-faint">{cliente.proyectos.length}</span>
+        </div>
+        {cliente.proyectos.length === 0 ? (
+          <p className="a-empty">Sin proyectos — creá el primero con "Nuevo proyecto"</p>
+        ) : (
+          <div style={{ marginTop: -18 }}>
+            {cliente.proyectos.map((p) => (
+              <ProyectoBlock key={p.id} proyecto={p} rate={rate} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="a-panel" style={{ marginTop: 18 }}>
+        <div className="a-head">
+          <h3>Suscripciones (soporte)</h3>
           <span className="a-faint">{cliente.suscripciones.length}</span>
         </div>
         {cliente.suscripciones.length === 0 ? (
@@ -135,7 +161,7 @@ export default async function ClienteDetalle({
                   <div>
                     <div className="a-name">
                       {s.servicio.nombre}
-                      {s.plan && <span style={{ color: "var(--color-text-dim)", fontWeight: 500, marginLeft: 8 }}>· {s.plan === "UNICO" ? "Pago único" : s.plan === "BASICO" ? "Básico" : "Mantenimiento"}</span>}
+                      {s.plan && <span style={{ color: "var(--color-text-dim)", fontWeight: 500, marginLeft: 8 }}>· {s.plan === "UNICO" ? "Pago único" : s.plan === "BASICO" ? "Básico" : s.plan === "SOPORTE" ? "Soporte" : "Mantenimiento"}</span>}
                     </div>
                     <div className="a-date">
                       {formatearMonto(precio, "usd")}
@@ -217,7 +243,7 @@ export default async function ClienteDetalle({
                   const pill = pillOfPago(p.estadoPago)
                   return (
                     <tr key={p.id}>
-                      <td>{p.suscripcion?.servicio.nombre ?? "—"}</td>
+                      <td>{p.hito ? `${p.hito.proyecto.titulo} — ${p.hito.titulo}` : p.suscripcion?.servicio.nombre ?? "—"}</td>
                       <td className="a-faint">{new Date(p.creadoEn).toLocaleDateString("es-AR")}</td>
                       <td className="a-mono">
                         {formatearMonto(p.monto, p.moneda)}

@@ -20,6 +20,7 @@ model Cliente {
 
   suscripciones Suscripcion[]
   pagos         Pago[]
+  proyectos     Proyecto[]
 }
 
 model Servicio {
@@ -38,6 +39,7 @@ model Servicio {
   orden                      Int       @default(0)
 
   suscripciones Suscripcion[]
+  proyectos     Proyecto[]
 }
 
 model Suscripcion {
@@ -72,6 +74,7 @@ enum PlanTipo {
   UNICO
   BASICO
   MANTENIMIENTO
+  SOPORTE
 }
 
 enum Estado {
@@ -87,6 +90,7 @@ model Pago {
   id              String     @id @default(cuid())
   clienteId       String
   suscripcionId   String?
+  hitoId          String?
   externalId      String?    @unique
   monto           Int
   moneda          String     @default("usd")
@@ -99,10 +103,60 @@ model Pago {
 
   cliente     Cliente     @relation(fields: [clienteId], references: [id])
   suscripcion Suscripcion? @relation(fields: [suscripcionId], references: [id])
+  hito        Hito?        @relation(fields: [hitoId], references: [id])
 
   @@index([clienteId])
   @@index([suscripcionId])
+  @@index([hitoId])
   @@index([creadoEn])
+}
+
+model Proyecto {
+  id            String         @id @default(cuid())
+  clienteId     String
+  servicioId    String?
+  titulo        String
+  montoTotal    Int
+  estado        EstadoProyecto @default(ACTIVO)
+  notas         String?
+  creadoEn      DateTime       @default(now())
+  actualizadoEn DateTime       @updatedAt
+
+  cliente  Cliente   @relation(fields: [clienteId], references: [id])
+  servicio Servicio? @relation(fields: [servicioId], references: [id])
+  hitos    Hito[]
+
+  @@index([clienteId])
+  @@index([estado])
+}
+
+model Hito {
+  id          String     @id @default(cuid())
+  proyectoId  String
+  orden       Int
+  titulo      String
+  monto       Int
+  estado      EstadoHito @default(PENDIENTE)
+  vencimiento DateTime?
+  pagadoEn    DateTime?
+  creadoEn    DateTime   @default(now())
+
+  proyecto Proyecto @relation(fields: [proyectoId], references: [id])
+  pagos    Pago[]
+
+  @@index([proyectoId])
+  @@index([estado])
+}
+
+enum EstadoProyecto {
+  ACTIVO
+  ENTREGADO
+  CANCELADO
+}
+
+enum EstadoHito {
+  PENDIENTE
+  PAGADO
 }
 
 enum MetodoPago {

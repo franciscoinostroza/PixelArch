@@ -64,6 +64,7 @@ export function precioDePlan(
   precioCustom?: number | null
 ): number {
   if (precioCustom && precioCustom > 0) return precioCustom
+  if (plan === "SOPORTE") return precios.precioMantenimiento
   if (plan === "BASICO") return precios.precioBasico
   if (plan === "MANTENIMIENTO") return precios.precioMantenimiento
   return precios.precioUnico

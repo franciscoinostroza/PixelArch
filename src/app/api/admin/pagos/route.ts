@@ -9,12 +9,14 @@ import { sendPaymentReceipt } from "@/lib/notifications"
 
 interface PagoBody {
   suscripcionId?: string
+  hitoId?: string
   monto?: number
   moneda?: string
   metodo?: string
   nota?: string
   enviarRecibo?: boolean
   avanzarVencimiento?: boolean
+  marcarHitoPagado?: boolean
 }
 
 export async function POST(req: Request) {
@@ -33,11 +35,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "JSON invalido" }, { status: 400 })
   }
 
-  const { suscripcionId, monto, metodo, nota, enviarRecibo, avanzarVencimiento } = body
+  const { suscripcionId, hitoId, monto, metodo, nota, enviarRecibo } = body
   const moneda = normalizeMoneda(body.moneda)
 
-  if (!suscripcionId) {
-    return NextResponse.json({ error: "suscripcionId requerido" }, { status: 400 })
+  if (!suscripcionId && !hitoId) {
+    return NextResponse.json({ error: "suscripcionId o hitoId requerido" }, { status: 400 })
   }
   if (!monto || !Number.isFinite(monto) || monto <= 0) {
     return NextResponse.json({ error: "Monto invalido" }, { status: 400 })
@@ -48,12 +50,35 @@ export async function POST(req: Request) {
     : null
 
   try {
-    const suscripcion = await prisma.suscripcion.findUnique({
-      where: { id: suscripcionId },
-      include: { cliente: true, servicio: true },
-    })
-    if (!suscripcion) {
-      return NextResponse.json({ error: "Suscripcion no encontrada" }, { status: 404 })
+    let clienteId: string
+    let clienteEmail: string
+    let clienteNombre: string
+    let descripcionRecibo: string
+
+    if (hitoId) {
+      const hito = await prisma.hito.findUnique({
+        where: { id: hitoId },
+        include: { proyecto: { include: { cliente: true, servicio: { select: { nombre: true } } } } },
+      })
+      if (!hito) {
+        return NextResponse.json({ error: "Hito no encontrado" }, { status: 404 })
+      }
+      clienteId = hito.proyecto.clienteId
+      clienteEmail = hito.proyecto.cliente.email
+      clienteNombre = hito.proyecto.cliente.nombre
+      descripcionRecibo = `${hito.proyecto.titulo} — ${hito.titulo}`
+    } else {
+      const suscripcion = await prisma.suscripcion.findUnique({
+        where: { id: suscripcionId },
+        include: { cliente: true, servicio: true },
+      })
+      if (!suscripcion) {
+        return NextResponse.json({ error: "Suscripcion no encontrada" }, { status: 404 })
+      }
+      clienteId = suscripcion.clienteId
+      clienteEmail = suscripcion.cliente.email
+      clienteNombre = suscripcion.cliente.nombre
+      descripcionRecibo = suscripcion.servicio.nombre
     }
 
     let cotizacion: number | null = null
@@ -63,8 +88,9 @@ export async function POST(req: Request) {
 
     const pago = await prisma.pago.create({
       data: {
-        clienteId: suscripcion.clienteId,
-        suscripcionId: suscripcion.id,
+        clienteId,
+        suscripcionId: suscripcionId || null,
+        hitoId: hitoId || null,
         monto: Math.round(monto),
         moneda,
         cotizacion,
@@ -76,12 +102,23 @@ export async function POST(req: Request) {
       select: { id: true },
     })
 
-    if (avanzarVencimiento !== false) {
+    if (hitoId) {
+      if (body.marcarHitoPagado !== false) {
+        await prisma.hito.update({
+          where: { id: hitoId },
+          data: { estado: "PAGADO", pagadoEn: new Date() },
+        })
+      }
+    } else if (suscripcionId && body.avanzarVencimiento !== false) {
+      const suscripcion = await prisma.suscripcion.findUnique({
+        where: { id: suscripcionId },
+        select: { proximoPago: true },
+      })
       await prisma.suscripcion.update({
-        where: { id: suscripcion.id },
+        where: { id: suscripcionId },
         data: {
           estado: "ACTIVE",
-          proximoPago: siguienteVencimiento(suscripcion.proximoPago),
+          proximoPago: siguienteVencimiento(suscripcion?.proximoPago ?? null),
           canceladoEn: null,
           pastDueEn: null,
         },
@@ -90,17 +127,18 @@ export async function POST(req: Request) {
 
     if (enviarRecibo !== false) {
       await sendPaymentReceipt(
-        suscripcion.cliente.email,
-        suscripcion.cliente.nombre,
+        clienteEmail,
+        clienteNombre,
         Math.round(monto),
         moneda,
-        suscripcion.servicio.nombre
+        descripcionRecibo
       )
     }
 
     logger.info("Pago registrado manualmente", {
       pagoId: pago.id,
-      suscripcionId: suscripcion.id,
+      suscripcionId: suscripcionId || null,
+      hitoId: hitoId || null,
       monto: Math.round(monto),
       moneda,
       adminId: admin.id,
@@ -108,7 +146,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, pagoId: pago.id })
   } catch (error) {
-    logger.error("Error registrando pago", { error: String(error), suscripcionId })
+    logger.error("Error registrando pago", { error: String(error), suscripcionId, hitoId })
     return NextResponse.json({ error: "Error al registrar el pago" }, { status: 500 })
   }
 }

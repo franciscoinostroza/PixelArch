@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import StaticAmbience from "@/components/layout/static-ambience"
+import SpaceCanvas from "@/components/layout/space-canvas"
 import { AdminGate } from "@/components/layout/admin-gate"
 
 export const metadata: Metadata = {
@@ -22,7 +22,7 @@ export default async function GateAdminPage({
 
   return (
     <div style={{ position: "relative", minHeight: "100svh", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-      <StaticAmbience />
+      <SpaceCanvas />
       <div
         aria-hidden="true"
         className="pointer-events-none fixed -left-40 top-[-10%] z-[1] h-[500px] w-[500px] rounded-full blur-[130px]"

@@ -1,8 +1,8 @@
 # PixelArch — Estado del Proyecto
 
 **Ultima actualizacion:** Septiembre 2026
-**Build:** Excelente | **TypeScript:** 0 errores | **Paginas:** 39 compiladas | **Tests:** 117 pasando
-**Deploy Railway:** Online | **BD:** PostgreSQL sincronizada | **Clerk:** Auth solo admin (gate con modal) | **Sanity:** Studio + Schemas + 9 articulos | **Pagos:** CRM manual (ARS/USD) — Mercado Pago proximo
+**Build:** Excelente | **TypeScript:** 0 errores | **Paginas:** 41 compiladas | **Tests:** 130 pasando
+**Deploy Railway:** Online | **BD:** PostgreSQL sincronizada | **Clerk:** Auth solo admin (gate con modal) | **Sanity:** Studio + Schemas + 9 articulos | **Pagos:** Mercado Pago (links de pago) + CRM manual (ARS/USD)
 **URL:** https://pixelarch.dev
 
 ---
@@ -73,6 +73,8 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 | `/api/admin/clientes` | POST | Admin: alta manual de cliente |
 | `/api/admin/clientes/[id]` | PATCH | Admin: editar cliente / activar-desactivar |
 | `/api/admin/pagos` | POST | Admin: registrar pago (ARS o USD, metodo, nota, recibo) |
+| `/api/admin/mp/link` | POST | Admin: genera link de pago de Mercado Pago (meses 1-12 / solo registrar, monto editable) |
+| `/api/webhooks/mercadopago` | POST | MP: firma x-signature + registro idempotente del pago + acreditacion de meses |
 | `/api/admin/recordar` | POST | Admin: recordatorio de pago por email (Resend) |
 | `/api/admin/suscripciones` | PATCH | Admin: activar/pausar/reactivar/cancelar/vencido + precio/vencimiento + deploy |
 | `/api/admin/entregar` | POST | Admin: marcar entregado + email |
@@ -128,6 +130,14 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 - Precios de referencia en USD (Prisma + Sanity) + conversion ARS automatica
 - **Mercado Pago** sera la pasarela (integracion proxima) y el registro manual de pagos (transferencia/efectivo) vivera en el admin
 
+### Pagos — Mercado Pago (Checkout Pro)
+- **Links de pago desde el admin**: boton "Link MP" en Cobros y detalle del cliente → selector `Meses (1-12)` / `Solo registrar` + monto ARS editable → Copiar / Enviar por WhatsApp
+- Preferencia de MP con `external_reference` = suscripcion + `metadata.meses`; la cotizacion del dia se guarda en el pago
+- **Webhook** `/api/webhooks/mercadopago`: valida firma `x-signature` (SDK), idempotente por `Pago.externalId`, registra el pago y acredita los meses (o solo registra si meses = 0) + recibo por email
+- Envs: `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET` (Railway). Webhook configurado en el panel MP con el evento **Pagos**
+- Convive con el registro manual (transferencias/efectivo)
+- Pendiente: cargar credenciales de produccion y correr la prueba integral; fase 2 opcional: Suscripciones automaticas (preapproval)
+
 ### Admin — CRM manual (Sept 2026)
 - **Alta manual de clientes** (form + API) con notas internas
 - **Registrar pagos a mano**: ARS o USD (con cotizacion guardada), metodo (transferencia/MP/efectivo/otro), nota, recibo por email opcional; actualiza estado a ACTIVE y vencimiento +1 mes
@@ -157,18 +167,19 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 
 ## Pendiente
 
-- [ ] **Integracion Mercado Pago** (convive con el registro manual)
+- [ ] **Mercado Pago**: cargar `MP_ACCESS_TOKEN` (produccion) y `MP_WEBHOOK_SECRET` en Railway + prueba integral con credenciales de prueba
+- [ ] **Newsletter**: Resend Audiences + form en el blog + envio automatico al publicar (webhook de Sanity)
 - [ ] **Analytics**: Umami Cloud (falta crear cuenta + Website ID)
-- [ ] **Newsletter**: Resend Audiences + envio automatico al publicar
 - [ ] Unificar "Nosotros": la seccion de la landing vs la pagina `/nosotros` (quedo pendiente definir)
-- [ ] Pasos manuales: desactivar registro en Clerk + invitar asistente · borrar webhook de Polar · borrar `POLAR_*` de Railway
+- [ ] Pasos manuales: desactivar registro en Clerk + invitar asistente a su correo
+- [ ] (Opcional) Mercado Pago fase 2: Suscripciones automaticas (preapproval)
 
 ---
 
 ## Tests
 
 ```
-✓ 15 test files | 117 tests | all passed
+✓ 16 test files | 130 tests | all passed
 ```
 
 `npm test` — correr tests

@@ -14,14 +14,20 @@ export default async function AdminLayout({
   if (!admin) redirect("/admin")
 
   const en7dias = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-  const alertasCobros = await prisma.suscripcion.count({
-    where: {
-      OR: [
-        { estado: "PAST_DUE" },
-        { estado: "ACTIVE", proximoPago: { lte: en7dias } },
-      ],
-    },
-  })
+  const [alertasSoportes, alertasHitos] = await Promise.all([
+    prisma.suscripcion.count({
+      where: {
+        OR: [
+          { estado: "PAST_DUE" },
+          { estado: "ACTIVE", proximoPago: { lte: en7dias } },
+        ],
+      },
+    }),
+    prisma.hito.count({
+      where: { estado: "PENDIENTE", vencimiento: { not: null, lte: en7dias } },
+    }),
+  ])
+  const alertasCobros = alertasSoportes + alertasHitos
 
   return (
     <div className="relative min-h-screen">

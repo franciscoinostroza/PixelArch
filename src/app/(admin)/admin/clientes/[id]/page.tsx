@@ -8,6 +8,7 @@ import { AsignarProductoButton } from "@/components/ui/asignar-producto-button"
 import { EditarClienteButton } from "@/components/ui/editar-cliente-button"
 import { NuevoProyectoButton } from "@/components/ui/nuevo-proyecto-button"
 import { ProyectoBlock } from "@/components/ui/proyecto-block"
+import { ActivarSoporteButton } from "@/components/ui/activar-soporte-button"
 import { RegistrarPagoButton } from "@/components/ui/registrar-pago-button"
 import { GenerarLinkMpButton } from "@/components/ui/generar-link-mp-button"
 import { AjustesSuscripcionButton } from "@/components/ui/ajustes-suscripcion-button"
@@ -137,7 +138,7 @@ export default async function ClienteDetalle({
         ) : (
           <div style={{ marginTop: -18 }}>
             {cliente.proyectos.map((p) => (
-              <ProyectoBlock key={p.id} proyecto={p} rate={rate} />
+              <ProyectoBlock key={p.id} proyecto={p} rate={rate} clienteTelefono={cliente.telefono} />
             ))}
           </div>
         )}
@@ -147,6 +148,7 @@ export default async function ClienteDetalle({
         <div className="a-head">
           <h3>Suscripciones (soporte)</h3>
           <span className="a-faint">{cliente.suscripciones.length}</span>
+          <ActivarSoporteButton clienteId={cliente.id} servicios={servicios} />
         </div>
         {cliente.suscripciones.length === 0 ? (
           <p className="a-empty">Sin suscripciones</p>

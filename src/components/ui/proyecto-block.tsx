@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils"
 import { formatearMonto, convertirUsdAArs, type Moneda } from "@/lib/pagos"
 import { MarcarHitoButton } from "@/components/ui/marcar-hito-button"
 import { RegistrarPagoHitoButton } from "@/components/ui/registrar-pago-hito-button"
+import { GenerarLinkHitoButton } from "@/components/ui/generar-link-hito-button"
 import { ProyectoEstadoSelect } from "@/components/ui/proyecto-estado-select"
 
 export interface ProyectoConHitos {
@@ -28,7 +29,15 @@ const estadoPill: Record<string, { cls: string; label: string }> = {
   CANCELADO: { cls: "a-pill gray", label: "Cancelado" },
 }
 
-export function ProyectoBlock({ proyecto, rate }: { proyecto: ProyectoConHitos; rate: number | null }) {
+export function ProyectoBlock({
+  proyecto,
+  rate,
+  clienteTelefono,
+}: {
+  proyecto: ProyectoConHitos
+  rate: number | null
+  clienteTelefono?: string | null
+}) {
   const pagados = proyecto.hitos.filter((h) => h.estado === "PAGADO").length
   const total = proyecto.hitos.length
   const cobrado = proyecto.hitos.filter((h) => h.estado === "PAGADO").reduce((acc, h) => acc + h.monto, 0)
@@ -92,6 +101,16 @@ export function ProyectoBlock({ proyecto, rate }: { proyecto: ProyectoConHitos; 
                   proyectoTitulo={proyecto.titulo}
                   precioUsd={h.monto}
                   precioArs={precioArs}
+                />
+              )}
+              {!pagado && (
+                <GenerarLinkHitoButton
+                  hitoId={h.id}
+                  hitoTitulo={h.titulo}
+                  proyectoTitulo={proyecto.titulo}
+                  precioUsd={h.monto}
+                  precioArs={precioArs}
+                  clienteTelefono={clienteTelefono}
                 />
               )}
               <MarcarHitoButton hitoId={h.id} estado={h.estado} />

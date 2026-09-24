@@ -18,10 +18,10 @@ async function run() {
   console.log("Monto: $" + monto + " ARS | suscripcion:", suscripcionId, "| meses:", meses, "\n")
 
   const link = await crearLinkDePago({
-    suscripcionId,
+    externalReference: suscripcionId,
     titulo: "Prueba PixelArch",
     montoArsCents: Math.round(monto * 100),
-    meses,
+    metadata: { tipo: "soporte", meses },
   })
 
   if (!link) {

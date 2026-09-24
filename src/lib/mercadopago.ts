@@ -12,10 +12,10 @@ export function mpClient(): MercadoPagoConfig | null {
 }
 
 export interface LinkPagoInput {
-  suscripcionId: string
+  externalReference: string
   titulo: string
   montoArsCents: number
-  meses: number
+  metadata: Record<string, unknown>
 }
 
 export async function crearLinkDePago(input: LinkPagoInput): Promise<{ url: string; preferenceId: string } | null> {
@@ -29,15 +29,15 @@ export async function crearLinkDePago(input: LinkPagoInput): Promise<{ url: stri
     body: {
       items: [
         {
-          id: input.suscripcionId,
+          id: input.externalReference,
           title: input.titulo,
           quantity: 1,
           unit_price: Math.round(input.montoArsCents) / 100,
           currency_id: "ARS",
         },
       ],
-      external_reference: input.suscripcionId,
-      metadata: { meses: input.meses },
+      external_reference: input.externalReference,
+      metadata: input.metadata,
       notification_url: `${base}/api/webhooks/mercadopago`,
       back_urls: {
         success: `${base}/gracias`,
@@ -58,6 +58,7 @@ export interface PagoMp {
   status: string | null
   externalReference: string | null
   transactionAmount: number | null
+  tipo: string | null
   meses: number
 }
 
@@ -76,6 +77,7 @@ export async function obtenerPagoMp(id: string): Promise<PagoMp | null> {
     status: p.status ?? null,
     externalReference: p.external_reference ?? null,
     transactionAmount: typeof p.transaction_amount === "number" ? p.transaction_amount : null,
+    tipo: typeof metadata.tipo === "string" ? metadata.tipo : null,
     meses: Number.isFinite(mesesRaw) ? mesesRaw : 1,
   }
 }

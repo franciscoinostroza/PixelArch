@@ -23,6 +23,7 @@ export default async function AdminDashboard() {
     ingresosMesArs,
     ingresosAnteriorUsd,
     porCobrar,
+    hitosPorCobrar,
   ] = await Promise.all([
     prisma.cliente.count({ where: { activo: true } }),
     prisma.suscripcion.count({ where: { estado: "ACTIVE" } }),
@@ -50,6 +51,10 @@ export default async function AdminDashboard() {
         servicio: { select: { precioUnico: true, precioBasico: true, precioMantenimiento: true } },
       },
     }),
+    prisma.hito.findMany({
+      where: { estado: "PENDIENTE", vencimiento: { not: null, lte: en7dias } },
+      select: { monto: true },
+    }),
   ])
 
   const ingresoActualUsd = ingresosMesUsd._sum.monto ?? 0
@@ -60,10 +65,9 @@ export default async function AdminDashboard() {
       ? Math.round(((ingresoActualUsd - ingresoAnteriorVal) / ingresoAnteriorVal) * 100)
       : ingresoActualUsd > 0 ? 100 : 0
 
-  const totalPorCobrar = porCobrar.reduce(
-    (acc, s) => acc + precioDePlan(s.plan, s.servicio, s.precioCustom),
-    0
-  )
+  const totalPorCobrar =
+    porCobrar.reduce((acc, s) => acc + precioDePlan(s.plan, s.servicio, s.precioCustom), 0) +
+    hitosPorCobrar.reduce((acc, h) => acc + h.monto, 0)
 
   const suscripcionesPorEstado = await prisma.suscripcion.groupBy({
     by: ["estado"],

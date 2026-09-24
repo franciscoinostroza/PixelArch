@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2, Mail, Check } from "lucide-react"
 
-export function RecordarEmailButton({ suscripcionId }: { suscripcionId: string }) {
+export function RecordarEmailButton({ suscripcionId, hitoId }: { suscripcionId?: string; hitoId?: string }) {
   const [loading, setLoading] = useState(false)
   const [ok, setOk] = useState(false)
   const [error, setError] = useState("")
@@ -18,7 +18,7 @@ export function RecordarEmailButton({ suscripcionId }: { suscripcionId: string }
       const res = await fetch("/api/admin/recordar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ suscripcionId }),
+        body: JSON.stringify({ suscripcionId, hitoId }),
       })
       const body = await res.json()
       if (!res.ok) {

@@ -62,21 +62,73 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, duplicate: true })
     }
 
-    const suscripcion = pagoMp.externalReference
-      ? await prisma.suscripcion.findUnique({
-          where: { id: pagoMp.externalReference },
-          include: { cliente: true, servicio: true },
-        })
-      : null
+    if (!pagoMp.externalReference) {
+      logger.warn("Webhook MP sin external_reference", { paymentId: pagoMp.id })
+      return NextResponse.json({ ok: true, ignored: true })
+    }
 
+    const montoArsCents = Math.round((pagoMp.transactionAmount ?? 0) * 100)
+    const cotizacion = await getDolarVentaBancoNacion()
+
+    if (pagoMp.tipo === "hito") {
+      const hito = await prisma.hito.findUnique({
+        where: { id: pagoMp.externalReference },
+        include: { proyecto: { include: { cliente: true } } },
+      })
+      if (!hito) {
+        logger.warn("Webhook MP hito no encontrado", { paymentId: pagoMp.id, hitoId: pagoMp.externalReference })
+        return NextResponse.json({ ok: true, ignored: true })
+      }
+
+      await prisma.pago.create({
+        data: {
+          clienteId: hito.proyecto.clienteId,
+          hitoId: hito.id,
+          externalId: pagoMp.id,
+          monto: montoArsCents,
+          moneda: "ars",
+          cotizacion,
+          metodo: "MERCADOPAGO",
+          nota: `Link MP · ${hito.titulo}`,
+          registradoPor: "Mercado Pago",
+          estadoPago: estado,
+        },
+      })
+
+      if (estado === "SUCCEEDED") {
+        await prisma.hito.update({
+          where: { id: hito.id },
+          data: { estado: "PAGADO", pagadoEn: new Date() },
+        })
+        await sendPaymentReceipt(
+          hito.proyecto.cliente.email,
+          hito.proyecto.cliente.nombre,
+          montoArsCents,
+          "ars",
+          `${hito.proyecto.titulo} — ${hito.titulo}`
+        )
+      }
+
+      logger.info("Webhook MP de hito procesado", {
+        paymentId: pagoMp.id,
+        hitoId: hito.id,
+        estado,
+        montoArsCents,
+      })
+
+      return NextResponse.json({ ok: true })
+    }
+
+    const suscripcion = await prisma.suscripcion.findUnique({
+      where: { id: pagoMp.externalReference },
+      include: { cliente: true, servicio: true },
+    })
     if (!suscripcion) {
       logger.warn("Webhook MP sin suscripcion asociada", { paymentId: pagoMp.id, externalReference: pagoMp.externalReference })
       return NextResponse.json({ ok: true, ignored: true })
     }
 
     const meses = normalizarMeses(pagoMp.meses)
-    const montoArsCents = Math.round((pagoMp.transactionAmount ?? 0) * 100)
-    const cotizacion = await getDolarVentaBancoNacion()
     const nota = meses > 0 ? `Link MP · ${meses} ${meses === 1 ? "mes" : "meses"}` : "Link MP · solo registro"
 
     await prisma.pago.create({

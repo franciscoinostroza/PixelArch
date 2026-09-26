@@ -34,6 +34,7 @@ export async function POST(req: Request) {
 
   try {
     let link: { url: string; preferenceId: string } | null = null
+    const expiraEn = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
 
     if (hitoId) {
       const hito = await prisma.hito.findUnique({
@@ -47,7 +48,15 @@ export async function POST(req: Request) {
         titulo: `${hito.proyecto.titulo} — ${hito.titulo}`,
         montoArsCents,
         metadata: { tipo: "hito" },
+        expiraEn,
       })
+
+      if (link) {
+        await prisma.hito.update({
+          where: { id: hito.id },
+          data: { mpLink: link.url, mpPreferenceId: link.preferenceId, mpLinkExpira: expiraEn },
+        })
+      }
     } else {
       const meses = normalizarMeses(body.meses)
       const suscripcion = await prisma.suscripcion.findUnique({
@@ -63,7 +72,20 @@ export async function POST(req: Request) {
         titulo: tituloLink(suscripcion.servicio.nombre, meses),
         montoArsCents,
         metadata: { tipo: "soporte", meses },
+        expiraEn,
       })
+
+      if (link) {
+        await prisma.suscripcion.update({
+          where: { id: suscripcion.id },
+          data: {
+            mpLink: link.url,
+            mpPreferenceId: link.preferenceId,
+            mpLinkExpira: expiraEn,
+            mpLinkMeses: meses,
+          },
+        })
+      }
     }
 
     if (!link) {

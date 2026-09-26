@@ -36,6 +36,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         return NextResponse.json({ error: "Monto invalido" }, { status: 400 })
       }
       data.monto = monto
+      data.mpLink = null
+      data.mpPreferenceId = null
+      data.mpLinkExpira = null
     }
 
     if (body.vencimiento !== undefined) {
@@ -56,6 +59,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
       data.estado = body.estado
       data.pagadoEn = body.estado === "PAGADO" ? new Date() : null
+      if (body.estado === "PAGADO") {
+        data.mpLink = null
+        data.mpPreferenceId = null
+        data.mpLinkExpira = null
+      }
     }
 
     if (Object.keys(data).length === 0) {
@@ -77,5 +85,57 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   } catch (error) {
     logger.error("Error actualizando hito", { error: String(error), hitoId: id })
     return NextResponse.json({ error: "Error al actualizar el hito" }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const ip = req.headers.get("x-forwarded-for") || "unknown"
+  if (!rateLimit(`admin-hitos:${ip}`, 30, 60_000)) {
+    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 })
+  }
+
+  const admin = await requireAdmin()
+  if (!admin) return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+
+  const { id } = await params
+
+  try {
+    const hito = await prisma.hito.findUnique({
+      where: { id },
+      select: { id: true, estado: true, proyectoId: true, _count: { select: { pagos: true } } },
+    })
+    if (!hito) return NextResponse.json({ error: "Hito no encontrado" }, { status: 404 })
+
+    if (hito.estado !== "PENDIENTE") {
+      return NextResponse.json({ error: "Solo se pueden eliminar hitos pendientes" }, { status: 400 })
+    }
+    if (hito._count.pagos > 0) {
+      return NextResponse.json({ error: "El hito tiene pagos registrados — no se puede eliminar" }, { status: 400 })
+    }
+
+    await prisma.hito.delete({ where: { id } })
+
+    const restantes = await prisma.hito.findMany({
+      where: { proyectoId: hito.proyectoId },
+      orderBy: { orden: "asc" },
+      select: { id: true, monto: true },
+    })
+
+    await prisma.$transaction(
+      restantes.map((h, i) =>
+        prisma.hito.update({ where: { id: h.id }, data: { orden: i + 1 } })
+      )
+    )
+
+    await prisma.proyecto.update({
+      where: { id: hito.proyectoId },
+      data: { montoTotal: restantes.reduce((acc, h) => acc + h.monto, 0) },
+    })
+
+    logger.info("Hito eliminado", { hitoId: id, proyectoId: hito.proyectoId, adminId: admin.id })
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    logger.error("Error eliminando hito", { error: String(error), hitoId: id })
+    return NextResponse.json({ error: "Error al eliminar el hito" }, { status: 500 })
   }
 }

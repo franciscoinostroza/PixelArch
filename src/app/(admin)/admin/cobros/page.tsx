@@ -129,6 +129,8 @@ export default async function AdminCobros() {
             precioUsd={h.monto}
             precioArs={precioArs}
             clienteTelefono={h.proyecto.cliente.telefono}
+            linkGuardado={h.mpLink}
+            linkExpira={h.mpLinkExpira ? new Date(h.mpLinkExpira).toISOString() : null}
           />
           {h.proyecto.cliente.telefono ? (
             <a
@@ -207,6 +209,9 @@ export default async function AdminCobros() {
             precioUsd={precio}
             precioArs={precioArs}
             clienteTelefono={s.cliente.telefono}
+            linkGuardado={s.mpLink}
+            linkExpira={s.mpLinkExpira ? new Date(s.mpLinkExpira).toISOString() : null}
+            mesesGuardados={s.mpLinkMeses}
           />
           {s.cliente.telefono ? (
             <a

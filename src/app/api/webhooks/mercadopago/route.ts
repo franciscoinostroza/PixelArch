@@ -98,7 +98,7 @@ export async function POST(req: Request) {
       if (estado === "SUCCEEDED") {
         await prisma.hito.update({
           where: { id: hito.id },
-          data: { estado: "PAGADO", pagadoEn: new Date() },
+          data: { estado: "PAGADO", pagadoEn: new Date(), mpLink: null, mpPreferenceId: null, mpLinkExpira: null },
         })
         await sendPaymentReceipt(
           hito.proyecto.cliente.email,

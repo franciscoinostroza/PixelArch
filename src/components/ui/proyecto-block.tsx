@@ -1,8 +1,11 @@
 import { cn } from "@/lib/utils"
-import { formatearMonto, convertirUsdAArs, type Moneda } from "@/lib/pagos"
+import { formatearMonto, convertirUsdAArs } from "@/lib/pagos"
 import { MarcarHitoButton } from "@/components/ui/marcar-hito-button"
 import { RegistrarPagoHitoButton } from "@/components/ui/registrar-pago-hito-button"
 import { GenerarLinkHitoButton } from "@/components/ui/generar-link-hito-button"
+import { EditarHitoButton } from "@/components/ui/editar-hito-button"
+import { AgregarHitoButton } from "@/components/ui/agregar-hito-button"
+import { EditarProyectoButton } from "@/components/ui/editar-proyecto-button"
 import { ProyectoEstadoSelect } from "@/components/ui/proyecto-estado-select"
 
 export interface ProyectoConHitos {
@@ -20,6 +23,9 @@ export interface ProyectoConHitos {
     monto: number
     estado: string
     vencimiento: Date | null
+    mpLink?: string | null
+    mpLinkExpira?: Date | null
+    _count?: { pagos: number }
   }[]
 }
 
@@ -52,7 +58,10 @@ export function ProyectoBlock({
           {proyecto.servicio && <span className="a-faint" style={{ fontWeight: 400 }}>· {proyecto.servicio.nombre}</span>}
           <span className={cn("a-pill", pill.cls)}><i />{pill.label}</span>
         </h3>
-        <span className="a-faint">{formatearMonto(proyecto.montoTotal, "usd")}</span>
+        <span className="a-faint" style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+          {formatearMonto(proyecto.montoTotal, "usd")}
+          <EditarProyectoButton proyectoId={proyecto.id} titulo={proyecto.titulo} notas={proyecto.notas} />
+        </span>
       </div>
 
       <div style={{ marginBottom: 14 }}>
@@ -111,13 +120,24 @@ export function ProyectoBlock({
                   precioUsd={h.monto}
                   precioArs={precioArs}
                   clienteTelefono={clienteTelefono}
+                  linkGuardado={h.mpLink}
+                  linkExpira={h.mpLinkExpira ? new Date(h.mpLinkExpira).toISOString() : null}
                 />
               )}
               <MarcarHitoButton hitoId={h.id} estado={h.estado} />
+              <EditarHitoButton
+                hitoId={h.id}
+                titulo={h.titulo}
+                monto={h.monto}
+                vencimiento={h.vencimiento ? new Date(h.vencimiento).toISOString() : null}
+                puedeEliminar={!pagado && (h._count?.pagos ?? 0) === 0}
+              />
             </div>
           </div>
         )
       })}
+
+      <AgregarHitoButton proyectoId={proyecto.id} />
     </div>
   )
 }

@@ -58,6 +58,10 @@ model Suscripcion {
   pastDueEn               DateTime?
   precioCustom            Int?
   ultimoRecordatorioEn    DateTime?
+  mpLink                  String?
+  mpPreferenceId          String?
+  mpLinkExpira            DateTime?
+  mpLinkMeses             Int?
   creadoEn                DateTime    @default(now())
   actualizadoEn           DateTime    @updatedAt
 
@@ -139,6 +143,9 @@ model Hito {
   estado      EstadoHito @default(PENDIENTE)
   vencimiento DateTime?
   pagadoEn    DateTime?
+  mpLink         String?
+  mpPreferenceId String?
+  mpLinkExpira   DateTime?
   creadoEn    DateTime   @default(now())
 
   proyecto Proyecto @relation(fields: [proyectoId], references: [id])

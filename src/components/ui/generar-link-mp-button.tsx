@@ -12,6 +12,9 @@ interface Props {
   precioUsd: number
   precioArs: number | null
   clienteTelefono?: string | null
+  linkGuardado?: string | null
+  linkExpira?: string | null
+  mesesGuardados?: number | null
   size?: "sm" | "default"
 }
 
@@ -22,6 +25,9 @@ export function GenerarLinkMpButton({
   precioUsd,
   precioArs,
   clienteTelefono,
+  linkGuardado,
+  linkExpira,
+  mesesGuardados,
   size = "sm",
 }: Props) {
   const [open, setOpen] = useState(false)
@@ -33,23 +39,32 @@ export function GenerarLinkMpButton({
   const [link, setLink] = useState<string | null>(null)
   const [copiado, setCopiado] = useState(false)
 
+  const linkVigente =
+    linkGuardado && linkExpira && new Date(linkExpira).getTime() > Date.now()
+
   useEffect(() => {
     if (!open || link) return
+    if (linkVigente) return
     if (modo === "meses" && precioArs) {
       setMontoArs(String(Math.round((precioArs * meses) / 100)))
     } else if (!montoArs && precioArs) {
       setMontoArs(String(Math.round(precioArs / 100)))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, modo, meses, precioArs, link])
+  }, [open, modo, meses, precioArs, link, linkVigente])
 
   function abrir() {
     setOpen(true)
-    setLink(null)
     setError("")
+    setLink(linkVigente ? linkGuardado : null)
     setModo("meses")
-    setMeses(1)
-    if (precioArs) setMontoArs(String(Math.round(precioArs / 100)))
+    setMeses(mesesGuardados && mesesGuardados > 0 ? mesesGuardados : 1)
+    if (!linkVigente && precioArs) setMontoArs(String(Math.round(precioArs / 100)))
+  }
+
+  function regenerar() {
+    setLink(null)
+    if (precioArs) setMontoArs(String(Math.round((precioArs * meses) / 100)))
   }
 
   async function generar() {
@@ -133,7 +148,15 @@ export function GenerarLinkMpButton({
 
             {link ? (
               <div className="space-y-3">
-                <p className="text-xs text-mint" style={{ color: "#34d399" }}>✓ Link generado</p>
+                <p className="text-xs" style={{ color: "#34d399" }}>
+                  ✓ Link {linkVigente && link === linkGuardado ? "guardado" : "generado"}
+                  {link === linkGuardado && linkExpira && (
+                    <span style={{ color: "var(--color-text-faint)" }}>
+                      {" · válido hasta "}
+                      {new Date(linkExpira).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+                    </span>
+                  )}
+                </p>
                 <input
                   readOnly
                   value={link}
@@ -161,8 +184,8 @@ export function GenerarLinkMpButton({
                   )}
                 </div>
                 <div className="flex gap-3 pt-1">
-                  <Button variant="ghost" onClick={() => setLink(null)} disabled={loading} className="flex-1">
-                    Generar otro
+                  <Button variant="ghost" onClick={regenerar} disabled={loading} className="flex-1">
+                    Regenerar link
                   </Button>
                   <Button variant="ghost" onClick={() => setOpen(false)} className="flex-1">
                     Cerrar

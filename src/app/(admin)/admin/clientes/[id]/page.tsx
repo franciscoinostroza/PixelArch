@@ -71,7 +71,7 @@ export default async function ClienteDetalle({
       },
       proyectos: {
         include: {
-          hitos: { orderBy: { orden: "asc" } },
+          hitos: { orderBy: { orden: "asc" }, include: { _count: { select: { pagos: true } } } },
           servicio: { select: { nombre: true } },
         },
         orderBy: { creadoEn: "desc" },
@@ -191,6 +191,9 @@ export default async function ClienteDetalle({
                         precioUsd={precio}
                         precioArs={precioArs}
                         clienteTelefono={cliente.telefono}
+                        linkGuardado={s.mpLink}
+                        linkExpira={s.mpLinkExpira ? new Date(s.mpLinkExpira).toISOString() : null}
+                        mesesGuardados={s.mpLinkMeses}
                       />
                     )}
                     {s.estado !== "PENDING" && <SubscriptionActions suscripcionId={s.id} estado={s.estado} deploymentPlatform={s.deploymentPlatform} platformServiceId={s.platformServiceId} />}

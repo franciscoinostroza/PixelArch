@@ -106,7 +106,7 @@ export async function POST(req: Request) {
       if (body.marcarHitoPagado !== false) {
         await prisma.hito.update({
           where: { id: hitoId },
-          data: { estado: "PAGADO", pagadoEn: new Date() },
+          data: { estado: "PAGADO", pagadoEn: new Date(), mpLink: null, mpPreferenceId: null, mpLinkExpira: null },
         })
       }
     } else if (suscripcionId && body.avanzarVencimiento !== false) {

@@ -16,6 +16,7 @@ export interface LinkPagoInput {
   titulo: string
   montoArsCents: number
   metadata: Record<string, unknown>
+  expiraEn?: Date
 }
 
 export async function crearLinkDePago(input: LinkPagoInput): Promise<{ url: string; preferenceId: string } | null> {
@@ -46,6 +47,13 @@ export async function crearLinkDePago(input: LinkPagoInput): Promise<{ url: stri
       },
       auto_return: "approved",
       statement_descriptor: "PIXELARCH",
+      ...(input.expiraEn
+        ? {
+            expires: true,
+            expiration_date_from: new Date().toISOString(),
+            expiration_date_to: input.expiraEn.toISOString(),
+          }
+        : {}),
     },
   })
 

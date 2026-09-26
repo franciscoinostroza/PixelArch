@@ -137,8 +137,8 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
                   {servicioDB.precioUnico > 0 && (
                     <>
                       <span className="plan-from">Desde</span>
-                      <span className="plan-price">{formatUSD(servicioDB.precioUnico)}</span>
-                      {rate && <span className="plan-ref">≈ {formatARS(servicioDB.precioUnico, rate)}</span>}
+                      <span className="plan-price">{price(servicioDB.precioUnico)}</span>
+                      {rate && <span className="plan-ref">≈ {formatUSD(servicioDB.precioUnico)}</span>}
                     </>
                   )}
                   <p className="plan-desc">Proyecto cotizado según alcance. Se paga por hitos acordados: anticipo, avances y entrega.</p>

@@ -95,8 +95,12 @@ export default async function PreciosPage() {
                         </Link>
                       </td>
                       <td className="price price-hl">
-                        {s.precioUnico > 0 ? formatUSD(s.precioUnico) : "—"}
-                        {s.precioUnico > 0 && <span className="usd">a medida · se paga por hitos</span>}
+                        {s.precioUnico > 0 ? ars(s.precioUnico, rate) : "—"}
+                        {s.precioUnico > 0 && (
+                          <span className="usd">
+                            {rate ? `≈ ${formatUSD(s.precioUnico)} · ` : ""}a medida · se paga por hitos
+                          </span>
+                        )}
                       </td>
                       <td className="price">
                         {ars(s.precioBasico, rate)}

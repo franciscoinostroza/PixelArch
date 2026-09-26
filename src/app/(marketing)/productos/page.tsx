@@ -38,8 +38,9 @@ const FALLBACK_TAGS: Record<string, string[]> = {
   "Infraestructura & Cloud": ["Docker", "Linux", "CI/CD"],
 }
 
-function priceAmount(precioUnico: number) {
+function priceAmount(precioUnico: number, rate: number | null) {
   if (!precioUnico) return null
+  if (rate) return formatARS(precioUnico, rate)
   return formatUSD(precioUnico)
 }
 
@@ -87,14 +88,16 @@ export default async function ProductosPage() {
                   </div>
                   <div className="product-foot">
                     <div className="product-price">
-                      {priceAmount(s.precioUnico) && (
+                      {priceAmount(s.precioUnico, rate) && (
                         <>
                           <span className="product-from">Implementación desde</span>
                           <span className="product-amount">
-                            {priceAmount(s.precioUnico)}
-                            {rate && s.precioUnico > 0 && <small>≈ {formatARS(s.precioUnico, rate)}</small>}
+                            {priceAmount(s.precioUnico, rate)}
+                            {rate && s.precioUnico > 0 && <span className="product-usd">≈ {formatUSD(s.precioUnico)}</span>}
                             {s.precioBasico > 0 && (
-                              <span className="product-usd">Soporte opcional desde {formatUSD(s.precioBasico)}/mes</span>
+                              <span className="product-usd">
+                                Soporte opcional desde {rate ? formatARS(s.precioBasico, rate) : formatUSD(s.precioBasico)}/mes
+                              </span>
                             )}
                           </span>
                         </>

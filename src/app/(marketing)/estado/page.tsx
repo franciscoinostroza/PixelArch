@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { prisma } from "@/lib/prisma"
+import { logger } from "@/lib/logger"
 
 export const metadata: Metadata = {
   title: "Estado del servicio — PixelArch",
@@ -92,8 +93,9 @@ export default async function EstadoPage() {
         LIMIT 10
       `,
     ])
-  } catch {
+  } catch (e) {
     dbError = true
+    logger.error("Error consultando el historial de uptime", { error: String(e) })
   }
 
   const now = new Date()

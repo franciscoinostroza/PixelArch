@@ -177,7 +177,8 @@ export default async function ClienteDetalle({
                     {(s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
                       <RegistrarPagoButton
                         suscripcionId={s.id}
-                        servicioNombre={s.servicio.nombre}
+                        servicio={s.servicio.nombre}
+                        cliente={cliente.nombre}
                         precioUsd={precio}
                         precioArs={precioArs}
                       />
@@ -185,7 +186,8 @@ export default async function ClienteDetalle({
                     {(s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
                       <GenerarLinkMpButton
                         suscripcionId={s.id}
-                        servicioNombre={s.servicio.nombre}
+                        servicio={s.servicio.nombre}
+                        cliente={cliente.nombre}
                         precioUsd={precio}
                         precioArs={precioArs}
                         clienteTelefono={cliente.telefono}

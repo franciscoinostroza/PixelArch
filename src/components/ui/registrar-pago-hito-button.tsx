@@ -98,8 +98,20 @@ export function RegistrarPagoHitoButton({ hitoId, hitoTitulo, proyectoTitulo, pr
               </div>
             ) : (
               <>
-                <h2 className="font-display text-lg font-bold text-text mb-1">Registrar pago de hito</h2>
-                <p className="text-xs text-text-dim mb-5">{proyectoTitulo} — {hitoTitulo}</p>
+                <h2
+                  className="font-display text-lg font-bold text-text mb-1"
+                  style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  title={proyectoTitulo}
+                >
+                  {proyectoTitulo}
+                </h2>
+                <p
+                  className="text-xs text-text-dim mb-5"
+                  style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  title={hitoTitulo}
+                >
+                  {hitoTitulo}
+                </p>
 
                 <div className="space-y-3">
                   <div>

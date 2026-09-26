@@ -7,7 +7,8 @@ import { waLink } from "@/lib/contact"
 
 interface Props {
   suscripcionId: string
-  servicioNombre: string
+  servicio: string
+  cliente?: string | null
   precioUsd: number
   precioArs: number | null
   clienteTelefono?: string | null
@@ -16,7 +17,8 @@ interface Props {
 
 export function GenerarLinkMpButton({
   suscripcionId,
-  servicioNombre,
+  servicio,
+  cliente,
   precioUsd,
   precioArs,
   clienteTelefono,
@@ -93,7 +95,7 @@ export function GenerarLinkMpButton({
   }
 
   const mensajeWa = link
-    ? `Hola! Acá te dejo el link para el pago de ${servicioNombre} (${modo === "solo" ? "pago" : `${meses} ${meses === 1 ? "mes" : "meses"}`}): ${link}`
+    ? `Hola! Acá te dejo el link para el pago de ${servicio} (${modo === "solo" ? "pago" : `${meses} ${meses === 1 ? "mes" : "meses"}`}): ${link}`
     : ""
 
   return (
@@ -114,9 +116,19 @@ export function GenerarLinkMpButton({
             style={{ background: "linear-gradient(145deg, #1a1a30 0%, #14142a 50%, #1a1a30 100%)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-display text-lg font-bold text-text mb-1">Generar link de pago</h2>
-            <p className="text-xs text-text-dim mb-5">
-              {servicioNombre} · US${(precioUsd / 100).toFixed(0)}/mes
+            <h2
+              className="font-display text-lg font-bold text-text mb-1"
+              style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+              title={servicio}
+            >
+              {servicio}
+            </h2>
+            <p
+              className="text-xs text-text-dim mb-5"
+              style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+              title={`${cliente ? `${cliente} · ` : ""}US$${(precioUsd / 100).toFixed(0)}/mes`}
+            >
+              {cliente ? `${cliente} · ` : ""}US${(precioUsd / 100).toFixed(0)}/mes
             </p>
 
             {link ? (

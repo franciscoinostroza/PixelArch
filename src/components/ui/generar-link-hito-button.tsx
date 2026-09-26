@@ -104,9 +104,19 @@ export function GenerarLinkHitoButton({
             style={{ background: "linear-gradient(145deg, #1a1a30 0%, #14142a 50%, #1a1a30 100%)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-display text-lg font-bold text-text mb-1">Generar link de pago</h2>
-            <p className="text-xs text-text-dim mb-5">
-              {proyectoTitulo} — {hitoTitulo} · ≈ US${(precioUsd / 100).toFixed(0)}
+            <h2
+              className="font-display text-lg font-bold text-text mb-1"
+              style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+              title={proyectoTitulo}
+            >
+              {proyectoTitulo}
+            </h2>
+            <p
+              className="text-xs text-text-dim mb-5"
+              style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+              title={`${hitoTitulo} · ≈ US$${(precioUsd / 100).toFixed(0)}`}
+            >
+              {hitoTitulo} · ≈ US${(precioUsd / 100).toFixed(0)}
             </p>
 
             {link ? (

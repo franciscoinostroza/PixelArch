@@ -195,13 +195,15 @@ export default async function AdminCobros() {
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <RegistrarPagoButton
             suscripcionId={s.id}
-            servicioNombre={`Soporte ${s.servicio.nombre} — ${s.cliente.nombre}`}
+            servicio={`Soporte ${s.servicio.nombre}`}
+            cliente={s.cliente.nombre}
             precioUsd={precio}
             precioArs={precioArs}
           />
           <GenerarLinkMpButton
             suscripcionId={s.id}
-            servicioNombre={`Soporte ${s.servicio.nombre} — ${s.cliente.nombre}`}
+            servicio={`Soporte ${s.servicio.nombre}`}
+            cliente={s.cliente.nombre}
             precioUsd={precio}
             precioArs={precioArs}
             clienteTelefono={s.cliente.telefono}

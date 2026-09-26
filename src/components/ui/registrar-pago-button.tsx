@@ -8,7 +8,8 @@ import { METODOS_PAGO, METODO_LABEL } from "@/lib/pagos"
 
 interface Props {
   suscripcionId: string
-  servicioNombre: string
+  servicio: string
+  cliente?: string | null
   precioUsd: number
   precioArs: number | null
   size?: "sm" | "default"
@@ -19,7 +20,8 @@ interface Props {
 
 export function RegistrarPagoButton({
   suscripcionId,
-  servicioNombre,
+  servicio,
+  cliente,
   precioUsd,
   precioArs,
   size = "sm",
@@ -114,8 +116,20 @@ export function RegistrarPagoButton({
               </div>
             ) : (
               <>
-                <h2 className="font-display text-lg font-bold text-text mb-1">Registrar pago</h2>
-                <p className="text-xs text-text-dim mb-5">{servicioNombre}</p>
+                <h2
+                  className="font-display text-lg font-bold text-text mb-1"
+                  style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  title={servicio}
+                >
+                  {servicio}
+                </h2>
+                <p
+                  className="text-xs text-text-dim mb-5"
+                  style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  title={`${cliente ? `${cliente} · ` : ""}US$${(precioUsd / 100).toFixed(0)}/mes`}
+                >
+                  {cliente ? `${cliente} · ` : ""}US${(precioUsd / 100).toFixed(0)}/mes
+                </p>
 
                 <div className="space-y-3">
                   <div>

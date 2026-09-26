@@ -133,7 +133,7 @@ export function NuevoProyectoButton({ clienteId, servicios }: { clienteId: strin
           onClick={() => { if (!loading) setOpen(false) }}
         >
           <div
-            className="w-full max-w-lg rounded-2xl border border-border bg-panel p-6 shadow-2xl"
+            className="w-full max-w-2xl rounded-2xl border border-border bg-panel p-6 shadow-2xl"
             style={{ background: "linear-gradient(145deg, #1a1a30 0%, #14142a 50%, #1a1a30 100%)", maxHeight: "90vh", overflowY: "auto" }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -178,11 +178,11 @@ export function NuevoProyectoButton({ clienteId, servicios }: { clienteId: strin
                     <p className="text-xs text-text-dim mb-2">Hitos (montos editables):</p>
                     <div className="space-y-2">
                       {hitos.map((h, i) => (
-                        <div key={i} className="grid grid-cols-[24px_1fr_96px_130px] gap-2 items-center">
-                          <span className="font-mono text-xs text-text-faint">{i + 1}</span>
-                          <input value={h.titulo} onChange={(e) => setHito(i, "titulo", e.target.value)} className="rounded-lg border border-border bg-bg px-2.5 py-2 text-sm text-text" placeholder={`Hito ${i + 1}`} />
-                          <input type="number" min="0" step="1" value={h.monto} onChange={(e) => setHito(i, "monto", e.target.value)} className="rounded-lg border border-border bg-bg px-2.5 py-2 text-sm text-text font-mono" placeholder="US$" />
-                          <input type="date" value={h.vencimiento} onChange={(e) => setHito(i, "vencimiento", e.target.value)} className="rounded-lg border border-border bg-bg px-2.5 py-2 text-xs text-text-dim font-mono" title="Vencimiento (opcional)" />
+                        <div key={i} className="flex flex-wrap gap-2 items-center">
+                          <span className="font-mono text-xs text-text-faint w-5 shrink-0">{i + 1}</span>
+                          <input value={h.titulo} onChange={(e) => setHito(i, "titulo", e.target.value)} className="flex-1 min-w-[180px] rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text" placeholder={`Hito ${i + 1}`} />
+                          <input type="number" min="0" step="1" value={h.monto} onChange={(e) => setHito(i, "monto", e.target.value)} className="w-[110px] rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text font-mono" placeholder="US$" />
+                          <input type="date" value={h.vencimiento} onChange={(e) => setHito(i, "vencimiento", e.target.value)} className="w-[150px] rounded-lg border border-border bg-bg px-3 py-2 text-xs text-text-dim font-mono" title="Vencimiento (opcional)" />
                         </div>
                       ))}
                     </div>

@@ -97,9 +97,9 @@ export function Footer() {
         <span>© {new Date().getFullYear()} PixelArch · hola@pixelarch.dev</span>
         <span className="footer-status">
           <span className="footer-status-dot" aria-hidden="true" />
-          Todos los sistemas operativos
+          Disponible para nuevos proyectos
         </span>
-        <span>Hecho con Next.js · Deploy en Railway</span>
+        <Link href="/estado" className="footer-estado-link">Estado del servicio →</Link>
       </div>
 
       <style>{`
@@ -199,6 +199,13 @@ export function Footer() {
           gap: 8px;
           color: var(--color-mint, #34d399) !important;
         }
+        .footer-estado-link {
+          font-family: var(--font-mono);
+          font-size: 0.68rem;
+          color: var(--color-text-faint);
+          transition: color 0.2s;
+        }
+        .footer-estado-link:hover { color: var(--color-cyan) }
         .footer-status-dot {
           width: 7px;
           height: 7px;

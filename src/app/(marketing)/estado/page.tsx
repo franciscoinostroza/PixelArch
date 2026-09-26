@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/estado" },
 }
 
-export const revalidate = 60
+export const dynamic = "force-dynamic"
 
 const ORDEN = ["Sitio web", "Blog", "API", "Base de datos"]
 

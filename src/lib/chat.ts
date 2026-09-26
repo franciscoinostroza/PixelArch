@@ -15,7 +15,7 @@ export interface ChatAnswer {
 export const CHAT_ANSWERS: Record<ChatIntent, ChatAnswer> = {
   precios: {
     intent: "precios",
-    text: "Los planes van desde US$15/mes (una landing) hasta US$45/mes (automatizaciones). Todos incluyen hosting, SSL y soporte. ¿Querés los detalles por WhatsApp?",
+    text: "Cada proyecto se cotiza a medida según el alcance y se paga por hitos (anticipo, avances y entrega). El soporte mensual es opcional. ¿Querés que te armemos una cotización por WhatsApp?",
   },
   tiempos: {
     intent: "tiempos",
@@ -23,7 +23,7 @@ export const CHAT_ANSWERS: Record<ChatIntent, ChatAnswer> = {
   },
   cancelar: {
     intent: "cancelar",
-    text: "Podés cancelar desde tu portal con 7 días de aviso. Sin permanencia ni penalidades.",
+    text: "El soporte se cancela cuando quieras, con 7 días de aviso. Sin permanencia ni penalidades.",
   },
   moneda: {
     intent: "moneda",
@@ -31,7 +31,7 @@ export const CHAT_ANSWERS: Record<ChatIntent, ChatAnswer> = {
   },
   hosting: {
     intent: "hosting",
-    text: "Cada plan mensual incluye hosting, SSL, monitoreo activo y soporte continuo.",
+    text: "El soporte mensual incluye hosting, SSL, monitoreo activo y soporte continuo.",
   },
   humano: {
     intent: "humano",

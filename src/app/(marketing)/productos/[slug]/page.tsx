@@ -70,21 +70,21 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
     offers: [
       ...(servicioDB.precioUnico > 0 ? [{
         "@type": "Offer",
-        name: "Compra del Código",
+        name: "Implementación",
         price: (servicioDB.precioUnico / 100).toFixed(0),
         priceCurrency: "USD",
         availability: "https://schema.org/OnlineOnly",
       }] : []),
       ...(servicioDB.precioBasico > 0 ? [{
         "@type": "Offer",
-        name: "Plan Básico",
+        name: "Soporte básico",
         price: (servicioDB.precioBasico / 100).toFixed(0),
         priceCurrency: "USD",
         priceType: "https://schema.org/MonthlyRateSubscription",
       }] : []),
       ...(servicioDB.precioMantenimiento > 0 ? [{
         "@type": "Offer",
-        name: "Plan Mantenimiento",
+        name: "Soporte premium",
         price: (servicioDB.precioMantenimiento / 100).toFixed(0),
         priceCurrency: "USD",
         priceType: "https://schema.org/MonthlyRateSubscription",
@@ -127,67 +127,34 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
           {servicioDB && (
             <>
               <div className="planes-grid">
-                <article className="plan-card plan-card--optional">
+                <article className="plan-card plan-card--featured">
                   <span className="plan-line" aria-hidden="true" />
-                  <span className="plan-badge plan-badge--optional">Opcional</span>
+                  <span className="plan-badge">A medida</span>
                   <div className="plan-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 6 2 12l6 6M16 6l6 6-6 6"/></svg>
                   </div>
-                  <p className="plan-label">Compra del Código</p>
+                  <p className="plan-label">Implementación</p>
                   {servicioDB.precioUnico > 0 && (
                     <>
-                      <span className="plan-from">Pago único</span>
-                      <span className="plan-price">{formatUSD(servicioDB.precioUnico)}</span>
-                      <span className="plan-ref">Código fuente completo · tuyo para siempre</span>
-                    </>
-                  )}
-                  <p className="plan-desc">Entrega del código fuente completo. El servicio online requiere un plan mensual.</p>
-                  <ul className="plan-features">
-                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Código y activos incluidos</li>
-                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Sumable a cualquier plan</li>
-                    <li><span className="pf pf-no"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span>Sin hosting incluido</li>
-                    <li><span className="pf pf-no"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span>Sin soporte continuo</li>
-                  </ul>
-                  <div className="plan-cta">
-                    <a
-                      href={whatsappUrl(`Hola! Quiero comprar el código de ${servicioSanity.titulo}${servicioDB.precioUnico > 0 ? ` (${formatUSD(servicioDB.precioUnico)})` : ""}.`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn(buttonVariants({ variant: "outline" }), "w-full")}
-                    >
-                      Comprar el código
-                    </a>
-                  </div>
-                </article>
-
-                <article className="plan-card plan-card--featured">
-                  <span className="plan-line" aria-hidden="true" />
-                  <span className="plan-badge">Recomendado</span>
-                  <div className="plan-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2 3 7v5c0 5 3.8 9.3 9 10 5.2-.7 9-5 9-10V7l-9-5z"/><path d="m9 12 2 2 4-4"/></svg>
-                  </div>
-                  <p className="plan-label">Plan Básico</p>
-                  {servicioDB.precioBasico > 0 && (
-                    <>
                       <span className="plan-from">Desde</span>
-                      <span className="plan-price">{price(servicioDB.precioBasico)}<small>ARS/mes</small></span>
-                      {priceRef(servicioDB.precioBasico) && <span className="plan-ref">{priceRef(servicioDB.precioBasico)}</span>}
+                      <span className="plan-price">{formatUSD(servicioDB.precioUnico)}</span>
+                      {rate && <span className="plan-ref">≈ {formatARS(servicioDB.precioUnico, rate)}</span>}
                     </>
                   )}
-                  <p className="plan-desc">Servicio online, hosting incluido, sin cambios. Ideal para tener presencia sin preocuparte por la infraestructura.</p>
+                  <p className="plan-desc">Proyecto cotizado según alcance. Se paga por hitos acordados: anticipo, avances y entrega.</p>
                   <ul className="plan-features">
-                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Hosting incluido</li>
-                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>SSL y monitoreo</li>
-                    <li><span className="pf pf-no"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span>Sin cambios ni soporte</li>
+                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Cotización a medida</li>
+                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Pago por hitos</li>
+                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Código y activos tuyos</li>
                   </ul>
                   <div className="plan-cta">
                     <a
-                      href={whatsappUrl(`Hola! Quiero contratar el plan Básico de ${servicioSanity.titulo}${servicioDB.precioBasico > 0 ? ` (${price(servicioDB.precioBasico)}/mes)` : ""}.`)}
+                      href={whatsappUrl(`Hola! Quiero cotizar una implementación de ${servicioSanity.titulo}.`)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={cn(buttonVariants({ variant: "gradient" }), "w-full")}
                     >
-                      Contratar Básico
+                      Cotizar mi implementación
                     </a>
                   </div>
                 </article>
@@ -195,9 +162,32 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
                 <article className="plan-card">
                   <span className="plan-line" aria-hidden="true" />
                   <div className="plan-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2 3 7v5c0 5 3.8 9.3 9 10 5.2-.7 9-5 9-10V7l-9-5z"/><path d="m9 12 2 2 4-4"/></svg>
+                  </div>
+                  <p className="plan-label">Soporte básico</p>
+                  {servicioDB.precioBasico > 0 && (
+                    <>
+                      <span className="plan-from">Desde</span>
+                      <span className="plan-price">{price(servicioDB.precioBasico)}<small>ARS/mes</small></span>
+                      {priceRef(servicioDB.precioBasico) && <span className="plan-ref">{priceRef(servicioDB.precioBasico)}</span>}
+                    </>
+                  )}
+                  <p className="plan-desc">Para que tu proyecto siga online sin sorpresas: hosting, SSL y monitoreo activo.</p>
+                  <ul className="plan-features">
+                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Hosting incluido</li>
+                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>SSL y monitoreo</li>
+                    <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Respuesta en &lt;24hs</li>
+                    <li><span className="pf pf-no"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span>Sin cambios de contenido</li>
+                  </ul>
+                  <span className="plan-activacion">Se activa cuando arrancamos el proyecto</span>
+                </article>
+
+                <article className="plan-card">
+                  <span className="plan-line" aria-hidden="true" />
+                  <div className="plan-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" width="22" height="22"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/></svg>
                   </div>
-                  <p className="plan-label">Plan Mantenimiento</p>
+                  <p className="plan-label">Soporte premium</p>
                   {servicioDB.precioMantenimiento > 0 && (
                     <>
                       <span className="plan-from">Desde</span>
@@ -205,37 +195,28 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
                       {priceRef(servicioDB.precioMantenimiento) && <span className="plan-ref">{priceRef(servicioDB.precioMantenimiento)}</span>}
                     </>
                   )}
-                  <p className="plan-desc">Todo lo del Básico, más cambios mensuales y soporte prioritario. Para que tu producto evolucione sin fricción.</p>
+                  <p className="plan-desc">Todo lo del básico, más evolución continua: cambios mensuales y soporte prioritario.</p>
                   <ul className="plan-features">
                     <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Todo lo del Básico</li>
                     <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Cambios mensuales</li>
                     <li><span className="pf pf-yes"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>Soporte prioritario</li>
                   </ul>
-                  <div className="plan-cta">
-                    <a
-                      href={whatsappUrl(`Hola! Quiero contratar el plan Mantenimiento de ${servicioSanity.titulo}${servicioDB.precioMantenimiento > 0 ? ` (${price(servicioDB.precioMantenimiento)}/mes)` : ""}.`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn(buttonVariants({ variant: "default" }), "w-full")}
-                    >
-                      Contratar Mantenimiento
-                    </a>
-                  </div>
+                  <span className="plan-activacion">Se activa cuando arrancamos el proyecto</span>
                 </article>
               </div>
 
               <div className="plan-trust">
                 <div className="trust-item">
                   <div className="trust-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2 3 7v5c0 5 3.8 9.3 9 10 5.2-.7 9-5 9-10V7l-9-5z"/><path d="m9 12 2 2 4-4"/></svg></div>
-                  <div><b>Hosting incluido</b><span>En cada plan mensual</span></div>
+                  <div><b>Pago por hitos</b><span>Anticipo, avances y entrega</span></div>
                 </div>
                 <div className="trust-item">
                   <div className="trust-icon"><svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M5 5l4 4M19 5l-4 4M5 19l4-4M19 19l-4-4"/></svg></div>
-                  <div><b>SSL + monitoreo</b><span>Activo las 24hs</span></div>
+                  <div><b>Hosting y SSL</b><span>Incluidos en el soporte</span></div>
                 </div>
                 <div className="trust-item">
                   <div className="trust-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 14 4 9l4-4M14 9l5-5-5 4"/><path d="M14 17l5 5M17 20h-3a8 8 0 0 1-8-8"/></svg></div>
-                  <div><b>Cancelá cuando quieras</b><span>Con 7 días de aviso</span></div>
+                  <div><b>Cancelá el soporte</b><span>Con 7 días de aviso</span></div>
                 </div>
                 <div className="trust-item">
                   <div className="trust-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.3c-1.6 0-3.1-.4-4.4-1.2L3 20l1.4-5A8.3 8.3 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3.2a8.4 8.4 0 0 1 8.5 8.3z"/><path d="m9 10 2 2 4-4"/></svg></div>
@@ -255,7 +236,7 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
               <p className="plan-note">
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M12 12v4"/></svg>
                 {rate ? "Precios en ARS según dólar venta Banco Nación (fuente: ComparaDolar), se actualizan automáticamente. " : ""}
-                El cobro se realiza en USD. Sin un plan mensual, el servicio deja de estar online. Cancelación con 7 días de aviso.
+                Los proyectos se cotizan a medida y se pagan por hitos acordados. El soporte mensual es opcional y se cancela con 7 días de aviso. El cobro se realiza en USD (o su equivalente en ARS).
               </p>
             </>
           )}
@@ -442,6 +423,13 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
         .pf-no { background: rgba(239,68,68,0.1); color: #f87171 }
         .plan-cta { margin-top: auto }
         .plan-cta .w-full { width: 100% }
+        .plan-activacion {
+          margin-top: auto;
+          font-family: var(--font-mono);
+          font-size: 0.68rem;
+          color: var(--color-text-faint);
+          padding-top: 4px;
+        }
 
         .plan-trust { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 34px }
         .trust-item {

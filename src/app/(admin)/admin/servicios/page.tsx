@@ -46,7 +46,7 @@ export default async function AdminServicios() {
                       <td>{s.nombre}</td>
                       <td className="a-dim">{s.descripcion}</td>
                       <td className="a-mono">
-                        ${(s.precioUnico / 100).toFixed(0)} único · {s.precioBasico > 0 ? `$${(s.precioBasico / 100).toFixed(0)}/mes` : "—"} · {s.precioMantenimiento > 0 ? `$${(s.precioMantenimiento / 100).toFixed(0)}/mes` : "—"}
+                        ${(s.precioUnico / 100).toFixed(0)} impl. · {s.precioBasico > 0 ? `$${(s.precioBasico / 100).toFixed(0)}` : "—"} soporte · {s.precioMantenimiento > 0 ? `$${(s.precioMantenimiento / 100).toFixed(0)}` : "—"} premium
                       </td>
                       <td>
                         <span className={cn("a-pill", p.cls)}><i />{p.label}</span>

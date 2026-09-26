@@ -4,16 +4,16 @@ import { useState } from "react"
 
 const ITEMS = [
   {
-    q: "¿Cómo se cobra y en qué moneda?",
-    a: "El cobro se realiza en USD. En la web ves el equivalente estimado en ARS según el dólar del día, que se actualiza automáticamente.",
+    q: "¿Cómo se paga un proyecto?",
+    a: "Se cotiza a medida según el alcance y se paga por hitos acordados: anticipo, avances y entrega. Cada hito se puede pagar con link de Mercado Pago o transferencia. El cobro se realiza en USD (o su equivalente en ARS).",
   },
   {
-    q: "¿Ya tengo hosting. ¿Puedo usarlo?",
-    a: "Sí. En el plan Básico el hosting corre incluido y gestionado por nosotros. Si preferís usar tu hosting actual, lo evaluamos en el plan Mantenimiento para garantizar seguridad y monitoreo.",
+    q: "¿Qué incluye el soporte?",
+    a: "El soporte básico incluye hosting, SSL, monitoreo activo y respuesta en menos de 24hs. El soporte premium agrega cambios mensuales de contenido y soporte prioritario. Es opcional y se activa cuando arrancamos el proyecto.",
   },
   {
-    q: "¿Cómo cancelo la suscripción?",
-    a: "Desde tu portal de cliente, con 7 días de aviso. Sin permanencia ni penalidades.",
+    q: "¿Cómo cancelo el soporte?",
+    a: "Cuando quieras, con 7 días de aviso. Sin permanencia ni penalidades — tu proyecto y tu código son tuyos.",
   },
 ]
 

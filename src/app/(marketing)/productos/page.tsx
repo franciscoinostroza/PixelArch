@@ -38,15 +38,9 @@ const FALLBACK_TAGS: Record<string, string[]> = {
   "Infraestructura & Cloud": ["Docker", "Linux", "CI/CD"],
 }
 
-function formatPrice(precio: number) {
-  if (!precio) return null
-  return `$${(precio / 100).toFixed(0)}`
-}
-
-function priceAmount(precioBasico: number, rate: number | null) {
-  if (!precioBasico) return null
-  if (rate) return formatARS(precioBasico, rate)
-  return formatPrice(precioBasico)
+function priceAmount(precioUnico: number) {
+  if (!precioUnico) return null
+  return formatUSD(precioUnico)
 }
 
 export default async function ProductosPage() {
@@ -93,22 +87,22 @@ export default async function ProductosPage() {
                   </div>
                   <div className="product-foot">
                     <div className="product-price">
-                      {priceAmount(s.precioBasico, rate) && (
+                      {priceAmount(s.precioUnico) && (
                         <>
-                          <span className="product-from">Desde</span>
+                          <span className="product-from">Implementación desde</span>
                           <span className="product-amount">
-                            {priceAmount(s.precioBasico, rate)}
-                            <small>{rate ? "ARS/mes" : "/mes"}</small>
-                            {rate && s.precioBasico > 0 && (
-                              <span className="product-usd">≈ {formatUSD(s.precioBasico)}</span>
+                            {priceAmount(s.precioUnico)}
+                            {rate && s.precioUnico > 0 && <small>≈ {formatARS(s.precioUnico, rate)}</small>}
+                            {s.precioBasico > 0 && (
+                              <span className="product-usd">Soporte opcional desde {formatUSD(s.precioBasico)}/mes</span>
                             )}
                           </span>
                         </>
                       )}
                     </div>
-                    <span className="product-more">Ver planes →</span>
+                    <span className="product-more">Ver detalle →</span>
                   </div>
-                  <span className="product-note">Precio mensual · incluye hosting y soporte</span>
+                  <span className="product-note">Proyecto por hitos · soporte opcional</span>
                 </article>
               </Link>
             ))

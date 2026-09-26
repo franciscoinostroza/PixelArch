@@ -50,9 +50,8 @@ export function Services({ servicios, rate }: ServicesProps) {
   }))
 
   const priceAmount = (s: ServiceItem) => {
-    if (!s.precioBasico) return null
-    if (rate) return formatARS(s.precioBasico, rate)
-    return `$${(s.precioBasico / 100).toFixed(0)}`
+    if (!s.precioUnico) return null
+    return formatUSD(s.precioUnico)
   }
 
   return (
@@ -94,20 +93,20 @@ export function Services({ servicios, rate }: ServicesProps) {
                   <div className="product-price">
                     {priceAmount(s) && (
                       <>
-                        <span className="product-from">Desde</span>
+                        <span className="product-from">Implementación desde</span>
                         <span className="product-amount">
                           {priceAmount(s)}
-                          <small>{rate ? "ARS/mes" : "/mes"}</small>
-                          {rate && s.precioBasico > 0 && (
-                            <span className="product-usd">≈ {formatUSD(s.precioBasico)}</span>
+                          {rate && s.precioUnico > 0 && <small>≈ {formatARS(s.precioUnico, rate)}</small>}
+                          {s.precioBasico > 0 && (
+                            <span className="product-usd">Soporte opcional desde {formatUSD(s.precioBasico)}/mes</span>
                           )}
                         </span>
                       </>
                     )}
                   </div>
-                  <span className="product-more">Ver planes →</span>
+                  <span className="product-more">Ver detalle →</span>
                 </div>
-                <span className="product-note">Precio mensual · incluye hosting y soporte</span>
+                <span className="product-note">Proyecto por hitos · soporte opcional</span>
               </article>
             </Link>
           ))}

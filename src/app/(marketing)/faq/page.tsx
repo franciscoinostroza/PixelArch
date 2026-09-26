@@ -14,32 +14,32 @@ const CATEGORIES: FaqCategory[] = [
     items: [
       {
         q: "¿En qué moneda me cobran?",
-        a: "En USD a través de nuestra pasarela de pagos, con tarjeta internacional. En la web ves el equivalente en ARS según el dólar del día, que se actualiza automáticamente.",
+        a: "El cobro se realiza en USD. Si pagás en pesos (Mercado Pago o transferencia), se toma el dólar venta del día y en la web ves el equivalente estimado en ARS.",
       },
       {
-        q: "¿Emiten factura o comprobante?",
-        a: "Sí. Cada pago genera un comprobante automático que recibís por email. Desde tu portal de cliente podés descargar todo el historial de pagos cuando quieras.",
+        q: "¿Cómo se paga un proyecto?",
+        a: "Los proyectos se cotizan a medida y se pagan por hitos acordados: anticipo, avances y entrega. Cada hito se puede pagar con link de Mercado Pago o transferencia.",
       },
       {
-        q: "¿Qué pasa si falla el pago?",
-        a: "El sistema reintenta automáticamente. Te avisamos por email y tenés 30 días para regularizar antes de que el servicio se pause. Nunca se corta de un día para el otro.",
+        q: "¿Emiten comprobante?",
+        a: "Sí. Cada pago genera un recibo automático que te llega por email, con el detalle del hito o del mes de soporte.",
       },
     ],
   },
   {
-    titulo: "Planes y plazos",
+    titulo: "Proyectos y plazos",
     items: [
       {
         q: "¿Cuánto tarda un proyecto?",
         a: "Depende del alcance: una landing page entre 1 y 2 semanas, un sitio web completo entre 3 y 6 semanas, y un agente de IA entre 4 y 8 semanas. Al arrancar te damos un cronograma con fechas concretas.",
       },
       {
-        q: "¿Qué incluye el plan mensual?",
-        a: "Hosting, certificado SSL, monitoreo activo y soporte continuo. Es lo que mantiene tu servicio online y actualizado mes a mes.",
+        q: "¿Cómo se cotiza?",
+        a: "Según el alcance. Nos contás el objetivo y armamos una propuesta con los hitos y sus montos. La cotización es sin cargo y sin compromiso.",
       },
       {
-        q: "¿Qué pasa si no estoy conforme con el resultado?",
-        a: "Trabajamos por hitos: revisás cada entrega antes de avanzar a la siguiente. Si en la entrega final algo no cumple lo acordado, lo corregimos sin cargo.",
+        q: "¿Qué incluye la entrega?",
+        a: "El proyecto funcionando y el código fuente con todos los activos: tuyos. Además, documentación de lo que construimos para que no dependas de nadie.",
       },
     ],
   },
@@ -47,12 +47,16 @@ const CATEGORIES: FaqCategory[] = [
     titulo: "Soporte",
     items: [
       {
-        q: "¿Cómo los contacto si tengo un problema?",
-        a: "WhatsApp directo para urgencias y email para todo lo demás. Respondemos en menos de 24hs; las caídas de servicio se detectan por monitoreo y se atienden al instante.",
+        q: "¿Qué incluye el soporte básico?",
+        a: "Hosting, certificado SSL, monitoreo activo y respuesta en menos de 24hs. Sin cambios de contenido.",
       },
       {
-        q: "¿Hacen cambios después de entregar?",
-        a: "Con el plan Mantenimiento tenés cambios mensuales incluidos. Con Básico, los cambios se cotizan aparte. Siempre te decimos el costo antes de hacerlos.",
+        q: "¿Qué agrega el soporte premium?",
+        a: "Todo lo del básico, más cambios mensuales de contenido y soporte prioritario. Para que tu proyecto evolucione sin fricción.",
+      },
+      {
+        q: "¿Cuándo se activa el soporte?",
+        a: "Cuando arrancamos el proyecto. Es opcional: sin un soporte activo, el servicio hospedado puede darse de baja.",
       },
     ],
   },
@@ -60,12 +64,12 @@ const CATEGORIES: FaqCategory[] = [
     titulo: "Cancelación",
     items: [
       {
-        q: "¿Cómo cancelo la suscripción?",
-        a: "Desde tu portal de cliente, con 7 días de aviso. Sin permanencia ni penalidades.",
+        q: "¿Cómo cancelo el soporte?",
+        a: "Cuando quieras, con 7 días de aviso. Sin permanencia ni penalidades.",
       },
       {
-        q: "¿Qué pasa con mi web si cancelo?",
-        a: "Podés comprar el código fuente y llevarte todo. Sin un plan mensual el servicio deja de estar online, pero tu código y tus datos son tuyos.",
+        q: "¿Qué pasa con mi proyecto si cancelo el soporte?",
+        a: "El código y los activos son tuyos. El servicio hospedado deja de estar online; si querés, te ayudamos a migrarlo a tu propia infraestructura.",
       },
     ],
   },

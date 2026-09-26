@@ -9,12 +9,12 @@ export const metadata: Metadata = {
 
 const sections = [
   { num: "01", title: "Aceptación de los Términos", text: "Al acceder y utilizar los servicios de PixelArch, usted acepta estar sujeto a estos Términos del Servicio. Si no está de acuerdo con alguna parte, no debe utilizar nuestros servicios." },
-  { num: "02", title: "Descripción del Servicio", text: "PixelArch ofrece servicios de desarrollo web, chatbots inteligentes, agentes de IA, landing pages, automatizaciones e integraciones. Los servicios se prestan de acuerdo con el plan contratado y las especificaciones acordadas al momento de la compra." },
-  { num: "03", title: "Planes Mensuales y Hosting", text: "Los planes mensuales (Básico y Mantenimiento) incluyen el hosting del servicio como parte del valor. El plan Básico mantiene el servicio online y funcionando, sin cambios ni soporte. El plan Mantenimiento incluye además cambios mensuales y soporte prioritario. Si el cliente no renueva su plan mensual, el servicio se dará de baja a los 7 días posteriores al vencimiento del pago." },
-  { num: "04", title: "Facturación y Pagos", text: "Los precios se especifican en cada plan y pueden ser de pago único o recurrente mensual. Los pagos recurrentes se facturarán al inicio de cada período. El cliente es responsable de mantener actualizada su información de pago." },
+  { num: "02", title: "Descripción del Servicio", text: "PixelArch ofrece servicios de desarrollo web, chatbots inteligentes, agentes de IA, landing pages, automatizaciones e integraciones. Los servicios se prestan según el proyecto acordado y sus especificaciones e hitos definidos en la contratación." },
+  { num: "03", title: "Proyectos y Soporte", text: "Los proyectos se cotizan a medida y se pagan por hitos acordados (anticipo, avances y entrega). El soporte mensual (básico o premium) incluye el hosting del servicio, SSL y monitoreo. Sin un soporte activo, el servicio hospedado puede darse de baja a los 7 días posteriores al vencimiento del pago." },
+  { num: "04", title: "Facturación y Pagos", text: "Los proyectos se facturan por hitos y el soporte de forma mensual. Los pagos pueden realizarse con link de Mercado Pago o transferencia, en USD o su equivalente en ARS. El cliente es responsable de mantener actualizada su información de pago." },
   { num: "05", title: "Responsabilidades del Cliente", text: "El cliente se compromete a proporcionar información precisa y actualizada, cumplir con todas las leyes aplicables, y no utilizar los servicios para actividades ilegales o no autorizadas." },
-  { num: "06", title: "Cancelaciones y Reembolsos", text: "Las cancelaciones de suscripciones mensuales se procesan de inmediato y el servicio continúa hasta el final del período facturado. No se realizan reembolsos parciales por tiempo no utilizado, excepto cuando corresponda según nuestra Política de Reembolsos." },
-  { num: "07", title: "Propiedad Intelectual", text: "El código y los activos desarrollados por PixelArch para proyectos de pago único se transfieren al cliente. PixelArch conserva el derecho de mostrar el trabajo en su portafolio, salvo acuerdo en contrario." },
+  { num: "06", title: "Cancelaciones y Reembolsos", text: "La cancelación del soporte se procesa con 7 días de aviso y el servicio continúa hasta el final del período facturado. Los hitos ya entregados no se reembolsan. No se realizan reembolsos parciales por tiempo no utilizado, excepto cuando corresponda según nuestra Política de Reembolsos." },
+  { num: "07", title: "Propiedad Intelectual", text: "El código y los activos desarrollados por PixelArch para cada proyecto se transfieren al cliente al completarse los hitos acordados. PixelArch conserva el derecho de mostrar el trabajo en su portafolio, salvo acuerdo en contrario." },
   { num: "08", title: "Limitación de Responsabilidad", text: "PixelArch no será responsable por daños indirectos, incidentales o consecuentes derivados del uso o la imposibilidad de usar los servicios. La responsabilidad total se limita al monto pagado por el servicio en los últimos 12 meses." },
   { num: "09", title: "Modificaciones", text: "Nos reservamos el derecho de modificar estos términos en cualquier momento. Los cambios serán notificados a través de nuestro sitio web. El uso continuado de los servicios después de las modificaciones constituye la aceptación de los nuevos términos." },
   { num: "10", title: "Contacto", text: "Para consultas sobre estos términos, puede contactarnos a través de nuestro formulario de contacto o enviando un correo a hola@pixelarch.dev." },
@@ -33,7 +33,7 @@ export default function TerminosPage() {
           <div className="section-head" style={{ marginBottom: "40px" }}>
             <p className="eyebrow">Legal</p>
             <h2 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", marginBottom: "8px" }}>Términos del Servicio</h2>
-            <p style={{ color: "var(--color-text-dim)", fontSize: ".82rem" }}>Última actualización: Junio 2026</p>
+            <p style={{ color: "var(--color-text-dim)", fontSize: ".82rem" }}>Última actualización: Septiembre 2026</p>
           </div>
 
           <div className="space-y-10">

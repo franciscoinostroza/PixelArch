@@ -191,7 +191,7 @@ async function seed() {
       { titulo: "Consulta", descripcion: "Entendemos tu necesidad y definimos el alcance del proyecto." },
       { titulo: "Desarrollo", descripcion: "Creamos la solucion con tecnologias modernas y buenas practicas." },
       { titulo: "Entrega", descripcion: "Te entregamos el proyecto completo con documentacion y soporte." },
-      { titulo: "Mantenimiento", descripcion: "Mantenemos tu servicio activo con planes mensuales flexibles." },
+      { titulo: "Mantenimiento", descripcion: "Mantenemos tu servicio activo con un soporte mensual flexible." },
     ],
   }
 

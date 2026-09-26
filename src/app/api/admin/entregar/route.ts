@@ -41,11 +41,11 @@ export async function POST(req: Request) {
           "¡Tu proyecto esta entregado!",
           "",
           `Tu ${suscripcion.servicio.nombre} esta listo.`,
-          "Para mantenerlo activo, elegi un plan mensual y escribinos para activarlo:",
+          "Para mantenerlo activo, elegi un soporte mensual y escribinos para activarlo:",
           `${process.env.NEXT_PUBLIC_URL}/#contacto`,
           "",
-          `Plan Basico: $${(suscripcion.servicio.precioBasico / 100).toFixed(0)}/mes — servicio online con hosting incluido, sin cambios`,
-          `Plan Mantenimiento: $${(suscripcion.servicio.precioMantenimiento / 100).toFixed(0)}/mes — servicio online + cambios + soporte`,
+          `Soporte basico: $${(suscripcion.servicio.precioBasico / 100).toFixed(0)}/mes — servicio online, hosting, SSL y monitoreo`,
+          `Soporte premium: $${(suscripcion.servicio.precioMantenimiento / 100).toFixed(0)}/mes — todo lo del basico + cambios mensuales y soporte prioritario`,
         ].join("\n"),
       })
       logger.info("Project ready email sent", { suscripcionId })

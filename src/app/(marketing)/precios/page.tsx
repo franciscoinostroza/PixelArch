@@ -6,7 +6,7 @@ import { whatsappUrl } from "@/lib/contact"
 
 export const metadata: Metadata = {
   title: "Precios — PixelArch",
-  description: "Todos los precios de PixelArch en un solo lugar: desarrollo web, chatbots, agentes de IA, landing pages, automatizaciones e integraciones. En ARS y USD.",
+  description: "Precios de referencia de PixelArch: implementaciones a medida (pagaderas por hitos) y soporte mensual básico o premium. En ARS y USD.",
   alternates: { canonical: "/precios" },
 }
 
@@ -62,10 +62,10 @@ export default async function PreciosPage() {
         <div className="section-head" style={{ maxWidth: "660px", marginBottom: "46px" }}>
           <p className="eyebrow">Precios</p>
           <h1 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.9rem, 3.6vw, 2.8rem)", marginBottom: "14px" }}>
-            Todos los precios, en un solo lugar
+            Precios de referencia, sin letra chica
           </h1>
           <p style={{ color: "var(--color-text-dim)", fontSize: "1.02rem", lineHeight: 1.7 }}>
-            Compará los 6 productos y sus 3 modalidades de una sola vez. Todos los planes mensuales incluyen hosting, SSL, monitoreo y soporte.
+            Cada implementación se cotiza a medida según su alcance y se paga por hitos acordados. El soporte mensual es opcional — incluye hosting, SSL y monitoreo.
           </p>
         </div>
 
@@ -80,9 +80,9 @@ export default async function PreciosPage() {
                 <thead>
                   <tr>
                     <th>Producto</th>
-                    <th>Compra del Código</th>
-                    <th className="hl">Básico <span className="th-sub">/mes</span></th>
-                    <th>Mantenimiento <span className="th-sub">/mes</span></th>
+                    <th className="hl">Implementación <span className="th-sub">desde</span></th>
+                    <th>Soporte básico <span className="th-sub">/mes</span></th>
+                    <th>Soporte premium <span className="th-sub">/mes</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -94,11 +94,11 @@ export default async function PreciosPage() {
                           {s.titulo}
                         </Link>
                       </td>
-                      <td className="price">
-                        {s.precioUnico > 0 ? formatUSD(s.precioUnico) : "—"}
-                        {s.precioUnico > 0 && <span className="usd">pago único</span>}
-                      </td>
                       <td className="price price-hl">
+                        {s.precioUnico > 0 ? formatUSD(s.precioUnico) : "—"}
+                        {s.precioUnico > 0 && <span className="usd">a medida · se paga por hitos</span>}
+                      </td>
+                      <td className="price">
                         {ars(s.precioBasico, rate)}
                         {usdRef(s.precioBasico, rate) && <span className="usd">{usdRef(s.precioBasico, rate)}</span>}
                       </td>
@@ -114,7 +114,7 @@ export default async function PreciosPage() {
 
             <p className="ptable-note">
               {rate ? "Precios en ARS según dólar venta Banco Nación (fuente: ComparaDolar), se actualizan automáticamente. " : ""}
-              El cobro se realiza en USD. Los planes mensuales incluyen hosting, SSL y monitoreo; sin un plan mensual el servicio deja de estar online.
+              Los proyectos se cotizan a medida y se pagan por hitos acordados (anticipo, avances y entrega), con link de Mercado Pago o transferencia. El soporte mensual es opcional y se cancela con 7 días de aviso.
             </p>
           </>
         )}
@@ -122,25 +122,25 @@ export default async function PreciosPage() {
         <div className="precios-cards">
           <article className="precio-card">
             <span className="precio-line" aria-hidden="true" />
-            <h3>¿Puedo cambiar de plan?</h3>
-            <p>Sí, cuando quieras. El cambio se aplica en el siguiente ciclo de facturación, sin costo adicional.</p>
+            <h3>¿Cómo se paga un proyecto?</h3>
+            <p>Se cotiza a medida según el alcance y se paga por hitos: anticipo, avances y entrega. Cada hito se paga con link de Mercado Pago o transferencia.</p>
           </article>
           <article className="precio-card">
             <span className="precio-line" aria-hidden="true" />
-            <h3>¿Hay permanencia mínima?</h3>
-            <p>No. Cancelás cuando quieras con 7 días de aviso, desde tu portal de cliente y sin penalidades.</p>
+            <h3>¿Qué incluye el soporte?</h3>
+            <p>Hosting, SSL, monitoreo activo y respuesta en menos de 24hs. El premium agrega cambios mensuales de contenido y soporte prioritario.</p>
           </article>
           <article className="precio-card">
             <span className="precio-line" aria-hidden="true" />
-            <h3>¿Qué incluye la Compra del Código?</h3>
-            <p>El código fuente completo del proyecto, tuyo para siempre. Es opcional y sumable a cualquier plan.</p>
+            <h3>¿Puedo cancelar el soporte?</h3>
+            <p>Sí, cuando quieras con 7 días de aviso. Sin permanencia ni penalidades — tu proyecto y tu código son tuyos.</p>
           </article>
         </div>
 
         <div className="precios-cta">
           <div>
-            <h3>¿No sabés qué plan te conviene?</h3>
-            <p>Contanos tu caso y te recomendamos el más adecuado — sin venderte de más.</p>
+            <h3>¿Querés una cotización?</h3>
+            <p>Contanos tu proyecto y te armamos una propuesta con hitos — sin compromiso.</p>
           </div>
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
             <a href={whatsappUrl()} target="_blank" rel="noopener noreferrer" className="btn btn-primary">

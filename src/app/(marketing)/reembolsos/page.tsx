@@ -8,8 +8,8 @@ export const metadata: Metadata = {
 }
 
 const sections = [
-  { num: "01", title: "Pagos Únicos", text: "Los pagos únicos por desarrollo de proyectos no son reembolsables una vez que el trabajo ha comenzado, salvo que PixelArch no pueda cumplir con los términos acordados. Si el proyecto no ha iniciado, se puede solicitar un reembolso completo dentro de los 7 días posteriores al pago." },
-  { num: "02", title: "Planes Mensuales", text: "Las suscripciones mensuales (Básico y Mantenimiento) se pueden cancelar en cualquier momento. El servicio continúa hasta el final del período facturado. No se realizan reembolsos parciales por tiempo no utilizado del período en curso." },
+  { num: "01", title: "Implementaciones por hitos", text: "Los pagos de hitos ya entregados no son reembolsables, salvo que PixelArch no pueda cumplir con los términos acordados. Si el proyecto no ha iniciado, se puede solicitar un reembolso completo dentro de los 7 días posteriores al pago." },
+  { num: "02", title: "Soporte mensual", text: "El soporte mensual (básico o premium) se puede cancelar en cualquier momento con 7 días de aviso. El servicio continúa hasta el final del período facturado. No se realizan reembolsos parciales por tiempo no utilizado del período en curso." },
   { num: "03", title: "Cancelación por parte de PixelArch", text: "En caso de que PixelArch cancele un servicio por incumplimiento de los términos, no se realizará reembolso del período en curso." },
   { num: "04", title: "Proceso de Reembolso", text: "Para solicitar un reembolso, contactanos a través de nuestro formulario de contacto o enviando un correo a hola@pixelarch.dev. Procesaremos tu solicitud dentro de los 10 días hábiles posteriores a su aprobación." },
   { num: "05", title: "Excepciones", text: "Los reembolsos pueden no aplicarse en casos de violación de los términos del servicio, uso indebido de la plataforma, o cuando el servicio haya sido entregado en su totalidad según lo acordado." },
@@ -28,7 +28,7 @@ export default function ReembolsosPage() {
           <div className="section-head" style={{ marginBottom: "40px" }}>
             <p className="eyebrow">Legal</p>
             <h2 style={{ fontFamily: "var(--font-pixel-display)", fontWeight: 700, letterSpacing: 0, fontSize: "clamp(1.5rem, 2.5vw, 2rem)", marginBottom: "8px" }}>Política de Reembolsos</h2>
-            <p style={{ color: "var(--color-text-dim)", fontSize: ".82rem" }}>Última actualización: Junio 2026</p>
+            <p style={{ color: "var(--color-text-dim)", fontSize: ".82rem" }}>Última actualización: Septiembre 2026</p>
           </div>
 
           <div className="space-y-10">

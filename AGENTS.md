@@ -170,12 +170,12 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 
 ## Pendiente
 
-- [ ] **Mercado Pago**: prueba E2E del cobro por hito en produccion (link → pago → hito Pagado) + reembolso
-- [ ] **Newsletter**: Resend Audiences + form en el blog + envio automatico al publicar (webhook de Sanity)
-- [ ] **Analytics**: Umami Cloud (falta crear cuenta + Website ID)
-- [ ] Unificar "Nosotros": la seccion de la landing vs la pagina `/nosotros` (quedo pendiente definir)
-- [ ] Pasos manuales: desactivar registro en Clerk + invitar asistente a su correo
-- [ ] (Opcional) Mercado Pago fase 2: Suscripciones automaticas (preapproval)
+- [ ] Pasos manuales: desactivar registro publico en Clerk + invitar a la asistente · borrar el webhook de Polar en su panel
+
+## Descartado / no planificado (por decision, Sept 2026)
+
+- Prueba E2E del cobro por hito: **integracion de Mercado Pago verificada y funcionando** (link → pago → hito Pagado)
+- Newsletter (Resend Audiences) · Analytics (Umami Cloud) · unificar "Nosotros" · Mercado Pago fase 2 (preapproval): no se haran por ahora
 
 ---
 

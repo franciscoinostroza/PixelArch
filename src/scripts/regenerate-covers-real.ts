@@ -59,6 +59,36 @@ const COVERS: Record<string, CoverSource> = {
     credit: "Foto: Wikimedia Commons (CC)",
     needUA: true,
   },
+  "cuanto-cuesta-una-pagina-web-argentina": {
+    url: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1200&q=80&auto=format&fit=crop",
+    credit: "Foto: Unsplash",
+    needUA: false,
+  },
+  "whatsapp-business-automatizar-trato-humano": {
+    url: "https://images.unsplash.com/photo-1611746872915-64382b5c76da?w=1200&q=80&auto=format&fit=crop",
+    credit: "Foto: Unsplash",
+    needUA: false,
+  },
+  "integrar-mercado-pago-en-tu-web": {
+    url: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=1200&q=80&auto=format&fit=crop",
+    credit: "Foto: Unsplash",
+    needUA: false,
+  },
+  "seo-local-google-maps": {
+    url: "https://images.unsplash.com/photo-1524661135-423995f22d0b?w=1200&q=80&auto=format&fit=crop",
+    credit: "Foto: Unsplash",
+    needUA: false,
+  },
+  "correo-con-tu-dominio": {
+    url: "https://images.unsplash.com/photo-1596526131083-e8c633c948d2?w=1200&q=80&auto=format&fit=crop",
+    credit: "Foto: Unsplash",
+    needUA: false,
+  },
+  "cuanto-cuesta-mantener-una-web": {
+    url: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&q=80&auto=format&fit=crop",
+    credit: "Foto: Unsplash",
+    needUA: false,
+  },
 }
 
 async function download(url: string, needUA: boolean): Promise<Buffer> {

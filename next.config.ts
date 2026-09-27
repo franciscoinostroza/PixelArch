@@ -1,4 +1,5 @@
 import type { NextConfig } from "next"
+import { withSentryConfig } from "@sentry/nextjs/config"
 
 const csp = [
   "default-src 'self'",
@@ -6,7 +7,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://img.clerk.com https://clerk.pixelarch.dev https://cdn.sanity.io",
   "font-src 'self'",
-  "connect-src 'self' https://*.clerk.accounts.dev https://clerk.pixelarch.dev https://*.sanity.io https://api.resend.com",
+  "connect-src 'self' https://*.clerk.accounts.dev https://clerk.pixelarch.dev https://*.sanity.io https://api.resend.com https://*.sentry.io",
   "worker-src 'self' blob:",
   "frame-src 'self' https://*.clerk.accounts.dev https://clerk.pixelarch.dev https://challenges.cloudflare.com",
   "frame-ancestors 'none'",
@@ -55,4 +56,12 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG ?? "pixelarch",
+  project: process.env.SENTRY_PROJECT ?? "pixelarch",
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  widenClientFileUpload: true,
+  tunnelRoute: "/monitoring",
+  silent: !process.env.CI,
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+})

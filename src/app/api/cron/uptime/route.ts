@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import * as Sentry from "@sentry/nextjs"
 import { prisma } from "@/lib/prisma"
 import { logger } from "@/lib/logger"
 import { decidirAlertas, type CheckUptime } from "@/lib/uptime-alerts"
@@ -109,6 +110,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ ok: true, results, alertas })
   } catch (error) {
+    Sentry.captureException(error)
     logger.error("Error en monitoreo de uptime", { error: String(error) })
     return NextResponse.json({ error: "Error interno" }, { status: 500 })
   }

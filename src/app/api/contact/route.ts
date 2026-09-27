@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import * as Sentry from "@sentry/nextjs"
 import { contactSchema } from "@/lib/validations"
 import { resend } from "@/lib/resend"
 import { rateLimit } from "@/lib/rate-limit"
@@ -34,6 +35,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true })
   } catch (e) {
+    Sentry.captureException(e)
     logger.error("Error sending contact email", { error: String(e) })
     return NextResponse.json({ error: "Error interno" }, { status: 500 })
   }

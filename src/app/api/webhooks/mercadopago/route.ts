@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import * as Sentry from "@sentry/nextjs"
 import { WebhookSignatureValidator, InvalidWebhookSignatureError } from "mercadopago"
 import { prisma } from "@/lib/prisma"
 import { logger } from "@/lib/logger"
@@ -178,6 +179,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true })
   } catch (error) {
+    Sentry.captureException(error)
     logger.error("Error en webhook MP", { error: String(error) })
     return NextResponse.json({ ok: true })
   }

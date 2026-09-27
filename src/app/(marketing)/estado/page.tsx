@@ -223,7 +223,7 @@ export default async function EstadoPage() {
             )}
 
             <p className="estado-note">
-              Monitoreo propio: chequeos cada 10 minutos desde GitHub Actions a los endpoints de la plataforma, con historial de 120 días.
+              Monitoreo propio: chequeos cada 10 minutos a los endpoints de la plataforma, con historial de 120 días y alertas automáticas ante caídas.
               ¿Querés este mismo nivel de monitoreo para tu proyecto? <a href="/#contacto">Hablemos</a>.
             </p>
           </>

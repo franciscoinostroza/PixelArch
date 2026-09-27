@@ -1,8 +1,8 @@
 # PixelArch — Estado del Proyecto
 
 **Ultima actualizacion:** Septiembre 2026
-**Build:** Excelente | **TypeScript:** 0 errores | **Paginas:** 43 compiladas | **Tests:** 131 pasando
-**Deploy Railway:** Online | **BD:** PostgreSQL sincronizada | **Clerk:** Auth solo admin (gate con modal) | **Sanity:** Studio + Schemas + 9 articulos | **Pagos:** CRM por proyectos/hitos + soporte mensual + Mercado Pago (links)
+**Build:** Excelente | **TypeScript:** 0 errores | **Paginas:** 43 compiladas | **Tests:** 148 pasando
+**Deploy Railway:** Online | **BD:** PostgreSQL sincronizada | **Clerk:** Auth solo admin (gate con modal) | **Sanity:** Studio + Schemas + 15 articulos | **Pagos:** CRM por proyectos/hitos + soporte mensual + Mercado Pago (links)
 **URL:** https://pixelarch.dev
 
 ---
@@ -18,7 +18,7 @@
 | Sanity | v5 | Studio embebido en `/studio` |
 | Resend | v6 | Emails transaccionales |
 | Sentry | 10.57 | Error tracking (condicional a SENTRY_DSN) |
-| Vitest | 3.2.6 | Testing (131 tests) |
+| Vitest | 3.2.6 | Testing (148 tests) |
 | Deploy | Railway | Auto-deploy desde GitHub |
 
 ---
@@ -84,7 +84,8 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 | `/api/admin/suscripciones` | PATCH | Admin: activar/pausar/reactivar/cancelar/vencido + precio/vencimiento + deploy |
 | `/api/admin/entregar` | POST | Admin: marcar entregado + email |
 | `/api/admin/asignar-producto` | POST | Admin: asignar producto a cliente |
-| `/api/cron/uptime` | GET | Monitoreo: chequea 4 servicios (Railway Function `uptime-cron` cada 10 min; GitHub Actions de respaldo) |
+| `/api/cron/uptime` | GET | Monitoreo: chequea 4 servicios (Railway Function `uptime-cron` cada 10 min; GitHub Actions de respaldo) + alertas por email |
+| `/api/cron/digest` | GET | Digest diario de cobros por email (Railway Function `digest-cobros`, 9:00 ARG) |
 | `/api/revalidate` | POST | ISR on-demand |
 | `/api/health` | GET | Health check con status de DB |
 | `/api/reviews/google` | GET | Reseñas de Google (widget) |
@@ -111,6 +112,8 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 | `reading-time.ts` | Tiempo de lectura desde Portable Text |
 | `chat.ts` | Intents del chat demo (PixelBot) |
 | `deploy.ts` | Pausar/reanudar deploys (Railway/Vercel) |
+| `uptime-alerts.ts` | Logica pura de alertas de uptime por transicion (caida/recuperacion) |
+| `digest.ts` | Armado del digest diario de cobros (hitos, soportes, cobrado 24h) |
 
 ### UI Components clave (`src/components/`)
 
@@ -152,9 +155,11 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 ### Monitoreo propio (`/estado`)
 - Tabla `UptimeCheck` + **Railway Function `uptime-cron`** cada 10 min (dispara `/api/cron/uptime` con el secret; el workflow de GitHub Actions queda como respaldo)
 - 4 servicios: Sitio web, Blog, API, Base de datos (uptime, latencia, historial 90 dias, incidentes)
+- **Alertas por email** (por transicion, anti-spam): caida tras 2 fallos seguidos + aviso de recuperacion; si el sitio entero no responde, la funcion escribe el fallo directo en la BD y avisa por Resend
+- **Digest diario de cobros** (9:00 ARG via Railway Function `digest-cobros`): hitos vencidos/por vencer/sin fecha + soportes + cobrado ultimas 24h
 
 ### Blog
-- 9 articulos (contenido completo + portadas reales: Unsplash/Wikimedia)
+- 15 articulos (contenido completo + portadas reales: Unsplash/Wikimedia)
 - Reading time, relacionados, filtros por tags, RSS con XSLT
 
 ### Auditoria web gratis (`/auditoria`)
@@ -166,10 +171,17 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 - Sin registro publico, sin webhook de sync, sin portal de clientes
 - Rol admin via `publicMetadata.role`
 
+### Alertas de uptime + digest diario (Sept 2026)
+- **Alertas por transicion** (anti-spam): 2 fallos seguidos → email de caida; al volver → email de recuperacion; no repite mientras siga caido (`uptime-alerts.ts` + tests)
+- **Fallback del sitio entero caido**: la Railway Function `uptime-cron` escribe el fallo directo en la BD (con `pg`) y avisa por Resend si la API no responde
+- **Digest diario de cobros** (9:00 ARG): hitos vencidos/por vencer/sin fecha + soportes + cobrado 24h (`digest.ts` + tests, Railway Function `digest-cobros`)
+- Destinatario: `ADMIN_EMAIL` o `CONTACT_EMAIL` (hoy el Gmail del admin)
+
 ---
 
 ## Pendiente
 
+- [ ] **Sentry**: instalar `@sentry/nextjs` + configs condicionales a `SENTRY_DSN` (falta crear el proyecto en sentry.io y cargar el DSN en Railway)
 - [ ] Pasos manuales: desactivar registro publico en Clerk + invitar a la asistente · borrar el webhook de Polar en su panel
 
 ## Descartado / no planificado (por decision, Sept 2026)
@@ -182,7 +194,7 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 ## Tests
 
 ```
-✓ 16 test files | 131 tests | all passed
+✓ 18 test files | 148 tests | all passed
 ```
 
 `npm test` — correr tests

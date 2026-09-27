@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { logger } from "@/lib/logger"
+import { decidirAlertas, type CheckUptime } from "@/lib/uptime-alerts"
+import { sendUptimeAlert, sendUptimeRecovery } from "@/lib/notifications"
 
 export const dynamic = "force-dynamic"
 
@@ -47,6 +49,42 @@ async function check(target: CheckTarget) {
   }
 }
 
+async function procesarAlertas(resultados: CheckUptime[]) {
+  try {
+    const historiales = await Promise.all(
+      resultados.map((r) =>
+        prisma.uptimeCheck.findMany({
+          where: { servicio: r.servicio },
+          orderBy: { creadoEn: "desc" },
+          take: 3,
+          select: { servicio: true, ok: true, statusCode: true, latenciaMs: true },
+        })
+      )
+    )
+
+    const acciones = decidirAlertas(historiales)
+
+    for (const accion of acciones) {
+      if (accion.tipo === "caida") {
+        await sendUptimeAlert(accion.servicio, accion.statusCode, accion.latenciaMs)
+      } else {
+        await sendUptimeRecovery(accion.servicio)
+      }
+    }
+
+    if (acciones.length > 0) {
+      logger.warn("Uptime: alertas enviadas", {
+        acciones: acciones.map((a) => `${a.tipo}:${a.servicio}`),
+      })
+    }
+
+    return acciones
+  } catch (error) {
+    logger.error("Error procesando alertas de uptime", { error: String(error) })
+    return []
+  }
+}
+
 export async function GET(req: Request) {
   if (req.headers.get("x-cron-secret") !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 })
@@ -67,7 +105,9 @@ export async function GET(req: Request) {
       logger.info("Uptime: todos los servicios OK", { total: results.length })
     }
 
-    return NextResponse.json({ ok: true, results })
+    const alertas = await procesarAlertas(results)
+
+    return NextResponse.json({ ok: true, results, alertas })
   } catch (error) {
     logger.error("Error en monitoreo de uptime", { error: String(error) })
     return NextResponse.json({ error: "Error interno" }, { status: 500 })

@@ -17,7 +17,7 @@
 | Prisma | 7 | adapter `@prisma/adapter-pg` |
 | Sanity | v5 | Studio embebido en `/studio` |
 | Resend | v6 | Emails transaccionales |
-| Sentry | 10.57 | Error tracking (condicional a SENTRY_DSN) |
+| Sentry | 11 | Errors + tracing + replay (condicional a SENTRY_DSN, tunnel `/monitoring`) |
 | Vitest | 3.2.6 | Testing (148 tests) |
 | Deploy | Railway | Auto-deploy desde GitHub |
 
@@ -177,11 +177,19 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 - **Digest diario de cobros** (9:00 ARG): hitos vencidos/por vencer/sin fecha + soportes + cobrado 24h (`digest.ts` + tests, Railway Function `digest-cobros`)
 - Destinatario: `ADMIN_EMAIL` o `CONTACT_EMAIL` (hoy el Gmail del admin)
 
+### Observabilidad — Sentry (Sept 2026)
+- **SDK v11 en los 3 runtimes**: `instrumentation-client.ts` (browser), `sentry.server.config.ts` (Node), `sentry.edge.config.ts` (edge) + `instrumentation.ts` con `onRequestError`
+- **Errors + tracing** (100% dev / 10% prod) + **Session Replay** (10% sesiones, 100% con error; texto enmascarado por defecto)
+- **Tunnel `/monitoring`** (evita bloqueadores) + CSP con `*.sentry.io`; middleware excluye la ruta
+- `captureException` en catch criticos: webhook MP, contacto, cron uptime, cron digest; `global-error.tsx` para errores del root layout
+- Envs: `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN` en Railway (y `.env.local`); sin DSN queda inactivo (no-op)
+- Plugin oficial de Sentry instalado en Claude Code (`@sentry/agent-plugin`, skills sentry-*)
+
 ---
 
 ## Pendiente
 
-- [ ] **Sentry**: instalar `@sentry/nextjs` + configs condicionales a `SENTRY_DSN` (falta crear el proyecto en sentry.io y cargar el DSN en Railway)
+- [ ] **Sentry source maps** (opcional): crear Auth Token (`org:read` + `project:releases`) y cargar `SENTRY_AUTH_TOKEN` en Railway para stack traces legibles en produccion
 - [ ] Pasos manuales: desactivar registro publico en Clerk + invitar a la asistente · borrar el webhook de Polar en su panel
 
 ## Descartado / no planificado (por decision, Sept 2026)

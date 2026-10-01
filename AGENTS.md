@@ -183,13 +183,13 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 - **Tunnel `/monitoring`** (evita bloqueadores) + CSP con `*.sentry.io`; middleware excluye la ruta
 - `captureException` en catch criticos: webhook MP, contacto, cron uptime, cron digest; `global-error.tsx` para errores del root layout
 - Envs: `SENTRY_DSN` + `NEXT_PUBLIC_SENTRY_DSN` en Railway (y `.env.local`); sin DSN queda inactivo (no-op)
+- **Source maps**: `SENTRY_AUTH_TOKEN` + `SENTRY_ORG`/`SENTRY_PROJECT` como build args del Dockerfile (tambien `NEXT_PUBLIC_SENTRY_DSN`); el **release es el commit SHA** (`RAILWAY_GIT_COMMIT_SHA`, build + runtime); subida verificada en build ("Successfully uploaded source maps")
 - Plugin oficial de Sentry instalado en Claude Code (`@sentry/agent-plugin`, skills sentry-*)
 
 ---
 
 ## Pendiente
 
-- [ ] **Sentry source maps** (opcional): crear Auth Token (`org:read` + `project:releases`) y cargar `SENTRY_AUTH_TOKEN` en Railway para stack traces legibles en produccion
 - [ ] Pasos manuales: desactivar registro publico en Clerk + invitar a la asistente · borrar el webhook de Polar en su panel
 
 ## Descartado / no planificado (por decision, Sept 2026)

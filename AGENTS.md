@@ -86,7 +86,7 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 | `/api/admin/suscripciones` | PATCH | Admin: activar/pausar/reactivar/cancelar/vencido + precio/vencimiento + deploy |
 | `/api/admin/entregar` | POST | Admin: marcar entregado + email |
 | `/api/admin/asignar-producto` | POST | Admin: asignar producto a cliente |
-| `/api/cron/uptime` | GET | Monitoreo: chequea 4 servicios (Railway Function `uptime-cron` cada 10 min; GitHub Actions de respaldo) + alertas por email |
+| `/api/cron/uptime` | GET | Monitoreo: chequea 4 servicios (Railway Function `uptime-cron` cada 10 min) + alertas por email |
 | `/api/cron/digest` | GET | Digest diario de cobros por email (Railway Function `digest-cobros`, 9:00 ARG) |
 | `/api/revalidate` | POST | ISR on-demand |
 | `/api/health` | GET | Health check con status de DB |
@@ -155,7 +155,7 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 - Convive con el registro manual (transferencias/efectivo)
 
 ### Monitoreo propio (`/estado`)
-- Tabla `UptimeCheck` + **Railway Function `uptime-cron`** cada 10 min (dispara `/api/cron/uptime` con el secret; el workflow de GitHub Actions queda como respaldo)
+- Tabla `UptimeCheck` + **Railway Function `uptime-cron`** cada 10 min (dispara `/api/cron/uptime` con el secret; unica fuente, sin GitHub Actions)
 - 4 servicios: Sitio web, Blog, API, Base de datos (uptime, latencia, historial 90 dias, incidentes)
 - **Alertas por email** (por transicion, anti-spam): caida tras 2 fallos seguidos + aviso de recuperacion; si el sitio entero no responde, la funcion escribe el fallo directo en la BD y avisa por Resend
 - **Digest diario de cobros** (9:00 ARG via Railway Function `digest-cobros`): hitos vencidos/por vencer/sin fecha + soportes + cobrado ultimas 24h

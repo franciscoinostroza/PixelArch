@@ -37,6 +37,7 @@ npm install / npm uninstall                            # npm si funciona
 - `railway.toml` tiene **watchPatterns**: cambios solo en docs (AGENTS.md, MEMORY.md) → deploy **SKIPPED**. Para forzar build, tocar `src/**`, `Dockerfile`, `package.json`, etc.
 - **Cambios de envs NO invalidan la cache Docker** → para un rebuild real hace falta un cambio de codigo en un path vigilado.
 - Las **Functions programadas no corren al deployar** (solo en su horario); al crearlas corren una vez.
+- Monitoreo: **solo** la Railway Function `uptime-cron` (el workflow de GitHub Actions se elimino: corria cada ~2-5h por el throttling de GitHub, no servia como respaldo).
 - Copiar secretos entre servicios: `railway variables --json` → variable de shell → `--set` con output redirigido (nunca exponer en chat).
 - Logs de build de un deployment puntual: MCP `get-logs` con `types: ["build"]` (el CLI no combina `--deployment` con `--build`).
 - Si el disco se llena (`No space left on device`): limpiar `Temp`, cache npm y `.next`.

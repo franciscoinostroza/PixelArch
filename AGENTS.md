@@ -1,5 +1,7 @@
 # PixelArch — Estado del Proyecto
 
+> Memoria operativa del agente (workflow, comandos, gotchas): ver **MEMORY.md**.
+
 **Ultima actualizacion:** Septiembre 2026
 **Build:** Excelente | **TypeScript:** 0 errores | **Paginas:** 43 compiladas | **Tests:** 148 pasando
 **Deploy Railway:** Online | **BD:** PostgreSQL sincronizada | **Clerk:** Auth solo admin (gate con modal) | **Sanity:** Studio + Schemas + 15 articulos | **Pagos:** CRM por proyectos/hitos + soporte mensual + Mercado Pago (links)

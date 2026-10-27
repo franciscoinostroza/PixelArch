@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { precioDePlan } from "@/lib/pagos"
+import { formatearMonto, precioDePlan } from "@/lib/pagos"
 
 export default async function AdminDashboard() {
   const admin = await requireAdmin()
@@ -114,7 +114,7 @@ export default async function AdminDashboard() {
   const stats = [
     {
       label: "Ingresos USD (mes)",
-      value: `US$${(ingresoActualUsd / 100).toLocaleString("en-US")}`,
+      value: formatearMonto(ingresoActualUsd, "usd"),
       variant: "a" as const,
       iconBg: "v" as const,
       glyph: "$" as const,
@@ -130,7 +130,7 @@ export default async function AdminDashboard() {
     },
     {
       label: "Por cobrar (7 días)",
-      value: `US$${(totalPorCobrar / 100).toLocaleString("en-US")}`,
+      value: formatearMonto(totalPorCobrar, "usd"),
       variant: "b" as const,
       iconBg: "c" as const,
       glyph: "◷" as const,

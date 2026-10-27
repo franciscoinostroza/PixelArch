@@ -360,7 +360,9 @@
     font-size: 0.7rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--color-text-faint);
+    /* --color-text-dim (#a29cb3) mantiene contraste >= 4.5:1 sobre el panel;
+       --color-text-faint queda para adornos, no para texto informativo. */
+    color: var(--color-text-dim);
     font-weight: 500;
     padding: 12px 18px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -378,7 +380,7 @@
   .a-shell .a-table tr:hover td { background: rgba(255, 255, 255, 0.03) }
   .a-shell .a-table .a-dim { color: var(--color-text-dim) }
   .a-shell .a-table .a-mono { font-family: var(--font-mono); color: var(--color-text) }
-  .a-shell .a-table .a-faint { font-family: var(--font-mono); font-size: 0.76rem; color: var(--color-text-faint) }
+  .a-shell .a-table .a-faint { font-family: var(--font-mono); font-size: 0.76rem; color: var(--color-text-dim) }
   .a-shell .a-empty {
     padding: 48px 18px;
     text-align: center;
@@ -397,7 +399,7 @@
   .a-shell .a-prow:first-of-type { border-top: none }
   .a-shell .a-prow:hover { background: rgba(255, 255, 255, 0.03) }
   .a-shell .a-prow .a-name { font-weight: 600; font-size: 0.9rem }
-  .a-shell .a-prow .a-date { font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-text-faint); margin-top: 2px }
+  .a-shell .a-prow .a-date { font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-text-dim); margin-top: 2px }
   .a-shell .a-prow .a-amt { font-family: var(--font-mono); font-weight: 600; font-size: 0.9rem }
   .a-shell .a-right { display: flex; align-items: center; gap: 14px }
   .a-shell .a-filters {
@@ -418,7 +420,7 @@
     font-family: var(--font-mono);
     outline: none;
   }
-  .a-shell .a-field::placeholder { color: var(--color-text-faint) }
+  .a-shell .a-field::placeholder { color: var(--color-text-dim) }
   .a-shell .a-field:focus { border-color: rgba(139, 92, 246, 0.5) }
   .a-shell .a-btn {
     display: inline-flex;
@@ -487,4 +489,13 @@
   background: rgba(248,113,113,0.15);
   color: #f87171;
   border: 1px solid rgba(248,113,113,0.35);
+}
+
+/* Recibo imprimible: sin sidebar ni margenes del admin en papel/PDF. */
+@media print {
+  .a-shell { display: block !important }
+  .a-shell .a-side,
+  .a-shell .a-menu,
+  .a-shell .a-side-foot { display: none !important }
+  .a-shell .a-main { margin-left: 0 !important; padding: 0 !important }
 }

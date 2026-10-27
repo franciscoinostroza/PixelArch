@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Loader2, Link2, Copy, Check } from "lucide-react"
 import { waLink } from "@/lib/contact"
+import { formatearMonto } from "@/lib/pagos"
 
 interface Props {
   hitoId: string
@@ -127,9 +128,9 @@ export function GenerarLinkHitoButton({
             <p
               className="text-xs text-text-dim mb-5"
               style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-              title={`${hitoTitulo} · ≈ US$${(precioUsd / 100).toFixed(0)}`}
+              title={`${hitoTitulo} · ≈ ${formatearMonto(precioUsd, "usd")}`}
             >
-              {hitoTitulo} · ≈ US${(precioUsd / 100).toFixed(0)}
+              {hitoTitulo} · ≈ {formatearMonto(precioUsd, "usd")}
             </p>
 
             {link ? (
@@ -187,7 +188,7 @@ export function GenerarLinkHitoButton({
                     className="w-full rounded-lg border border-border bg-bg px-3 py-2.5 text-sm text-text font-mono"
                   />
                   <p className="text-text-dim mt-1" style={{ fontFamily: "var(--font-mono)", fontSize: ".66rem" }}>
-                    ≈ US${(precioUsd / 100).toFixed(0)} — editable para descuentos
+                    ≈ {formatearMonto(precioUsd, "usd")} — editable para descuentos
                   </p>
                 </div>
 

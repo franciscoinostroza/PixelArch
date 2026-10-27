@@ -13,9 +13,11 @@ interface Props {
   precioUsd: number
   precioArs: number | null
   size?: "sm" | "default"
+  /** `false` oculta el registro manual generico (accion solo admin). */
+  puedeRegistrar?: boolean
 }
 
-export function RegistrarPagoHitoButton({ hitoId, hitoTitulo, proyectoTitulo, precioUsd, precioArs, size = "sm" }: Props) {
+export function RegistrarPagoHitoButton({ hitoId, hitoTitulo, proyectoTitulo, precioUsd, precioArs, size = "sm", puedeRegistrar = true }: Props) {
   const [open, setOpen] = useState(false)
   const [moneda, setMoneda] = useState<"usd" | "ars">("usd")
   const [monto, setMonto] = useState("")
@@ -73,6 +75,8 @@ export function RegistrarPagoHitoButton({ hitoId, hitoTitulo, proyectoTitulo, pr
       setLoading(false)
     }
   }
+
+  if (!puedeRegistrar) return null
 
   return (
     <>

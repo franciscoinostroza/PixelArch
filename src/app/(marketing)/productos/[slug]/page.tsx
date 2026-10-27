@@ -3,7 +3,8 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { ProductFaq } from "@/components/ui/product-faq"
-import { getDolarVentaBancoNacion, formatARS, formatUSD } from "@/lib/dolar"
+import { getDolarVentaBancoNacion, formatARS } from "@/lib/dolar"
+import { formatearMonto } from "@/lib/pagos"
 import { whatsappUrl } from "@/lib/contact"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -59,7 +60,7 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
     return `$${(cents / 100).toFixed(0)}`
   }
 
-  const priceRef = (cents: number) => (rate && cents > 0 ? `≈ ${formatUSD(cents)}/mes` : null)
+  const priceRef = (cents: number) => (rate && cents > 0 ? `≈ ${formatearMonto(cents, "usd")}/mes` : null)
 
   const jsonLd = servicioDB ? {
     "@context": "https://schema.org",
@@ -138,7 +139,7 @@ export default async function ProductoPage({ params }: { params: Promise<{ slug:
                     <>
                       <span className="plan-from">Desde</span>
                       <span className="plan-price">{price(servicioDB.precioUnico)}</span>
-                      {rate && <span className="plan-ref">≈ {formatUSD(servicioDB.precioUnico)}</span>}
+                      {rate && <span className="plan-ref">≈ {formatearMonto(servicioDB.precioUnico, "usd")}</span>}
                     </>
                   )}
                   <p className="plan-desc">Proyecto cotizado según alcance. Se paga por hitos acordados: anticipo, avances y entrega.</p>

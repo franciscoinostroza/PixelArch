@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { requireAdmin } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { formatearMonto } from "@/lib/pagos"
 
 function pillOf(activo: boolean) {
   return activo ? { cls: "a-pill mint", label: "Activo" } : { cls: "a-pill gray", label: "Inactivo" }
@@ -46,7 +47,7 @@ export default async function AdminServicios() {
                       <td>{s.nombre}</td>
                       <td className="a-dim">{s.descripcion}</td>
                       <td className="a-mono">
-                        ${(s.precioUnico / 100).toFixed(0)} impl. · {s.precioBasico > 0 ? `$${(s.precioBasico / 100).toFixed(0)}` : "—"} soporte · {s.precioMantenimiento > 0 ? `$${(s.precioMantenimiento / 100).toFixed(0)}` : "—"} premium
+                        {formatearMonto(s.precioUnico, "usd")} impl. · {s.precioBasico > 0 ? formatearMonto(s.precioBasico, "usd") : "—"} soporte · {s.precioMantenimiento > 0 ? formatearMonto(s.precioMantenimiento, "usd") : "—"} premium
                       </td>
                       <td>
                         <span className={cn("a-pill", p.cls)}><i />{p.label}</span>

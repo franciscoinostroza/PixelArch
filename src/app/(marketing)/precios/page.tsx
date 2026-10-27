@@ -1,7 +1,8 @@
 import { sanityFetch } from "@/lib/sanity"
 import Link from "next/link"
 import type { Metadata } from "next"
-import { getDolarVentaBancoNacion, formatARS, formatUSD } from "@/lib/dolar"
+import { getDolarVentaBancoNacion, formatARS } from "@/lib/dolar"
+import { formatearMonto } from "@/lib/pagos"
 import { whatsappUrl } from "@/lib/contact"
 
 export const metadata: Metadata = {
@@ -35,12 +36,12 @@ interface ServicioItem {
 function ars(cents: number, rate: number | null): string {
   if (!cents) return "—"
   if (rate) return formatARS(cents, rate)
-  return formatUSD(cents)
+  return formatearMonto(cents, "usd")
 }
 
 function usdRef(cents: number, rate: number | null): string | null {
   if (!cents || !rate) return null
-  return `≈ ${formatUSD(cents)}/mes`
+  return `≈ ${formatearMonto(cents, "usd")}/mes`
 }
 
 export default async function PreciosPage() {
@@ -98,7 +99,7 @@ export default async function PreciosPage() {
                         {s.precioUnico > 0 ? ars(s.precioUnico, rate) : "—"}
                         {s.precioUnico > 0 && (
                           <span className="usd">
-                            {rate ? `≈ ${formatUSD(s.precioUnico)} · ` : ""}a medida · se paga por hitos
+                            {rate ? `≈ ${formatearMonto(s.precioUnico, "usd")} · ` : ""}a medida · se paga por hitos
                           </span>
                         )}
                       </td>

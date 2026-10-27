@@ -38,6 +38,22 @@ export async function POST(req: Request) {
   const { suscripcionId, hitoId, monto, metodo, nota, enviarRecibo } = body
   const moneda = normalizeMoneda(body.moneda)
 
+  // El unico camino de registro manual PayPal es `/api/admin/paypal/manual`:
+  // ese endpoint exige evidencia, referencias e idempotencia que este flujo
+  // generico no puede garantizar.
+  if (
+    typeof metodo === "string" &&
+    metodo.trim().toUpperCase() === "PAYPAL"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "El pago manual de PayPal se registra en /api/admin/paypal/manual.",
+      },
+      { status: 400 }
+    )
+  }
+
   if (!suscripcionId && !hitoId) {
     return NextResponse.json({ error: "suscripcionId o hitoId requerido" }, { status: 400 })
   }
@@ -45,9 +61,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Monto invalido" }, { status: 400 })
   }
 
-  const metodoValido = metodo && (METODOS_PAGO as readonly string[]).includes(metodo)
-    ? (metodo as MetodoPagoValue)
-    : null
+  const metodoValido =
+    typeof metodo === "string" && (METODOS_PAGO as readonly string[]).includes(metodo)
+      ? (metodo as MetodoPagoValue)
+      : null
+
+  if (!metodoValido) {
+    return NextResponse.json(
+      { error: "Metodo de pago invalido" },
+      { status: 400 }
+    )
+  }
 
   try {
     let clienteId: string
@@ -86,15 +110,26 @@ export async function POST(req: Request) {
       cotizacion = await getDolarVentaBancoNacion()
     }
 
+    // T-18: el registro manual de Mercado Pago debe quedar identificado como
+    // pasarela MERCADOPAGO (no MANUAL) para que el historial y los filtros
+    // distingan el origen del cobro.
+    const pasarela = metodoValido === "MERCADOPAGO" ? "MERCADOPAGO" : "MANUAL"
+    const montoFinal = Math.round(monto)
+
     const pago = await prisma.pago.create({
       data: {
         clienteId,
         suscripcionId: suscripcionId || null,
         hitoId: hitoId || null,
-        monto: Math.round(monto),
+        monto: montoFinal,
+        montoAcordado: montoFinal,
+        comision: 0,
+        montoEsperado: montoFinal,
         moneda,
         cotizacion,
-        metodo: metodoValido ?? undefined,
+        metodo: metodoValido,
+        pasarela,
+        origen: "MANUAL",
         nota: nota?.trim() || null,
         registradoPor: admin.nombre || "Admin",
         estadoPago: "SUCCEEDED",
@@ -129,7 +164,7 @@ export async function POST(req: Request) {
       await sendPaymentReceipt(
         clienteEmail,
         clienteNombre,
-        Math.round(monto),
+        montoFinal,
         moneda,
         descripcionRecibo
       )
@@ -139,7 +174,7 @@ export async function POST(req: Request) {
       pagoId: pago.id,
       suscripcionId: suscripcionId || null,
       hitoId: hitoId || null,
-      monto: Math.round(monto),
+      monto: montoFinal,
       moneda,
       adminId: admin.id,
     })

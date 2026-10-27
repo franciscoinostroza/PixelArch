@@ -3,10 +3,18 @@ import { formatearMonto, convertirUsdAArs } from "@/lib/pagos"
 import { MarcarHitoButton } from "@/components/ui/marcar-hito-button"
 import { RegistrarPagoHitoButton } from "@/components/ui/registrar-pago-hito-button"
 import { GenerarLinkHitoButton } from "@/components/ui/generar-link-hito-button"
+import { GenerarLinkPaypalButton } from "@/components/ui/generar-link-paypal-button"
 import { EditarHitoButton } from "@/components/ui/editar-hito-button"
 import { AgregarHitoButton } from "@/components/ui/agregar-hito-button"
 import { EditarProyectoButton } from "@/components/ui/editar-proyecto-button"
 import { ProyectoEstadoSelect } from "@/components/ui/proyecto-estado-select"
+import {
+  datosPaypalEnlaces,
+  type EnlacePaypalVista,
+  type PaypalBlockConfig,
+} from "@/lib/paypal/links-view"
+
+export type { PaypalBlockConfig } from "@/lib/paypal/links-view"
 
 export interface ProyectoConHitos {
   id: string
@@ -25,6 +33,7 @@ export interface ProyectoConHitos {
     vencimiento: Date | null
     mpLink?: string | null
     mpLinkExpira?: Date | null
+    enlacesPago?: EnlacePaypalVista[] | null
     _count?: { pagos: number }
   }[]
 }
@@ -39,10 +48,19 @@ export function ProyectoBlock({
   proyecto,
   rate,
   clienteTelefono,
+  puedeGestionar = true,
+  puedeOperarPaypal = puedeGestionar,
+  paypal = null,
 }: {
   proyecto: ProyectoConHitos
   rate: number | null
   clienteTelefono?: string | null
+  /** Acciones de gestion (editar, registrar pago, marcar hito): solo admin. */
+  puedeGestionar?: boolean
+  /** Generar/enviar/ver PayPal: admin y asistente. */
+  puedeOperarPaypal?: boolean
+  /** Configuracion server-side de PayPal; si falta no se ofrece el boton. */
+  paypal?: PaypalBlockConfig | null
 }) {
   const pagados = proyecto.hitos.filter((h) => h.estado === "PAGADO").length
   const total = proyecto.hitos.length
@@ -60,7 +78,7 @@ export function ProyectoBlock({
         </h3>
         <span className="a-faint" style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
           {formatearMonto(proyecto.montoTotal, "usd")}
-          <EditarProyectoButton proyectoId={proyecto.id} titulo={proyecto.titulo} notas={proyecto.notas} />
+          {puedeGestionar && <EditarProyectoButton proyectoId={proyecto.id} titulo={proyecto.titulo} notas={proyecto.notas} />}
         </span>
       </div>
 
@@ -69,7 +87,7 @@ export function ProyectoBlock({
           <span className="a-faint" style={{ fontSize: ".78rem" }}>
             {pagados} de {total} hitos pagados · cobrado {formatearMonto(cobrado, "usd")}
           </span>
-          <ProyectoEstadoSelect proyectoId={proyecto.id} estado={proyecto.estado} />
+          {puedeGestionar && <ProyectoEstadoSelect proyectoId={proyecto.id} estado={proyecto.estado} />}
         </div>
         <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden" }} role="img" aria-label={`Progreso: ${progreso}%`}>
           <div style={{ height: "100%", width: `${progreso}%`, borderRadius: 3, background: "linear-gradient(90deg, #8b5cf6, #22d3ee)", transition: "width .4s ease" }} />
@@ -83,6 +101,7 @@ export function ProyectoBlock({
       {proyecto.hitos.map((h) => {
         const precioArs = rate ? convertirUsdAArs(h.monto, rate) : null
         const pagado = h.estado === "PAGADO"
+        const paypalHito = datosPaypalEnlaces(h.enlacesPago)
         return (
           <div key={h.id} className="a-prow" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -96,48 +115,74 @@ export function ProyectoBlock({
                   {precioArs && <span style={{ color: "var(--color-text-faint)" }}> · ≈ {formatearMonto(precioArs, "ars")}</span>}
                   {h.vencimiento && ` · vence ${new Date(h.vencimiento).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}`}
                 </div>
+                {!pagado && paypalHito.resumen && (
+                  <div className="a-date" style={{ color: "var(--color-text-faint)" }}>
+                    {paypalHito.resumen}
+                  </div>
+                )}
               </div>
               <span className={cn("a-pill", pagado ? "mint" : "yellow")}>
                 <i />{pagado ? "Pagado" : "Pendiente"}
               </span>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              {!pagado && (
-                <RegistrarPagoHitoButton
-                  hitoId={h.id}
-                  hitoTitulo={h.titulo}
-                  proyectoTitulo={proyecto.titulo}
-                  precioUsd={h.monto}
-                  precioArs={precioArs}
-                />
-              )}
-              {!pagado && (
-                <GenerarLinkHitoButton
-                  hitoId={h.id}
-                  hitoTitulo={h.titulo}
-                  proyectoTitulo={proyecto.titulo}
-                  precioUsd={h.monto}
-                  precioArs={precioArs}
-                  clienteTelefono={clienteTelefono}
-                  linkGuardado={h.mpLink}
-                  linkExpira={h.mpLinkExpira ? new Date(h.mpLinkExpira).toISOString() : null}
-                />
-              )}
-              <MarcarHitoButton hitoId={h.id} estado={h.estado} />
-              <EditarHitoButton
-                hitoId={h.id}
-                titulo={h.titulo}
-                monto={h.monto}
-                vencimiento={h.vencimiento ? new Date(h.vencimiento).toISOString() : null}
-                puedeEliminar={!pagado && (h._count?.pagos ?? 0) === 0}
-              />
-            </div>
+            {(puedeGestionar || (puedeOperarPaypal && !pagado && paypal)) && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                {!pagado && paypal && puedeOperarPaypal && (
+                  <GenerarLinkPaypalButton
+                    concepto={{ tipo: "hito", hitoId: h.id, titulo: h.titulo }}
+                    montoAcordadoDefaultCents={h.monto}
+                    feeBps={paypal.feeBps}
+                    feeFixedCents={paypal.feeFixedCents}
+                    paypalDisponible={paypal.disponible}
+                    enlaceExistente={paypalHito.enlaceExistente}
+                    ultimoIntento={paypalHito.ultimoIntento}
+                    clienteTelefono={clienteTelefono}
+                    label="PayPal"
+                    ariaLabel={`PayPal — ${proyecto.titulo}: ${h.titulo}`}
+                  />
+                )}
+                {puedeGestionar && (
+                  <>
+                    {!pagado && (
+                      <RegistrarPagoHitoButton
+                        hitoId={h.id}
+                        hitoTitulo={h.titulo}
+                        proyectoTitulo={proyecto.titulo}
+                        precioUsd={h.monto}
+                        precioArs={precioArs}
+                        puedeRegistrar={puedeGestionar}
+                      />
+                    )}
+                    {!pagado && (
+                      <GenerarLinkHitoButton
+                        hitoId={h.id}
+                        hitoTitulo={h.titulo}
+                        proyectoTitulo={proyecto.titulo}
+                        precioUsd={h.monto}
+                        precioArs={precioArs}
+                        clienteTelefono={clienteTelefono}
+                        linkGuardado={h.mpLink}
+                        linkExpira={h.mpLinkExpira ? new Date(h.mpLinkExpira).toISOString() : null}
+                      />
+                    )}
+                    <MarcarHitoButton hitoId={h.id} estado={h.estado} />
+                    <EditarHitoButton
+                      hitoId={h.id}
+                      titulo={h.titulo}
+                      monto={h.monto}
+                      vencimiento={h.vencimiento ? new Date(h.vencimiento).toISOString() : null}
+                      puedeEliminar={!pagado && (h._count?.pagos ?? 0) === 0}
+                    />
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )
       })}
 
-      <AgregarHitoButton proyectoId={proyecto.id} />
+      {puedeGestionar && <AgregarHitoButton proyectoId={proyecto.id} />}
     </div>
   )
 }

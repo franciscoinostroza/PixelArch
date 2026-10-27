@@ -7,6 +7,10 @@ type Env = {
   CONTACT_EMAIL: string
 }
 
+// PayPal es opcional y se valida en src/lib/paypal/config.ts (paypalConfig()).
+// No se incluye en `required`: sin configuracion PayPal queda deshabilitado y
+// el arranque de la app / Mercado Pago siguen funcionando.
+
 export function validateEnv(): Env {
   const required = [
     "DATABASE_URL",

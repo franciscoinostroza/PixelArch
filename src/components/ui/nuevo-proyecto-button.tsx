@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Loader2, CheckCircle2, Plus } from "lucide-react"
+import { formatearMonto } from "@/lib/pagos"
 
 interface Servicio {
   id: string
@@ -187,7 +188,7 @@ export function NuevoProyectoButton({ clienteId, servicios }: { clienteId: strin
                       ))}
                     </div>
                     <p className="font-mono text-xs mt-2" style={{ color: "var(--color-cyan)", fontSize: ".7rem" }}>
-                      Suma de hitos: US${totalCalculado.toFixed(0)}
+                      Suma de hitos: {formatearMonto(Math.round(totalCalculado * 100), "usd")}
                     </p>
                   </div>
 

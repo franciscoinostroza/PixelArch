@@ -30,7 +30,3 @@ export function formatARS(centsUSD: number, rate: number): string {
   return `$${rounded.toLocaleString("es-AR")}`
 }
 
-export function formatUSD(cents: number): string {
-  if (!cents) return "US$0"
-  return `US$${(cents / 100).toFixed(0)}`
-}

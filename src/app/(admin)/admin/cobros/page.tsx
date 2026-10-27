@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { requireAdmin } from "@/lib/auth"
+import { requireStaff } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -8,23 +8,24 @@ import { formatearMonto, precioDePlan, convertirUsdAArs } from "@/lib/pagos"
 import { waLink } from "@/lib/contact"
 import { RegistrarPagoButton } from "@/components/ui/registrar-pago-button"
 import { RegistrarPagoHitoButton } from "@/components/ui/registrar-pago-hito-button"
+import { RegistrarPagoPaypalButton } from "@/components/ui/registrar-pago-paypal-button"
 import { GenerarLinkMpButton } from "@/components/ui/generar-link-mp-button"
 import { GenerarLinkHitoButton } from "@/components/ui/generar-link-hito-button"
+import { GenerarLinkPaypalButton } from "@/components/ui/generar-link-paypal-button"
 import { RecordarEmailButton } from "@/components/ui/recordar-email-button"
 import { SubscriptionActions } from "@/components/ui/subscription-actions"
 import { MarcarHitoButton } from "@/components/ui/marcar-hito-button"
+import { paypalConfig } from "@/lib/paypal/config"
+import {
+  datosPaypalEnlaces,
+  esSoportePaypalElegible,
+  paypalBlockDesdeConfig,
+} from "@/lib/paypal/links-view"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Cobros — Admin PixelArch",
   robots: { index: false },
-}
-
-const PLAN_LABEL: Record<string, string> = {
-  UNICO: "Pago único",
-  BASICO: "Básico",
-  MANTENIMIENTO: "Mantenimiento",
-  SOPORTE: "Soporte",
 }
 
 function diasAtraso(fecha: Date, ahora: Date): number {
@@ -35,9 +36,21 @@ function diasRestantes(fecha: Date, ahora: Date): number {
   return Math.max(0, Math.ceil((fecha.getTime() - ahora.getTime()) / 86400000))
 }
 
+function mesesGuardados(valor: number | null | undefined): number {
+  return typeof valor === "number" &&
+    Number.isSafeInteger(valor) &&
+    valor >= 1 &&
+    valor <= 12
+    ? valor
+    : 1
+}
+
 export default async function AdminCobros() {
-  const admin = await requireAdmin()
-  if (!admin) redirect("/admin")
+  const staff = await requireStaff()
+  if (!staff) redirect("/admin")
+  const esAdmin = staff.esAdmin
+  const paypal = paypalConfig()
+  const paypalBlock = paypalBlockDesdeConfig(paypal)
 
   const ahora = new Date()
   const en7dias = new Date(ahora.getTime() + 7 * 86400000)
@@ -46,6 +59,7 @@ export default async function AdminCobros() {
     prisma.hito.findMany({
       where: { estado: "PENDIENTE" },
       include: {
+        enlacesPago: { where: { pasarela: "PAYPAL" }, orderBy: { creadoEn: "desc" } },
         proyecto: {
           include: {
             cliente: true,
@@ -60,7 +74,11 @@ export default async function AdminCobros() {
         estado: { in: ["ACTIVE", "PAST_DUE"] },
         proximoPago: { not: null, lte: en7dias },
       },
-      include: { cliente: true, servicio: true },
+      include: {
+        cliente: true,
+        servicio: true,
+        enlacesPago: { where: { pasarela: "PAYPAL" }, orderBy: { creadoEn: "desc" } },
+      },
       orderBy: { proximoPago: "asc" },
     }),
     getDolarVentaBancoNacion(),
@@ -80,6 +98,7 @@ export default async function AdminCobros() {
   function HitoRow({ h }: { h: (typeof hitosPendientes)[number] }) {
     const precioArs = rate ? convertirUsdAArs(h.monto, rate) : null
     const vencido = h.vencimiento ? h.vencimiento < ahora : false
+    const paypalHito = datosPaypalEnlaces(h.enlacesPago)
     const mensaje = `Hola ${h.proyecto.cliente.nombre}! Te escribo de PixelArch por el proyecto ${h.proyecto.titulo}: el hito "${h.titulo}" (${formatearMonto(h.monto, "usd")})${h.vencimiento ? ` vence el ${new Date(h.vencimiento).toLocaleDateString("es-AR")}` : ""}. Cuando quieras te paso el link de pago.`
 
     return (
@@ -108,6 +127,11 @@ export default async function AdminCobros() {
                 </>
               )}
             </div>
+            {paypalHito.resumen && (
+              <div className="a-date" style={{ color: "var(--color-text-faint)" }}>
+                {paypalHito.resumen}
+              </div>
+            )}
           </div>
           <span className={cn("a-pill", vencido ? "red" : "yellow")}>
             <i />{vencido ? "Vencido" : "Pendiente"}
@@ -115,23 +139,55 @@ export default async function AdminCobros() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <RegistrarPagoHitoButton
-            hitoId={h.id}
-            hitoTitulo={h.titulo}
-            proyectoTitulo={h.proyecto.titulo}
-            precioUsd={h.monto}
-            precioArs={precioArs}
-          />
-          <GenerarLinkHitoButton
-            hitoId={h.id}
-            hitoTitulo={h.titulo}
-            proyectoTitulo={h.proyecto.titulo}
-            precioUsd={h.monto}
-            precioArs={precioArs}
+          {/* PayPal es staff (admin y asistente): el asistente opera cobros. */}
+          <GenerarLinkPaypalButton
+            concepto={{ tipo: "hito", hitoId: h.id, titulo: h.titulo }}
+            montoAcordadoDefaultCents={h.monto}
+            feeBps={paypalBlock.feeBps}
+            feeFixedCents={paypalBlock.feeFixedCents}
+            paypalDisponible={paypalBlock.disponible}
+            enlaceExistente={paypalHito.enlaceExistente}
+            ultimoIntento={paypalHito.ultimoIntento}
             clienteTelefono={h.proyecto.cliente.telefono}
-            linkGuardado={h.mpLink}
-            linkExpira={h.mpLinkExpira ? new Date(h.mpLinkExpira).toISOString() : null}
+            label="PayPal"
+            ariaLabel={`PayPal — ${h.proyecto.titulo}: ${h.titulo}`}
           />
+          {esAdmin && (
+            <>
+              <RegistrarPagoHitoButton
+                hitoId={h.id}
+                hitoTitulo={h.titulo}
+                proyectoTitulo={h.proyecto.titulo}
+                precioUsd={h.monto}
+                precioArs={precioArs}
+                puedeRegistrar={esAdmin}
+              />
+              <RegistrarPagoPaypalButton
+                conceptos={[
+                  {
+                    tipo: "hito",
+                    hitoId: h.id,
+                    titulo: `${h.proyecto.titulo} — ${h.titulo}`,
+                    montoAcordadoCents: h.monto,
+                  },
+                ]}
+                feeBps={paypalBlock.feeBps}
+                feeFixedCents={paypalBlock.feeFixedCents}
+                puedeRegistrarManual={esAdmin}
+                ariaLabel={`Registrar pago PayPal — ${h.proyecto.titulo}: ${h.titulo}`}
+              />
+              <GenerarLinkHitoButton
+                hitoId={h.id}
+                hitoTitulo={h.titulo}
+                proyectoTitulo={h.proyecto.titulo}
+                precioUsd={h.monto}
+                precioArs={precioArs}
+                clienteTelefono={h.proyecto.cliente.telefono}
+                linkGuardado={h.mpLink}
+                linkExpira={h.mpLinkExpira ? new Date(h.mpLinkExpira).toISOString() : null}
+              />
+            </>
+          )}
           {h.proyecto.cliente.telefono ? (
             <a
               href={waLink(h.proyecto.cliente.telefono, mensaje)}
@@ -143,8 +199,12 @@ export default async function AdminCobros() {
               WhatsApp
             </a>
           ) : null}
-          <RecordarEmailButton hitoId={h.id} />
-          <MarcarHitoButton hitoId={h.id} estado={h.estado} />
+          {esAdmin && (
+            <>
+              <RecordarEmailButton hitoId={h.id} />
+              <MarcarHitoButton hitoId={h.id} estado={h.estado} />
+            </>
+          )}
         </div>
       </div>
     )
@@ -154,6 +214,9 @@ export default async function AdminCobros() {
     const precio = precioDePlan(s.plan, s.servicio, s.precioCustom)
     const precioArs = rate ? convertirUsdAArs(precio, rate) : null
     const vencida = s.proximoPago ? s.proximoPago < ahora : false
+    const paypalSoporte = datosPaypalEnlaces(s.enlacesPago)
+    const soportePaypalElegible = esSoportePaypalElegible(s)
+    const mesesPaypal = mesesGuardados(s.mpLinkMeses)
     const mensaje = `Hola ${s.cliente.nombre}! Te escribo de PixelArch por el soporte de ${s.servicio.nombre}: figura un pago de ${formatearMonto(precio, "usd")}${s.proximoPago ? ` con vencimiento ${new Date(s.proximoPago).toLocaleDateString("es-AR")}` : ""}. Cuando quieras te paso los datos para el pago.`
 
     return (
@@ -187,6 +250,11 @@ export default async function AdminCobros() {
                 </span>
               )}
             </div>
+            {paypalSoporte.resumen && (
+              <div className="a-date" style={{ color: "var(--color-text-faint)" }}>
+                {paypalSoporte.resumen}
+              </div>
+            )}
           </div>
           <span className={cn("a-pill", vencida || s.estado === "PAST_DUE" ? "red" : "yellow")}>
             <i />
@@ -195,24 +263,61 @@ export default async function AdminCobros() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <RegistrarPagoButton
-            suscripcionId={s.id}
-            servicio={`Soporte ${s.servicio.nombre}`}
-            cliente={s.cliente.nombre}
-            precioUsd={precio}
-            precioArs={precioArs}
-          />
-          <GenerarLinkMpButton
-            suscripcionId={s.id}
-            servicio={`Soporte ${s.servicio.nombre}`}
-            cliente={s.cliente.nombre}
-            precioUsd={precio}
-            precioArs={precioArs}
-            clienteTelefono={s.cliente.telefono}
-            linkGuardado={s.mpLink}
-            linkExpira={s.mpLinkExpira ? new Date(s.mpLinkExpira).toISOString() : null}
-            mesesGuardados={s.mpLinkMeses}
-          />
+          {soportePaypalElegible && (
+            <GenerarLinkPaypalButton
+              concepto={{ tipo: "soporte", suscripcionId: s.id, titulo: `Soporte ${s.servicio.nombre}` }}
+              montoAcordadoDefaultCents={precio}
+              montoMensualCents={precio}
+              mesesDefault={mesesPaypal}
+              feeBps={paypalBlock.feeBps}
+              feeFixedCents={paypalBlock.feeFixedCents}
+              paypalDisponible={paypalBlock.disponible}
+              enlaceExistente={paypalSoporte.enlaceExistente}
+              ultimoIntento={paypalSoporte.ultimoIntento}
+              clienteTelefono={s.cliente.telefono}
+              label="PayPal"
+              ariaLabel={`PayPal — Soporte ${s.servicio.nombre} (${s.cliente.nombre})`}
+            />
+          )}
+          {esAdmin && (
+            <>
+              <RegistrarPagoButton
+                suscripcionId={s.id}
+                servicio={`Soporte ${s.servicio.nombre}`}
+                cliente={s.cliente.nombre}
+                precioUsd={precio}
+                precioArs={precioArs}
+                puedeRegistrar={esAdmin}
+              />
+              <RegistrarPagoPaypalButton
+                conceptos={[
+                  {
+                    tipo: "soporte",
+                    suscripcionId: s.id,
+                    titulo: `Soporte ${s.servicio.nombre}`,
+                    montoAcordadoCents: precio * mesesPaypal,
+                    montoMensualCents: precio,
+                    mesesDefault: mesesPaypal,
+                  },
+                ]}
+                feeBps={paypalBlock.feeBps}
+                feeFixedCents={paypalBlock.feeFixedCents}
+                puedeRegistrarManual={esAdmin && soportePaypalElegible}
+                ariaLabel={`Registrar pago PayPal — Soporte ${s.servicio.nombre} (${s.cliente.nombre})`}
+              />
+              <GenerarLinkMpButton
+                suscripcionId={s.id}
+                servicio={`Soporte ${s.servicio.nombre}`}
+                cliente={s.cliente.nombre}
+                precioUsd={precio}
+                precioArs={precioArs}
+                clienteTelefono={s.cliente.telefono}
+                linkGuardado={s.mpLink}
+                linkExpira={s.mpLinkExpira ? new Date(s.mpLinkExpira).toISOString() : null}
+                mesesGuardados={s.mpLinkMeses}
+              />
+            </>
+          )}
           {s.cliente.telefono ? (
             <a
               href={waLink(s.cliente.telefono, mensaje)}
@@ -224,13 +329,17 @@ export default async function AdminCobros() {
               WhatsApp
             </a>
           ) : null}
-          <RecordarEmailButton suscripcionId={s.id} />
-          <SubscriptionActions
-            suscripcionId={s.id}
-            estado={s.estado}
-            deploymentPlatform={s.deploymentPlatform}
-            platformServiceId={s.platformServiceId}
-          />
+          {esAdmin && (
+            <>
+              <RecordarEmailButton suscripcionId={s.id} />
+              <SubscriptionActions
+                suscripcionId={s.id}
+                estado={s.estado}
+                deploymentPlatform={s.deploymentPlatform}
+                platformServiceId={s.platformServiceId}
+              />
+            </>
+          )}
         </div>
       </div>
     )

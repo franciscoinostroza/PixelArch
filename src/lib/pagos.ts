@@ -1,11 +1,12 @@
 export type Moneda = "usd" | "ars"
 
 export const METODOS_PAGO = ["TRANSFERENCIA", "MERCADOPAGO", "EFECTIVO", "OTRO"] as const
-export type MetodoPagoValue = (typeof METODOS_PAGO)[number]
+export type MetodoPagoValue = (typeof METODOS_PAGO)[number] | "PAYPAL"
 
 export const METODO_LABEL: Record<MetodoPagoValue, string> = {
   TRANSFERENCIA: "Transferencia",
   MERCADOPAGO: "Mercado Pago",
+  PAYPAL: "PayPal",
   EFECTIVO: "Efectivo",
   OTRO: "Otro",
 }
@@ -51,11 +52,30 @@ export function equivalenteUsd(
   return convertirArsAUsd(monto, usedRate)
 }
 
-export function formatearMonto(montoCents: number, moneda: string): string {
+export type LocaleMonto = "es-AR" | "en-US"
+
+/**
+ * Formatea un monto en centavos.
+ *
+ * El default es es-AR (`US$100,50`, `US$1.000,50`) para UI/CRM/recibos.
+ * La unica excepcion documentada son las plantillas EN (T-05), que piden
+ * `en-US` explicitamente (`US$100.50`). ARS mantiene su formato.
+ */
+export function formatearMonto(
+  montoCents: number,
+  moneda: string,
+  locale: LocaleMonto = "es-AR"
+): string {
   if (moneda === "ars") {
-    return `$${Math.round(montoCents / 100).toLocaleString("es-AR")} ARS`
+    const entero = Math.round(montoCents / 100)
+    return `$${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(entero)} ARS`
   }
-  return `US$${(montoCents / 100).toFixed(2)}`
+
+  const decimales = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(montoCents / 100)
+  return `US$${decimales}`
 }
 
 export function precioDePlan(

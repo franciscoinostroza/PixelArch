@@ -1,6 +1,6 @@
 import { Pagination } from "@/components/ui/pagination"
 import { prisma } from "@/lib/prisma"
-import { requireAdmin } from "@/lib/auth"
+import { requireStaff } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -17,8 +17,8 @@ export default async function AdminClientes({
 }: {
   searchParams: Promise<{ q?: string; page?: string }>
 }) {
-  const admin = await requireAdmin()
-  if (!admin) redirect("/admin")
+  const staff = await requireStaff()
+  if (!staff) redirect("/admin")
 
   const { q, page } = await searchParams
   const currentPage = Math.max(1, parseInt(page ?? "1"))
@@ -51,9 +51,11 @@ export default async function AdminClientes({
       <div className="a-greet">
         <h1>Clientes</h1>
         <p>Gestiona tus clientes.</p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 18 }}>
-          <NuevoClienteButton />
-        </div>
+        {staff.esAdmin && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 18 }}>
+            <NuevoClienteButton />
+          </div>
+        )}
       </div>
 
       <div className="a-filters">

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { requireAdmin } from "@/lib/auth"
+import { requireStaff } from "@/lib/auth"
 import { notFound, redirect } from "next/navigation"
 import { DeployConfig } from "@/components/ui/deploy-config"
 import { EntregarButton } from "@/components/ui/entregar-button"
@@ -10,11 +10,35 @@ import { NuevoProyectoButton } from "@/components/ui/nuevo-proyecto-button"
 import { ProyectoBlock } from "@/components/ui/proyecto-block"
 import { ActivarSoporteButton } from "@/components/ui/activar-soporte-button"
 import { RegistrarPagoButton } from "@/components/ui/registrar-pago-button"
+import { RegistrarPagoPaypalButton, type PaypalManualConcepto } from "@/components/ui/registrar-pago-paypal-button"
+import { AjustePaypalButton, type AjustePaypalPago } from "@/components/ui/ajuste-paypal-button"
 import { GenerarLinkMpButton } from "@/components/ui/generar-link-mp-button"
+import { GenerarLinkPaypalButton } from "@/components/ui/generar-link-paypal-button"
 import { AjustesSuscripcionButton } from "@/components/ui/ajustes-suscripcion-button"
+import { PagoPaypalRow } from "@/components/ui/pago-paypal-row"
 import { cn } from "@/lib/utils"
-import { formatearMonto, METODO_LABEL, precioDePlan, convertirUsdAArs } from "@/lib/pagos"
+import { formatearMonto, precioDePlan, convertirUsdAArs } from "@/lib/pagos"
 import { getDolarVentaBancoNacion } from "@/lib/dolar"
+import { paypalConfig } from "@/lib/paypal/config"
+import {
+  datosPaypalEnlaces,
+  esSoportePaypalElegible,
+  paypalBlockDesdeConfig,
+} from "@/lib/paypal/links-view"
+import { mapearPagoHistorial } from "@/lib/paypal/view"
+import {
+  esPagoAjustablePaypal,
+  montoDisponibleAjuste,
+} from "@/lib/paypal/ajuste-view"
+
+function mesesGuardados(valor: number | null | undefined): number {
+  return typeof valor === "number" &&
+    Number.isSafeInteger(valor) &&
+    valor >= 1 &&
+    valor <= 12
+    ? valor
+    : 1
+}
 
 const mapLabel = (e: string) => {
   switch (e) {
@@ -41,16 +65,6 @@ function pillOf(estado: string) {
   return { cls, label }
 }
 
-function pillOfPago(estado: string) {
-  switch (estado) {
-    case "SUCCEEDED": return { cls: "a-pill mint", label: "Pagado" }
-    case "FAILED": return { cls: "a-pill red", label: "Fallido" }
-    case "REFUNDED": return { cls: "a-pill gray", label: "Reembolsado" }
-    case "PENDING": return { cls: "a-pill yellow", label: "Pendiente" }
-    default: return { cls: "a-pill gray", label: estado }
-  }
-}
-
 export default async function ClienteDetalle({
   params,
 }: {
@@ -58,20 +72,87 @@ export default async function ClienteDetalle({
 }) {
   const { id } = await params
 
+  const staff = await requireStaff()
+  if (!staff) redirect("/admin")
+
   const cliente = await prisma.cliente.findUnique({
     where: { id },
     include: {
       suscripciones: {
-        include: { servicio: { select: { nombre: true, precioUnico: true, precioBasico: true, precioMantenimiento: true } } },
+        include: {
+          servicio: { select: { nombre: true, precioUnico: true, precioBasico: true, precioMantenimiento: true } },
+          enlacesPago: { where: { pasarela: "PAYPAL" }, orderBy: { creadoEn: "desc" } },
+        },
         orderBy: { creadoEn: "desc" },
       },
       pagos: {
         orderBy: { creadoEn: "desc" },
-        include: { suscripcion: { include: { servicio: { select: { nombre: true } } } }, hito: { select: { titulo: true, proyecto: { select: { titulo: true } } } } },
+        include: {
+          suscripcion: { select: { servicio: { select: { nombre: true } } } },
+          hito: { select: { titulo: true, proyecto: { select: { titulo: true } } } },
+          // T-24: autor/envio del link, ajustes y eventos que exigen accion.
+          // No se incluye al cliente ni email/telefono: el historial solo
+          // muestra datos del pago y del staff que lo opero.
+          enlacePago: {
+            select: {
+              concepto: true,
+              descripcion: true,
+              externalId: true,
+              generadoPorNombre: true,
+              enviadoPor: true,
+              enviadoEn: true,
+              canalEnvio: true,
+              idioma: true,
+              eventos: {
+                where: { requiereAccion: true },
+                orderBy: { creadoEn: "desc" },
+                select: {
+                  id: true,
+                  tipo: true,
+                  resultado: true,
+                  motivo: true,
+                  monto: true,
+                  moneda: true,
+                  creadoEn: true,
+                },
+              },
+            },
+          },
+          ajustes: {
+            orderBy: { creadoEn: "desc" },
+            select: {
+              id: true,
+              tipo: true,
+              monto: true,
+              decision: true,
+              motivo: true,
+              creadoEn: true,
+            },
+          },
+          eventos: {
+            where: { requiereAccion: true },
+            orderBy: { creadoEn: "desc" },
+            select: {
+              id: true,
+              tipo: true,
+              resultado: true,
+              motivo: true,
+              monto: true,
+              moneda: true,
+              creadoEn: true,
+            },
+          },
+        },
       },
       proyectos: {
         include: {
-          hitos: { orderBy: { orden: "asc" }, include: { _count: { select: { pagos: true } } } },
+          hitos: {
+            orderBy: { orden: "asc" },
+            include: {
+              _count: { select: { pagos: true } },
+              enlacesPago: { where: { pasarela: "PAYPAL" }, orderBy: { creadoEn: "desc" } },
+            },
+          },
           servicio: { select: { nombre: true } },
         },
         orderBy: { creadoEn: "desc" },
@@ -79,10 +160,14 @@ export default async function ClienteDetalle({
     },
   })
 
-  const admin = await requireAdmin()
-  if (!admin) redirect("/admin")
-
   if (!cliente) notFound()
+
+  const esAdmin = staff.esAdmin
+  // PayPal lo opera todo el staff; el resto de acciones de gestion sigue
+  // reservado al admin (RF-19/RF-24, plan §5.1).
+  const puedeOperarPaypal = staff.rol === "admin" || staff.rol === "asistente"
+  const paypal = paypalConfig()
+  const paypalBlock = paypalBlockDesdeConfig(paypal)
 
   const [servicios, rate] = await Promise.all([
     prisma.servicio.findMany({ where: { activo: true }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
@@ -91,15 +176,62 @@ export default async function ClienteDetalle({
 
   const pillCliente = cliente.activo ? { cls: "a-pill mint", label: "Cliente activo" } : { cls: "a-pill gray", label: "Inactivo" }
 
+  // T-25: conceptos que el admin puede registrar a mano. Se listan hitos
+  // pendientes y soportes elegibles para que el modal permita elegir entre
+  // hito y soporte sin salir del detalle.
+  const conceptosRegistroManual: PaypalManualConcepto[] = [
+    ...cliente.proyectos.flatMap((proyecto) =>
+      proyecto.hitos
+        .filter((hito) => hito.estado === "PENDIENTE")
+        .map((hito) => ({
+          tipo: "hito" as const,
+          hitoId: hito.id,
+          titulo: `${proyecto.titulo} — ${hito.titulo}`,
+          montoAcordadoCents: hito.monto,
+        }))
+    ),
+    ...cliente.suscripciones
+      .filter(
+        (s) =>
+          s.plan === "SOPORTE" &&
+          (s.estado === "ACTIVE" || s.estado === "PAST_DUE")
+      )
+      .map((s) => {
+        const precio = precioDePlan(s.plan, s.servicio, s.precioCustom)
+        const meses = mesesGuardados(s.mpLinkMeses)
+        return {
+          tipo: "soporte" as const,
+          suscripcionId: s.id,
+          titulo: `Soporte ${s.servicio.nombre}`,
+          montoAcordadoCents: precio * meses,
+          montoMensualCents: precio,
+          mesesDefault: meses,
+        }
+      }),
+  ]
+
   return (
     <div>
       <div className="a-greet">
         <h1>{cliente.nombre}</h1>
         <p>{cliente.email}</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 18 }}>
-          <NuevoProyectoButton clienteId={cliente.id} servicios={servicios} />
-          <AsignarProductoButton clienteId={cliente.id} servicios={servicios} />
-          <EditarClienteButton cliente={{ id: cliente.id, nombre: cliente.nombre, email: cliente.email, empresa: cliente.empresa, telefono: cliente.telefono, notas: cliente.notas, activo: cliente.activo }} />
+          {esAdmin && (
+            <>
+              <NuevoProyectoButton clienteId={cliente.id} servicios={servicios} />
+              <AsignarProductoButton clienteId={cliente.id} servicios={servicios} />
+              <EditarClienteButton cliente={{ id: cliente.id, nombre: cliente.nombre, email: cliente.email, empresa: cliente.empresa, telefono: cliente.telefono, notas: cliente.notas, activo: cliente.activo }} />
+              {conceptosRegistroManual.length > 0 && (
+                <RegistrarPagoPaypalButton
+                  conceptos={conceptosRegistroManual}
+                  feeBps={paypalBlock.feeBps}
+                  feeFixedCents={paypalBlock.feeFixedCents}
+                  puedeRegistrarManual={esAdmin}
+                  ariaLabel={`Registrar pago PayPal — ${cliente.nombre}`}
+                />
+              )}
+            </>
+          )}
           <span className={cn("a-pill", pillCliente.cls)}><i />{pillCliente.label}</span>
         </div>
       </div>
@@ -134,11 +266,19 @@ export default async function ClienteDetalle({
           <span className="a-faint">{cliente.proyectos.length}</span>
         </div>
         {cliente.proyectos.length === 0 ? (
-          <p className="a-empty">Sin proyectos — creá el primero con "Nuevo proyecto"</p>
+          <p className="a-empty">Sin proyectos — creá el primero con &quot;Nuevo proyecto&quot;</p>
         ) : (
           <div style={{ marginTop: -18 }}>
             {cliente.proyectos.map((p) => (
-              <ProyectoBlock key={p.id} proyecto={p} rate={rate} clienteTelefono={cliente.telefono} />
+              <ProyectoBlock
+                key={p.id}
+                proyecto={p}
+                rate={rate}
+                clienteTelefono={cliente.telefono}
+                puedeGestionar={esAdmin}
+                puedeOperarPaypal={puedeOperarPaypal}
+                paypal={paypalBlock}
+              />
             ))}
           </div>
         )}
@@ -148,7 +288,7 @@ export default async function ClienteDetalle({
         <div className="a-head">
           <h3>Suscripciones (soporte)</h3>
           <span className="a-faint">{cliente.suscripciones.length}</span>
-          <ActivarSoporteButton clienteId={cliente.id} servicios={servicios} />
+          {esAdmin && <ActivarSoporteButton clienteId={cliente.id} servicios={servicios} />}
         </div>
         {cliente.suscripciones.length === 0 ? (
           <p className="a-empty">Sin suscripciones</p>
@@ -157,6 +297,8 @@ export default async function ClienteDetalle({
             const pill = pillOf(s.estado)
             const precio = precioDePlan(s.plan, s.servicio, s.precioCustom)
             const precioArs = rate ? convertirUsdAArs(precio, rate) : null
+            const paypalSoporte = datosPaypalEnlaces(s.enlacesPago)
+            const soportePaypalElegible = esSoportePaypalElegible(s)
             return (
               <div key={s.id} className="a-prow" style={{ flexDirection: "column", alignItems: "stretch" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -171,47 +313,73 @@ export default async function ClienteDetalle({
                       {s.precioCustom ? " · acordado" : ""}
                       {s.proximoPago ? ` · vence ${new Date(s.proximoPago).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}` : ""}
                     </div>
+                    {paypalSoporte.resumen && (
+                      <div className="a-date" style={{ color: "var(--color-text-faint)" }}>
+                        {paypalSoporte.resumen}
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                     <span className={cn("a-pill", pill.cls)}><i />{pill.label}</span>
-                    {(s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
-                      <RegistrarPagoButton
-                        suscripcionId={s.id}
-                        servicio={s.servicio.nombre}
-                        cliente={cliente.nombre}
-                        precioUsd={precio}
-                        precioArs={precioArs}
-                      />
-                    )}
-                    {(s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
-                      <GenerarLinkMpButton
-                        suscripcionId={s.id}
-                        servicio={s.servicio.nombre}
-                        cliente={cliente.nombre}
-                        precioUsd={precio}
-                        precioArs={precioArs}
+                    {soportePaypalElegible && puedeOperarPaypal && (
+                      <GenerarLinkPaypalButton
+                        concepto={{ tipo: "soporte", suscripcionId: s.id, titulo: `Soporte ${s.servicio.nombre}` }}
+                        montoAcordadoDefaultCents={precio}
+                        montoMensualCents={precio}
+                        mesesDefault={s.mpLinkMeses ?? 1}
+                        feeBps={paypalBlock.feeBps}
+                        feeFixedCents={paypalBlock.feeFixedCents}
+                        paypalDisponible={paypalBlock.disponible}
+                        enlaceExistente={paypalSoporte.enlaceExistente}
+                        ultimoIntento={paypalSoporte.ultimoIntento}
                         clienteTelefono={cliente.telefono}
-                        linkGuardado={s.mpLink}
-                        linkExpira={s.mpLinkExpira ? new Date(s.mpLinkExpira).toISOString() : null}
-                        mesesGuardados={s.mpLinkMeses}
+                        label="PayPal"
+                        ariaLabel={`PayPal — Soporte ${s.servicio.nombre}`}
                       />
                     )}
-                    {s.estado !== "PENDING" && <SubscriptionActions suscripcionId={s.id} estado={s.estado} deploymentPlatform={s.deploymentPlatform} platformServiceId={s.platformServiceId} />}
-                    {s.estado !== "PENDING" && (
-                      <AjustesSuscripcionButton
-                        suscripcionId={s.id}
-                        precioCustom={s.precioCustom}
-                        proximoPago={s.proximoPago ? s.proximoPago.toISOString() : null}
-                      />
+                    {esAdmin && (
+                      <>
+                        {(s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
+                          <RegistrarPagoButton
+                            suscripcionId={s.id}
+                            servicio={s.servicio.nombre}
+                            cliente={cliente.nombre}
+                            precioUsd={precio}
+                            precioArs={precioArs}
+                            puedeRegistrar={esAdmin}
+                          />
+                        )}
+                        {(s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
+                          <GenerarLinkMpButton
+                            suscripcionId={s.id}
+                            servicio={s.servicio.nombre}
+                            cliente={cliente.nombre}
+                            precioUsd={precio}
+                            precioArs={precioArs}
+                            clienteTelefono={cliente.telefono}
+                            linkGuardado={s.mpLink}
+                            linkExpira={s.mpLinkExpira ? new Date(s.mpLinkExpira).toISOString() : null}
+                            mesesGuardados={s.mpLinkMeses}
+                          />
+                        )}
+                        {s.estado !== "PENDING" && <SubscriptionActions suscripcionId={s.id} estado={s.estado} deploymentPlatform={s.deploymentPlatform} platformServiceId={s.platformServiceId} />}
+                        {s.estado !== "PENDING" && (
+                          <AjustesSuscripcionButton
+                            suscripcionId={s.id}
+                            precioCustom={s.precioCustom}
+                            proximoPago={s.proximoPago ? s.proximoPago.toISOString() : null}
+                          />
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
-                {s.estado === "PENDING" && (
+                {esAdmin && s.estado === "PENDING" && (
                   <div style={{ marginTop: 10 }}>
                     <EntregarButton suscripcionId={s.id} />
                   </div>
                 )}
-                {(s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
+                {esAdmin && (s.estado === "ACTIVE" || s.estado === "PAST_DUE") && (
                   <div style={{ marginTop: 10 }}>
                     <DeployConfig
                       suscripcionId={s.id}
@@ -234,32 +402,74 @@ export default async function ClienteDetalle({
         </div>
         <div className="a-table-wrap">
           <table className="a-table">
+            <caption className="sr-only">
+              Historial de pagos con desglose, envío, revisión y recibo
+            </caption>
             <thead>
               <tr>
-                <th>Servicio</th>
+                <th>Concepto</th>
+                <th>Pasarela</th>
                 <th>Fecha</th>
-                <th>Monto</th>
-                <th>Estado</th>
+                <th>Desglose</th>
+                <th>Envío / autor</th>
+                <th>Estado / revisión</th>
+                <th>Recibo</th>
+                {esAdmin && <th>Acciones</th>}
               </tr>
             </thead>
             <tbody>
               {cliente.pagos.length === 0 ? (
-                <tr><td colSpan={4} className="a-empty">Sin pagos registrados</td></tr>
+                <tr><td colSpan={7} className="a-empty">Sin pagos registrados</td></tr>
               ) : (
                 cliente.pagos.map((p) => {
-                  const pill = pillOfPago(p.estadoPago)
+                  const eventos = [
+                    ...(p.eventos ?? []),
+                    ...(p.enlacePago?.eventos ?? []),
+                  ].filter(
+                    (evento, indice, todos) =>
+                      todos.findIndex((otro) => otro.id === evento.id) === indice
+                  )
+                  // T-26: el boton solo se ofrece al admin sobre pagos PayPal
+                  // ajustables; la API vuelve a validar rol, estado y monto.
+                  const historial = mapearPagoHistorial(p)
+                  const pagoAjuste: AjustePaypalPago = {
+                    id: p.id,
+                    monto: p.monto,
+                    moneda: p.moneda,
+                    montoAjustado: p.ajustes.reduce(
+                      (total, ajuste) => total + ajuste.monto,
+                      0
+                    ),
+                    tieneHito: Boolean(p.hitoId),
+                    tieneSoporte: Boolean(p.suscripcionId),
+                    estadoPago: p.estadoPago,
+                    revisionEstado: p.revisionEstado,
+                    concepto: historial.concepto.titulo,
+                    referencia:
+                      historial.referencias.principal?.etiqueta ?? null,
+                    pasarela: p.pasarela,
+                  }
+                  const accion = esAdmin ? (
+                    esPagoAjustablePaypal(pagoAjuste) &&
+                    montoDisponibleAjuste(pagoAjuste) > 0 ? (
+                      <AjustePaypalButton
+                        pago={pagoAjuste}
+                        puedeRegistrarAjuste
+                        ariaLabel={`Ajuste — ${historial.concepto.titulo}`}
+                      />
+                    ) : (
+                      <span className="a-faint">—</span>
+                    )
+                  ) : undefined
+
                   return (
-                    <tr key={p.id}>
-                      <td>{p.hito ? `${p.hito.proyecto.titulo} — ${p.hito.titulo}` : p.suscripcion?.servicio.nombre ?? "—"}</td>
-                      <td className="a-faint">{new Date(p.creadoEn).toLocaleDateString("es-AR")}</td>
-                      <td className="a-mono">
-                        {formatearMonto(p.monto, p.moneda)}
-                        {p.metodo ? <span style={{ color: "var(--color-text-faint)", fontSize: "0.72rem", marginLeft: 6 }}>· {METODO_LABEL[p.metodo] ?? p.metodo}</span> : null}
-                      </td>
-                      <td>
-                        <span className={cn("a-pill", pill.cls)}><i />{pill.label}</span>
-                      </td>
-                    </tr>
+                    <PagoPaypalRow
+                      key={p.id}
+                      pago={historial}
+                      ajustes={p.ajustes}
+                      eventos={eventos}
+                      accion={accion}
+                    />
                   )
                 })
               )}

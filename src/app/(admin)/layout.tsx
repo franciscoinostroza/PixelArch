@@ -1,6 +1,6 @@
 import { AdminSidebar } from "@/components/layout/admin-sidebar"
 import { prisma } from "@/lib/prisma"
-import { requireAdmin } from "@/lib/auth"
+import { requireStaff } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import StaticAmbience from "@/components/layout/static-ambience"
 import "./admin.css"
@@ -10,8 +10,8 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const admin = await requireAdmin()
-  if (!admin) redirect("/admin")
+  const staff = await requireStaff()
+  if (!staff) redirect("/admin")
 
   const en7dias = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   const [alertasSoportes, alertasHitos] = await Promise.all([
@@ -45,7 +45,7 @@ export default async function AdminLayout({
       />
 
       <div className="relative z-10 a-shell">
-        <AdminSidebar alertasActivas={alertasCobros} />
+        <AdminSidebar alertasActivas={alertasCobros} rol={staff.rol} />
         <main className="a-main">{children}</main>
       </div>
     </div>

@@ -2,10 +2,52 @@
 
 > Memoria operativa del agente (workflow, comandos, gotchas): ver **MEMORY.md**.
 
-**Ultima actualizacion:** Septiembre 2026
-**Build:** Excelente | **TypeScript:** 0 errores | **Paginas:** 43 compiladas | **Tests:** 148 pasando
-**Deploy Railway:** Online | **BD:** PostgreSQL sincronizada | **Clerk:** Auth solo admin (gate con modal) | **Sanity:** Studio + Schemas + 15 articulos | **Pagos:** CRM por proyectos/hitos + soporte mensual + Mercado Pago (links)
+**Ultima actualizacion:** Octubre 2026
+**Build:** TypeScript 0 errores | **Tests:** 1427 pasando (79 archivos) | **PayPal:** implementado en codigo, sin migracion ni deploy
+**Deploy Railway:** Online (Mercado Pago) | **BD:** PostgreSQL sincronizada; PayPal requiere `prisma db push` | **Clerk:** Auth admin/asistente (gate con modal) | **Sanity:** Studio + Schemas + 15 articulos | **Pagos:** CRM por proyectos/hitos + soporte mensual + Mercado Pago (links) + PayPal (USD)
 **URL:** https://pixelarch.dev
+
+---
+
+## Metodologia: Spec-Driven Development (SDD)
+
+Nada se implementa sin spec aprobada. Flujo:
+
+```
+Constitucion → Spec (QUE/POR QUE) → Plan (COMO) → Tareas → Implementacion → Tests → Revision
+```
+
+| Fase | Artefacto | Quien lo produce |
+|------|-----------|------------------|
+| 1. Specify | `specs/NNN-slug/spec.md` | planner |
+| 2. Plan | `specs/NNN-slug/plan.md` | planner |
+| 3. Tasks | `specs/NNN-slug/tasks.md` | planner |
+| 4. Implement | codigo en `src/` | implementer |
+| 5. Test | tests en `src/__tests__/` + reporte | tester |
+| 6. Review | `specs/NNN-slug/review.md` | reviewer (lo guarda planner) |
+
+### Agentes (OpenCode)
+
+- **coordinator** (primario, por defecto): orquesta, no escribe codigo ni specs. Delega y verifica.
+- **planner** (sub): spec, plan, tareas e informes de revision. Solo escribe en `specs/`.
+- **implementer** (sub): implementa UNA tarea a la vez segun `tasks.md`.
+- **tester** (sub): escribe y ejecuta tests contra los criterios de aceptacion.
+- **reviewer** (sub): revision de solo lectura (calidad, seguridad, conformidad con la spec).
+
+### Comandos
+
+- `/specify <idea>`: crea la spec.
+- `/plan <NNN>`: plan tecnico + tareas.
+- `/implement <NNN>`: ejecuta la siguiente tarea pendiente.
+- `/verify <NNN>`: tests + revision global.
+
+### Reglas SDD
+
+1. La spec es la fuente de verdad. Si el codigo y la spec difieren, se corrige uno de los dos de forma explicita.
+2. Cada tarea referencia al menos un criterio de aceptacion (`AC-x`).
+3. Una tarea = un cambio revisable (~1 commit).
+4. Ante ambiguedad, marcar `[NECESITA ACLARACION]` en la spec en lugar de inventar.
+5. Principios no negociables en `specs/constitution.md`; workflow operativo en `MEMORY.md`.
 
 ---
 
@@ -15,12 +57,13 @@
 |------------|---------|---------|
 | Next.js | 16.2.6 | App Router, Turbopack |
 | Tailwind | v4 | CSS-first con `@theme` |
-| Clerk | v7 | `Show`, `ClerkProvider`, login solo para admin/asistente |
+| Clerk | v7 | `Show`, `ClerkProvider`, login solo para admin/asistente (`publicMetadata.role`) |
 | Prisma | 7 | adapter `@prisma/adapter-pg` |
 | Sanity | v5 | Studio embebido en `/studio` |
 | Resend | v6 | Emails transaccionales |
 | Sentry | 11 | Errors + tracing + replay (condicional a SENTRY_DSN, tunnel `/monitoring`) |
-| Vitest | 3.2.6 | Testing (148 tests) |
+| PayPal | REST Orders v2 | `fetch` nativo, checkout alojado, webhook verificado con firma (sin SDK) |
+| Vitest | 3.2.6 | Testing (1427 tests, 79 archivos) |
 | Deploy | Railway | Auto-deploy desde GitHub |
 
 ---
@@ -45,6 +88,17 @@
 | `/rss.xml` | Feed RSS 2.0 (se renderiza con XSLT en el navegador) |
 | `/gracias`, `/terminos`, `/privacidad`, `/reembolsos`, `/studio`, `/logo` | Legales y utilidades |
 
+### Pagos PayPal (publico)
+
+| Ruta | Funcion |
+|------|---------|
+| `/pago/paypal/[token]` | Link estable de 30 dias: valida token/estado/concepto, crea o renueva la orden PayPal (3 h) y redirige al checkout alojado |
+| `/pago/paypal/retorno` | PayPal vuelve del checkout: consulta/captura la orden y registra el pago (idempotente) |
+| `/pago/paypal/cancelado` | Registra el intento cancelado sin cambiar el estado del cobro y fuerza una orden nueva en el proximo intento |
+| `/pago/paypal/estado` | Pagina publica con el estado del link (pendiente/pagado/vencido/invalidado/error), sin datos del cliente |
+
+Las rutas de pago son `no-store`, `no-referrer` y `noindex`; el pago es como invitado cuando PayPal lo permite. Estan en `ROUTES.public` del middleware (`/pago` y `/pago/(.*)`).
+
 ### Auth (Clerk) — solo admin/asistente
 
 | Ruta | Componente |
@@ -54,17 +108,26 @@
 
 El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el middleware hace rewrite al gate y aparece el modal). Registro publico desactivado.
 
-### Admin (requiere rol "admin")
+Roles (`publicMetadata.role`, sin alias `assistant`):
+
+- **`admin`**: acceso completo al CRM y a todas las acciones sensibles.
+- **`asistente`**: solo `/admin/clientes`, `/admin/cobros` y `/admin/pagos` (incluye detalle del cliente y recibo). Dashboard, servicios, blog y el resto quedan admin-only; `/admin` la redirige a `/admin/cobros`.
+- **Solo admin**: registro manual de pagos PayPal, reembolsos/contracargos y resolucion de diferencias. `requireStaff()` habilita link/envio; `requireAdmin()` queda estricto para lo sensible.
+
+### Admin (staff: rol "admin" o "asistente")
 
 | Ruta | Funcionalidad |
 |------|--------------|
-| `/admin/dashboard` | Metricas (ingresos USD/ARS, por cobrar 7d, clientes, suscripciones, vencidos) + ultimos clientes + chart estados |
+| `/admin/dashboard` | Metricas (ingresos USD/ARS, por cobrar 7d, clientes, suscripciones, vencidos) + ultimos clientes + chart estados · admin-only |
 | `/admin/clientes` | Lista paginada (20/pag) con busqueda + **alta manual de clientes** |
-| `/admin/clientes/[id]` | Datos + editar + notas + **proyectos por hitos** (crear, editar, agregar/eliminar hitos, link MP, registrar pago) + **soporte** (activar, precio, vencimiento, deploy) + historial |
-| `/admin/cobros` | **Hitos pendientes (vencidos/por vencer/sin fecha) + Soportes** con acciones: registrar pago, link MP (recordado 30 dias), recordar (WhatsApp/email), pausar |
-| `/admin/servicios` | Catalogo de productos desde Prisma con precios y estado activo/inactivo |
-| `/admin/pagos` | Historial con filtros (estado, rango fechas) + paginacion + moneda/metodo |
-| `/admin/blog` | Gestion del blog (enlaza a Sanity Studio) |
+| `/admin/clientes/[id]` | Datos + editar + notas + **proyectos por hitos** (crear, editar, agregar/eliminar hitos, link MP/PayPal, registrar pago) + **soporte** (activar, precio, vencimiento, deploy, link PayPal) + historial · registro manual PayPal solo admin |
+| `/admin/cobros` | **Hitos pendientes (vencidos/por vencer/sin fecha) + Soportes** con acciones: registrar pago, link MP (recordado 30 dias) / PayPal (link 30 dias), recordar (WhatsApp/email), pausar |
+| `/admin/servicios` | Catalogo de productos desde Prisma con precios y estado activo/inactivo · admin-only |
+| `/admin/pagos` | Historial con filtros (estado, rango fechas, pasarela) + paginacion + moneda/metodo + desglose PayPal (acordado/comision/total) + revision/ajustes (admin) |
+| `/admin/pagos/[id]/recibo` | Recibo interno imprimible de un pago PayPal (staff; datos del cliente del CRM, sin PII del pagador) |
+| `/admin/blog` | Gestion del blog (enlaza a Sanity Studio) · admin-only |
+
+La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las acciones de registro manual PayPal, reembolso/contracargo y resolucion de diferencias se ocultan en la UI para la asistente y las APIs las rechazan con `requireAdmin()`.
 
 ### API Routes
 
@@ -82,6 +145,12 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 | `/api/admin/pagos` | POST | Admin: registrar pago (hito o soporte; ARS/USD, metodo, nota, recibo) |
 | `/api/admin/mp/link` | POST | Admin: link de pago MP para hito o soporte (recordado 30 dias, monto editable) |
 | `/api/webhooks/mercadopago` | POST | MP: firma x-signature + registro idempotente (hito → Pagado / soporte → +meses) |
+| `/api/admin/paypal/link` | POST | Staff: crear/reutilizar link PayPal de un hito o soporte (gross-up, sin cambiar el cobro) |
+| `/api/admin/paypal/enviar` | POST | Staff: enviar por email (Resend) o registrar WhatsApp/copia en ES/EN |
+| `/api/admin/paypal/manual` | POST | **Admin**: registrar pago PayPal manual con evidencia textual/URL e idempotencia |
+| `/api/admin/paypal/ajustes` | POST | **Admin**: registrar reembolso/contracargo y decidir hito/meses (sin automatismo) |
+| `/api/admin/paypal/revision` | POST | **Admin**: aceptar/rechazar una diferencia de monto o moneda |
+| `/api/webhooks/paypal` | POST | PayPal: firma server-to-server + dispatch idempotente (capture, fallos, refunds/disputas) |
 | `/api/admin/recordar` | POST | Admin: recordatorio de pago por email (hito o soporte) |
 | `/api/admin/suscripciones` | PATCH | Admin: activar/pausar/reactivar/cancelar/vencido + precio/vencimiento + deploy |
 | `/api/admin/entregar` | POST | Admin: marcar entregado + email |
@@ -111,6 +180,20 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 | `pagos.ts` | Conversiones ARS/USD, vencimientos (+1 mes), precio de plan, metodos de pago |
 | `mercadopago.ts` | SDK MP: crear link de pago (Checkout Pro, vigencia) + consultar pago |
 | `mp-utils.ts` | Logica pura MP: meses, mapeo de estados, vencimiento por meses, titulos |
+| `paypal/config.ts` | `paypalConfig()`: envs server-only, sandbox/produccion, base URL, webhook id y tarifa; nunca lanza |
+| `paypal/client.ts` | OAuth con cache, create/get/capture order, verify webhook, timeouts y errores sanitizados |
+| `paypal/fees.ts` | Gross-up entero, snapshot de tarifa y validacion USD/centavos |
+| `paypal/links.ts` | Crear/reutilizar/regenerar/vencer links, token opaco, grupo de cobro y adopcion de links MP |
+| `paypal/process.ts` | Captura idempotente: hito/soporte, primer pago gana y diferencias a `REVISION` |
+| `paypal/events.ts` | Trazabilidad tecnica (`EventoPasarela`) y deduplicacion |
+| `paypal/webhook.ts` | Parseo/dispatch de eventos sin payload crudo ni PII |
+| `paypal/receipts.ts` | `reciboId`, snapshot y datos del recibo tomados del cliente del CRM |
+| `paypal/messages.ts` | Plantillas ES/EN de email y WhatsApp con montos localizados |
+| `paypal/manual.ts` | Registro manual PayPal (solo admin) con evidencia e idempotencia |
+| `paypal/adjustments.ts` | Reembolsos/contracargos manuales y decision del admin |
+| `paypal/review.ts` | Aceptar/rechazar diferencias de monto o moneda |
+| `paypal/redact.ts` | Redaccion de PII/secretos para logs y Sentry |
+| `paypal/validation.ts` | Esquemas Zod de bodies y webhooks |
 | `reading-time.ts` | Tiempo de lectura desde Portable Text |
 | `chat.ts` | Intents del chat demo (PixelBot) |
 | `deploy.ts` | Pausar/reanudar deploys (Railway/Vercel) |
@@ -124,6 +207,12 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 | `layout/admin-gate.tsx` | Modal de ingreso al admin (openSignIn sobre el sitio) |
 | `layout/admin-user-button.tsx` | Cuenta + cerrar sesion en el sidebar del admin (AccountModal custom) |
 | `ui/account-modal.tsx` | Modal "Mi cuenta" custom (mover a admin) |
+| `ui/paypal-dialog.tsx` / `ui/paypal-link-modal.tsx` | Dialogo accesible base y modal de link PayPal (monto, meses, preview de comision, idioma, copiar/enviar/regenerar) |
+| `ui/generar-link-paypal-button.tsx` | Boton "Link PayPal" en hitos y soportes elegibles |
+| `ui/registrar-pago-paypal-button.tsx` | Registro manual PayPal con evidencia textual/URL (solo admin) |
+| `ui/ajuste-paypal-button.tsx` | Reembolso/contracargo y decision sobre hito/meses (solo admin) |
+| `ui/revision-paypal-button.tsx` | Aceptar/rechazar diferencia de monto (solo admin) |
+| `ui/recibo-paypal.tsx` / `ui/pago-paypal-row.tsx` | Recibo imprimible y fila de historial PayPal |
 | `ui/faq-accordion.tsx` / `ui/product-faq.tsx` | Acordeones de FAQ |
 | `sections/blog-grid.tsx` | Grid del blog con filtros por tags + tiempo de lectura |
 | `sections/audit-tool.tsx` | Herramienta de auditoria interactiva |
@@ -154,6 +243,18 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 - Envs `MP_ACCESS_TOKEN` + `MP_WEBHOOK_SECRET` cargadas en Railway; webhook configurado en el panel MP (evento **Pagos**)
 - Convive con el registro manual (transferencias/efectivo)
 
+### Pagos — PayPal (Oct 2026, implementado en codigo; sin migracion ni deploy)
+- **Link estable de 30 dias** (`/pago/paypal/<token>`): al abrirlo se crea o reutiliza una **orden PayPal de 3 h**; la URL de checkout no se envia al cliente y se renueva sin cambiar el link. Regenerar invalida el anterior y conserva historial; el vencimiento a los 30 dias se resuelve de forma perezosa.
+- **Gross-up entero**: `total = ceil((acordado + fijo) * 10000 / (10000 - bps))`, default **5,40% + US$0,30** (`PAYPAL_FEE_BPS`/`PAYPAL_FEE_FIXED_CENTS`), con snapshot por link y por pago. Solo USD y centavos: `monto = acordado + comision = esperado`. Formato es-AR en CRM/recibos (`US$100,50`); la plantilla EN puede usar `US$100.50`.
+- **Confirmacion por dos caminos idempotentes**: retorno del comprador (captura) + webhook `/api/webhooks/paypal` (firma server-to-server con `PAYPAL_WEBHOOK_ID`, timeout 4 s). Eventos: `CHECKOUT.ORDER.APPROVED/COMPLETED`, `PAYMENT.CAPTURE.COMPLETED/DENIED/REFUNDED/REVERSED` y `CUSTOMER.DISPUTE.CREATED`. Dedupe por `EventoPasarela.eventoId` + `Pago.externalId`/`paypalOrderId`; repetidos/desconocidos responden 200, firma invalida 401 y error 500 para reintento.
+- **Primer pago gana**: links MP y PayPal conviven por `grupoCobroId`; el pago ganador invalida los hermanos y deja trazado el intento descartado. Los links MP legacy se adoptan al generar PayPal; el flujo MP no cambia.
+- **Estados**: `EnlacePago` CREANDO/ACTIVO/PAGADO/VENCIDO/INVALIDADO/FALLIDO; `Pago` SUCCEEDED/REVISION/FAILED/PENDING/REFUNDED/CONTRACARGO; `EventoPasarela` PROCESADO/IGNORADO/DUPLICADO/REQUIERE_ACCION/FIRMA_INVALIDA/ERROR; `AjustePago` REEMBOLSO/CONTRACARGO con decision NINGUNA/REVERTIR_HITO/DESCENTAR_MESES.
+- **Modelos**: `EnlacePago` (link, envio, snapshot), `EventoPasarela` (dedupe/trazabilidad), `AjustePago` (reembolso/contracargo manual) y campos nuevos de `Pago` (pasarela, origen, desglose, meses, fee, recibo, revision). No se persisten email/nombre del pagador; el recibo usa los datos del cliente del CRM.
+- **API/UI**: link y envio para staff; manual, ajustes y revision solo admin; recibo imprimible; modal accesible; filtros/desglose en `/admin/pagos`; cobros con link/recordar PayPal.
+- **Roles**: `admin` y `asistente` (sin alias `assistant`); la asistente solo accede a clientes, cobros y pagos, y no puede registro manual, ajustes/reembolsos ni resolucion de diferencias.
+- **Sin cambios de Dockerfile**: no hay `NEXT_PUBLIC_PAYPAL_*`; las envs PayPal son server-only y se inyectan en runtime. Si falta la config, `paypalConfig()` deshabilita PayPal (503 en las APIs) y Mercado Pago sigue operativo.
+- **Pendiente operativo**: `prisma db push`/backfill, sandbox en Railway staging con Postgres separado (T-36/T-37) y rollout (T-38). La BD aun no tiene las tablas nuevas de PayPal y no se debe deployar PayPal.
+
 ### Monitoreo propio (`/estado`)
 - Tabla `UptimeCheck` + **Railway Function `uptime-cron`** cada 10 min (dispara `/api/cron/uptime` con el secret; unica fuente, sin GitHub Actions)
 - 4 servicios: Sitio web, Blog, API, Base de datos (uptime, latencia, historial 90 dias, incidentes)
@@ -168,10 +269,10 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 - Chequeos reales: velocidad, SSL (certificado via TLS), SEO, headers de seguridad
 - Proteccion SSRF + rate limit 8/hora + scoring y hallazgos
 
-### Auth (Clerk) — solo admin
+### Auth (Clerk) — admin/asistente
 - Login solo para admin/asistente (modal sobre el sitio via `/gate/admin`)
 - Sin registro publico, sin webhook de sync, sin portal de clientes
-- Rol admin via `publicMetadata.role`
+- Roles via `publicMetadata.role`: `admin` (todo) y `asistente` (solo clientes/cobros/pagos; sin alias `assistant`)
 
 ### Alertas de uptime + digest diario (Sept 2026)
 - **Alertas por transicion** (anti-spam): 2 fallos seguidos → email de caida; al volver → email de recuperacion; no repite mientras siga caido (`uptime-alerts.ts` + tests)
@@ -193,6 +294,7 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 ## Pendiente
 
 - [ ] Pasos manuales: desactivar registro publico en Clerk + invitar a la asistente · borrar el webhook de Polar en su panel
+- [ ] PayPal: `prisma db push` + backfill, validar la tarifa real en sandbox, crear Railway staging con Postgres separado (T-36/T-37) y ejecutar el rollout (T-38). Sin eso PayPal queda deshabilitado por falta de envs y no se deploya.
 
 ## Descartado / no planificado (por decision, Sept 2026)
 
@@ -204,20 +306,21 @@ El nav publico **no muestra "Ingresar"**: el acceso es entrando a `/admin` (el m
 ## Tests
 
 ```
-✓ 18 test files | 148 tests | all passed
+✓ 79 test files | 1427 tests | all passed
 ```
 
 `npm test` — correr tests
-`npm run test:watch` — modo watch
+`node node_modules\vitest\vitest.mjs run` — suite unica, sin watch
+`npm run lint` — ESLint (deuda preexistente; no introducir errores nuevos)
 
 ## Build
 
 ```
-Next.js 16.2.6 (Turbopack)
-Compiled successfully
-TypeScript — 0 errores
-Generating static pages (43/43)
+TypeScript — 0 errores (verificado)
+PayPal — implementado; migracion y deploy pendientes (T-37/T-38)
 ```
+
+> El build de paginas no se re-verifico despues de PayPal. No deployar con PayPal habilitado hasta completar T-37/T-38.
 
 ---
 
@@ -227,11 +330,15 @@ Generating static pages (43/43)
 npm run dev        # Desarrollo local
 npm run build      # Build de produccion
 npm test           # Tests unitarios + libs
-node node_modules/typescript/bin/tsc --noEmit   # Type check
+node node_modules\vitest\vitest.mjs run          # Suite sin watch
+npm run lint                                     # ESLint
+node node_modules\typescript\bin\tsc --noEmit    # Type check
 npx prisma studio  # Explorar BD
 npx prisma db push # Sincronizar schema → BD
 npx prisma generate # Regenerar cliente
 ```
+
+> En esta maquina `npx` puede fallar: usar `node node_modules\prisma\build\index.js db push` y `node node_modules\prisma\build\index.js generate`.
 
 ### Scripts propios (`src/scripts/`)
 

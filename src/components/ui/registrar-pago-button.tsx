@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Loader2, CheckCircle2 } from "lucide-react"
-import { METODOS_PAGO, METODO_LABEL } from "@/lib/pagos"
+import { formatearMonto, METODOS_PAGO, METODO_LABEL } from "@/lib/pagos"
 
 interface Props {
   suscripcionId: string
@@ -16,6 +16,8 @@ interface Props {
   variant?: "default" | "outline" | "gradient" | "ghost"
   label?: string
   className?: string
+  /** `false` oculta el registro manual generico (accion solo admin). */
+  puedeRegistrar?: boolean
 }
 
 export function RegistrarPagoButton({
@@ -28,6 +30,7 @@ export function RegistrarPagoButton({
   variant = "default",
   label,
   className,
+  puedeRegistrar = true,
 }: Props) {
   const [open, setOpen] = useState(false)
   const [moneda, setMoneda] = useState<"usd" | "ars">("usd")
@@ -92,6 +95,8 @@ export function RegistrarPagoButton({
     }
   }
 
+  if (!puedeRegistrar) return null
+
   return (
     <>
       <Button size={size} variant={variant} className={className} onClick={() => setOpen(true)}>
@@ -126,9 +131,9 @@ export function RegistrarPagoButton({
                 <p
                   className="text-xs text-text-dim mb-5"
                   style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                  title={`${cliente ? `${cliente} · ` : ""}US$${(precioUsd / 100).toFixed(0)}/mes`}
+                  title={`${cliente ? `${cliente} · ` : ""}${formatearMonto(precioUsd, "usd")}/mes`}
                 >
-                  {cliente ? `${cliente} · ` : ""}US${(precioUsd / 100).toFixed(0)}/mes
+                  {cliente ? `${cliente} · ` : ""}{formatearMonto(precioUsd, "usd")}/mes
                 </p>
 
                 <div className="space-y-3">

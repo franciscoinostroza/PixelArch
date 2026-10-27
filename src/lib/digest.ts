@@ -104,8 +104,8 @@ export function armarDigest(data: DigestData): { subject: string; text: string }
   }
 
   const totales: string[] = []
-  if (totalUsd > 0) totales.push(`pendiente US$${(totalUsd / 100).toFixed(2)}`)
-  if (cobradoUsd > 0) totales.push(`cobrado 24h US$${(cobradoUsd / 100).toFixed(2)}`)
+  if (totalUsd > 0) totales.push(`pendiente ${formatearMonto(totalUsd, "usd")}`)
+  if (cobradoUsd > 0) totales.push(`cobrado 24h ${formatearMonto(cobradoUsd, "usd")}`)
   if (cobradoArs > 0) totales.push(`cobrado 24h $${Math.round(cobradoArs / 100).toLocaleString("es-AR")} ARS`)
   if (totales.length > 0) {
     lineas.push(`Totales: ${totales.join(" · ")}`)

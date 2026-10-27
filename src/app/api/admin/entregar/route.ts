@@ -4,6 +4,7 @@ import { resend } from "@/lib/resend"
 import { requireAdmin } from "@/lib/auth"
 import { rateLimit } from "@/lib/rate-limit"
 import { logger } from "@/lib/logger"
+import { formatearMonto } from "@/lib/pagos"
 
 export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for") || "unknown"
@@ -44,8 +45,8 @@ export async function POST(req: Request) {
           "Para mantenerlo activo, elegi un soporte mensual y escribinos para activarlo:",
           `${process.env.NEXT_PUBLIC_URL}/#contacto`,
           "",
-          `Soporte basico: $${(suscripcion.servicio.precioBasico / 100).toFixed(0)}/mes — servicio online, hosting, SSL y monitoreo`,
-          `Soporte premium: $${(suscripcion.servicio.precioMantenimiento / 100).toFixed(0)}/mes — todo lo del basico + cambios mensuales y soporte prioritario`,
+          `Soporte basico: ${formatearMonto(suscripcion.servicio.precioBasico, "usd")}/mes — servicio online, hosting, SSL y monitoreo`,
+          `Soporte premium: ${formatearMonto(suscripcion.servicio.precioMantenimiento, "usd")}/mes — todo lo del basico + cambios mensuales y soporte prioritario`,
         ].join("\n"),
       })
       logger.info("Project ready email sent", { suscripcionId })

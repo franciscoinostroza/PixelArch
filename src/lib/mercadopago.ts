@@ -68,6 +68,11 @@ export interface PagoMp {
   transactionAmount: number | null
   tipo: string | null
   meses: number
+  /**
+   * `EnlacePago` que origino la preferencia (metadata `enlaceId`). Los links
+   * legacy no lo tienen: el webhook cae a `externalReference`.
+   */
+  enlaceId: string | null
 }
 
 export async function obtenerPagoMp(id: string): Promise<PagoMp | null> {
@@ -79,6 +84,7 @@ export async function obtenerPagoMp(id: string): Promise<PagoMp | null> {
 
   const metadata = (p.metadata || {}) as Record<string, unknown>
   const mesesRaw = Number(metadata.meses)
+  const enlaceIdRaw = metadata.enlaceId
 
   return {
     id: String(p.id),
@@ -87,5 +93,9 @@ export async function obtenerPagoMp(id: string): Promise<PagoMp | null> {
     transactionAmount: typeof p.transaction_amount === "number" ? p.transaction_amount : null,
     tipo: typeof metadata.tipo === "string" ? metadata.tipo : null,
     meses: Number.isFinite(mesesRaw) ? mesesRaw : 1,
+    enlaceId:
+      typeof enlaceIdRaw === "string" && enlaceIdRaw.trim().length > 0
+        ? enlaceIdRaw.trim()
+        : null,
   }
 }

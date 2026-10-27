@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Loader2, Link2, Copy, Check } from "lucide-react"
 import { waLink } from "@/lib/contact"
+import { formatearMonto } from "@/lib/pagos"
 
 interface Props {
   suscripcionId: string
@@ -141,9 +142,9 @@ export function GenerarLinkMpButton({
             <p
               className="text-xs text-text-dim mb-5"
               style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-              title={`${cliente ? `${cliente} · ` : ""}US$${(precioUsd / 100).toFixed(0)}/mes`}
+              title={`${cliente ? `${cliente} · ` : ""}${formatearMonto(precioUsd, "usd")}/mes`}
             >
-              {cliente ? `${cliente} · ` : ""}US${(precioUsd / 100).toFixed(0)}/mes
+              {cliente ? `${cliente} · ` : ""}{formatearMonto(precioUsd, "usd")}/mes
             </p>
 
             {link ? (
@@ -250,7 +251,7 @@ export function GenerarLinkMpButton({
                   />
                   {modo === "meses" && (
                     <p className="text-text-dim mt-1" style={{ fontFamily: "var(--font-mono)", fontSize: ".66rem" }}>
-                      ≈ US${((precioUsd / 100) * meses).toFixed(0)} × {meses} {meses === 1 ? "mes" : "meses"} — editable para descuentos
+                      ≈ {formatearMonto(precioUsd * meses, "usd")} × {meses} {meses === 1 ? "mes" : "meses"} — editable para descuentos
                     </p>
                   )}
                 </div>

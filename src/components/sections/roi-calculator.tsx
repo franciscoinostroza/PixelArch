@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { whatsappUrl } from "@/lib/contact"
+import { formatearMonto } from "@/lib/pagos"
 
 const AUTOMATIZABLE = 0.7
 const WEEKS_PER_MONTH = 4.33
@@ -21,7 +22,7 @@ export function RoiCalculator() {
     }
   }, [hours, rate, tasks])
 
-  const fmt = (n: number) => "US$" + n.toLocaleString("en-US")
+  const fmt = (n: number) => formatearMonto(Math.round(n * 100), "usd")
 
   return (
     <div className="roi">

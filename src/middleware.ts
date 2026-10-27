@@ -1,8 +1,9 @@
 import { clerkClient, clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
+import { esRolStaff, esRutaAdminPermitida, rutaInicioRol } from "@/lib/roles"
 
 const ROUTES = {
-  public: ["/", "/productos(.*)", "/blog(.*)", "/nosotros(.*)", "/faq(.*)", "/precios(.*)", "/proyectos(.*)", "/estado(.*)", "/auditoria(.*)", "/calculadora(.*)", "/gate(.*)", "/sign-in(.*)", "/gracias", "/terminos", "/privacidad", "/reembolsos", "/studio(.*)", "/propuesta(.*)", "/logo"],
+  public: ["/", "/productos(.*)", "/blog(.*)", "/nosotros(.*)", "/faq(.*)", "/precios(.*)", "/proyectos(.*)", "/estado(.*)", "/auditoria(.*)", "/calculadora(.*)", "/pago", "/pago/(.*)", "/gate(.*)", "/sign-in(.*)", "/gracias", "/terminos", "/privacidad", "/reembolsos", "/studio(.*)", "/propuesta(.*)", "/logo"],
   admin: ["/admin(.*)"],
 }
 
@@ -26,8 +27,11 @@ export default clerkMiddleware(async (auth, req) => {
 
     const clerk = await clerkClient()
     const user = await clerk.users.getUser(userId)
-    const role = (user.publicMetadata as { role?: string })?.role
-    if (role !== "admin") return redirect("/", req)
+    const role = (user.publicMetadata as { role?: unknown })?.role
+    if (!esRolStaff(role)) return redirect("/", req)
+    if (!esRutaAdminPermitida(role, req.nextUrl.pathname)) {
+      return redirect(rutaInicioRol(role), req)
+    }
     return NextResponse.next()
   }
 

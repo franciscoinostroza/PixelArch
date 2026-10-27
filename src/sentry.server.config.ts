@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs"
+import { redactSentryEvent } from "./lib/paypal/redact"
 
 const dsn = process.env.SENTRY_DSN
 
@@ -9,6 +10,14 @@ Sentry.init({
   // 100% en desarrollo, 10% en produccion
   tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
 
-  // Adjunta valores de variables locales a los stack frames
-  includeLocalVariables: true,
+  // No adjuntar variables locales a los stack frames: pueden contener PII
+  // (email/nombre del pagador) o credenciales de PayPal.
+  includeLocalVariables: false,
+
+  // Redacta claves sensibles en extras, contextos, breadcrumbs, request data,
+  // user/tags/exception, message, transaction y sdkProcessingMetadata sin
+  // descartar informacion util no sensible (ids, montos, estado, etc.).
+  beforeSend(event) {
+    return redactSentryEvent(event)
+  },
 })

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest"
-import { getDolarVentaBancoNacion, formatARS, formatUSD } from "@/lib/dolar"
+import { getDolarVentaBancoNacion, formatARS } from "@/lib/dolar"
 
 const providers = [
   { slug: "banco-nacion", bid: 1485, ask: 1535 },
@@ -61,9 +61,3 @@ describe("formatARS", () => {
   })
 })
 
-describe("formatUSD", () => {
-  it("formats cents as USD", () => {
-    expect(formatUSD(5100)).toBe("US$51")
-    expect(formatUSD(0)).toBe("US$0")
-  })
-})

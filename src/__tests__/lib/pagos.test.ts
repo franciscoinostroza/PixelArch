@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import type { MetodoPago } from "@prisma/client"
 import {
   addMonths,
   siguienteVencimiento,
@@ -8,7 +9,18 @@ import {
   formatearMonto,
   precioDePlan,
   normalizeMoneda,
+  METODOS_PAGO,
+  METODO_LABEL,
+  type MetodoPagoValue,
 } from "@/lib/pagos"
+
+// T-03: los tipos de la lib deben seguir siendo coherentes con el enum de Prisma.
+type MetodoPagoValueValido = MetodoPagoValue extends MetodoPago ? true : never
+type MetodoPagoCubierto = MetodoPago extends MetodoPagoValue ? true : never
+const metodoPagoValueValido: MetodoPagoValueValido = true
+const metodoPagoCubierto: MetodoPagoCubierto = true
+void metodoPagoValueValido
+void metodoPagoCubierto
 
 describe("normalizeMoneda", () => {
   it("normaliza a usd o ars", () => {
@@ -101,13 +113,29 @@ describe("conversiones", () => {
   })
 })
 
-describe("formatearMonto", () => {
-  it("formatea USD en centavos", () => {
-    expect(formatearMonto(2500, "usd")).toBe("US$25.00")
+describe("formatearMonto (T-04b, AC-18)", () => {
+  it("usa es-AR por defecto en USD, con centavos y miles", () => {
+    expect(formatearMonto(2500, "usd")).toBe("US$25,00")
+    expect(formatearMonto(10050, "usd")).toBe("US$100,50")
+    expect(formatearMonto(100050, "usd")).toBe("US$1.000,50")
+    expect(formatearMonto(1, "usd")).toBe("US$0,01")
+    expect(formatearMonto(123456789, "usd")).toBe("US$1.234.567,89")
   })
 
-  it("formatea ARS en centavos", () => {
+  it("formatea USD en es-AR explicito", () => {
+    expect(formatearMonto(10050, "usd", "es-AR")).toBe("US$100,50")
+    expect(formatearMonto(100050, "usd", "es-AR")).toBe("US$1.000,50")
+  })
+
+  it("formatea USD en en-US explicito solo para plantillas EN", () => {
+    expect(formatearMonto(10050, "usd", "en-US")).toBe("US$100.50")
+    expect(formatearMonto(100050, "usd", "en-US")).toBe("US$1,000.50")
+  })
+
+  it("mantiene el formato ARS", () => {
     expect(formatearMonto(3850000, "ars")).toBe("$38.500 ARS")
+    expect(formatearMonto(3850000, "ars", "es-AR")).toBe("$38.500 ARS")
+    expect(formatearMonto(3850000, "ars", "en-US")).toBe("$38,500 ARS")
   })
 })
 
@@ -131,5 +159,19 @@ describe("precioDePlan", () => {
 
   it("ignora precio custom invalido", () => {
     expect(precioDePlan("BASICO", precios, 0)).toBe(2500)
+  })
+})
+
+describe("metodos de pago (T-03, AC-1, AC-11, AC-24)", () => {
+  it("el selector generico no ofrece PAYPAL: solo el flujo dedicado", () => {
+    expect(METODOS_PAGO).not.toContain("PAYPAL")
+    expect(METODOS_PAGO).toEqual(["TRANSFERENCIA", "MERCADOPAGO", "EFECTIVO", "OTRO"])
+  })
+
+  it("METODO_LABEL etiqueta PayPal y todos los metodos del selector", () => {
+    expect(METODO_LABEL.PAYPAL).toBe("PayPal")
+    for (const metodo of METODOS_PAGO) {
+      expect(METODO_LABEL[metodo]).toBeTruthy()
+    }
   })
 })

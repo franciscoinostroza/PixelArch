@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
+import { esRolStaff, rutaInicioRol } from "@/lib/roles"
 import { useUser } from "@clerk/nextjs"
 
 const links = [
@@ -18,11 +19,11 @@ const hasClerkKey = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
 function AdminNavLink() {
   const { user } = useUser()
-  const role = (user?.publicMetadata as { role?: string } | undefined)?.role
-  if (role !== "admin") return null
+  const role = (user?.publicMetadata as { role?: unknown } | undefined)?.role
+  if (!esRolStaff(role)) return null
 
   return (
-    <Link href="/admin/dashboard" className="nav-auth-link">
+    <Link href={rutaInicioRol(role)} className="nav-auth-link">
       Admin
       <span className="nav-underline" aria-hidden="true" />
     </Link>

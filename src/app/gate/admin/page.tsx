@@ -16,7 +16,7 @@ export default async function GateAdminPage({
   const safeNext =
     typeof next === "string" && next.startsWith("/") && !next.startsWith("//")
       ? next
-      : "/admin/dashboard"
+      : "/admin"
 
   const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 

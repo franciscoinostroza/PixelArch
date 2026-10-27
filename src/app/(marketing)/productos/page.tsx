@@ -1,7 +1,8 @@
 import { sanityFetch } from "@/lib/sanity"
 import Link from "next/link"
 import type { Metadata } from "next"
-import { getDolarVentaBancoNacion, formatARS, formatUSD } from "@/lib/dolar"
+import { getDolarVentaBancoNacion, formatARS } from "@/lib/dolar"
+import { formatearMonto } from "@/lib/pagos"
 
 export const metadata: Metadata = {
   title: "Productos — PixelArch",
@@ -41,7 +42,7 @@ const FALLBACK_TAGS: Record<string, string[]> = {
 function priceAmount(precioUnico: number, rate: number | null) {
   if (!precioUnico) return null
   if (rate) return formatARS(precioUnico, rate)
-  return formatUSD(precioUnico)
+  return formatearMonto(precioUnico, "usd")
 }
 
 export default async function ProductosPage() {
@@ -93,10 +94,10 @@ export default async function ProductosPage() {
                           <span className="product-from">Implementación desde</span>
                           <span className="product-amount">
                             {priceAmount(s.precioUnico, rate)}
-                            {rate && s.precioUnico > 0 && <span className="product-usd">≈ {formatUSD(s.precioUnico)}</span>}
+                            {rate && s.precioUnico > 0 && <span className="product-usd">≈ {formatearMonto(s.precioUnico, "usd")}</span>}
                             {s.precioBasico > 0 && (
                               <span className="product-usd">
-                                Soporte opcional desde {rate ? formatARS(s.precioBasico, rate) : formatUSD(s.precioBasico)}/mes
+                                Soporte opcional desde {rate ? formatARS(s.precioBasico, rate) : formatearMonto(s.precioBasico, "usd")}/mes
                               </span>
                             )}
                           </span>

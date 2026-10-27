@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { formatARS, formatUSD } from "@/lib/dolar"
+import { formatARS } from "@/lib/dolar"
+import { formatearMonto } from "@/lib/pagos"
 
 interface ServiceItem {
   titulo: string
@@ -52,7 +53,7 @@ export function Services({ servicios, rate }: ServicesProps) {
   const priceAmount = (s: ServiceItem) => {
     if (!s.precioUnico) return null
     if (rate) return formatARS(s.precioUnico, rate)
-    return formatUSD(s.precioUnico)
+    return formatearMonto(s.precioUnico, "usd")
   }
 
   return (
@@ -97,10 +98,10 @@ export function Services({ servicios, rate }: ServicesProps) {
                         <span className="product-from">Implementación desde</span>
                         <span className="product-amount">
                           {priceAmount(s)}
-                          {rate && s.precioUnico > 0 && <span className="product-usd">≈ {formatUSD(s.precioUnico)}</span>}
+                          {rate && s.precioUnico > 0 && <span className="product-usd">≈ {formatearMonto(s.precioUnico, "usd")}</span>}
                           {s.precioBasico > 0 && (
                             <span className="product-usd">
-                              Soporte opcional desde {rate ? formatARS(s.precioBasico, rate) : formatUSD(s.precioBasico)}/mes
+                              Soporte opcional desde {rate ? formatARS(s.precioBasico, rate) : formatearMonto(s.precioBasico, "usd")}/mes
                             </span>
                           )}
                         </span>

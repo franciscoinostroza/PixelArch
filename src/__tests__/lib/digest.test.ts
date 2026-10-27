@@ -31,9 +31,27 @@ describe("armarDigest", () => {
       ],
     })
     expect(subject).toContain("1 vencido")
-    expect(subject).toContain("US$100.00")
+    expect(subject).toContain("US$100,00")
     expect(text).toContain("🔴 VENCIDOS (1)")
-    expect(text).toContain("ACME · Landing · Anticipo: US$100.00")
+    expect(text).toContain("ACME · Landing · Anticipo: US$100,00")
+  })
+
+  it("formatea miles y centavos en es-AR", () => {
+    const { subject, text } = armarDigest({
+      ...base,
+      hitosVencidos: [
+        {
+          cliente: "ACME",
+          proyecto: "Landing",
+          titulo: "Anticipo",
+          monto: 100050,
+          vencimiento: new Date("2026-09-20T12:00:00Z"),
+        },
+      ],
+    })
+    expect(subject).toContain("US$1.000,50 pendiente")
+    expect(text).toContain("ACME · Landing · Anticipo: US$1.000,50")
+    expect(text).toContain("pendiente US$1.000,50")
   })
 
   it("pluraliza vencidos", () => {
@@ -65,7 +83,7 @@ describe("armarDigest", () => {
         { cliente: "ACME", servicio: "Chatbot", monto: 2500, proximoPago: new Date("2026-09-15T12:00:00Z") },
       ],
     })
-    expect(text).toContain("ACME · Soporte Chatbot: US$25.00/mes")
+    expect(text).toContain("ACME · Soporte Chatbot: US$25,00/mes")
   })
 
   it("hitos sin fecha: seccion propia", () => {
@@ -86,9 +104,9 @@ describe("armarDigest", () => {
       ],
     })
     expect(text).toContain("✅ COBRADO ÚLTIMAS 24H (2)")
-    expect(text).toContain("ACME · Anticipo: US$100.00")
+    expect(text).toContain("ACME · Anticipo: US$100,00")
     expect(text).toContain("Beta · Soporte Chatbot: $50.000 ARS")
-    expect(text).toContain("cobrado 24h US$100.00")
+    expect(text).toContain("cobrado 24h US$100,00")
     expect(text).toContain("cobrado 24h $50.000 ARS")
   })
 

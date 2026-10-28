@@ -693,6 +693,31 @@ describe("POST /api/admin/paypal/link: contrato 200 (AC-1, AC-3, AC-24)", () => 
     )
   })
 
+  it("prioriza NEXT_PUBLIC_URL sobre el origin interno de Railway", async () => {
+    const previo = process.env.NEXT_PUBLIC_URL
+    process.env.NEXT_PUBLIC_URL = "https://pixelarch.dev"
+
+    try {
+      const res = await POST(
+        request(
+          { hitoId: "hito_1" },
+          "https://0.0.0.0:8080/api/admin/paypal/link"
+        )
+      )
+
+      expect(res.status).toBe(200)
+      expect(mocks.crearEnlacePaypal).toHaveBeenCalledWith(
+        expect.objectContaining({ baseUrl: "https://pixelarch.dev" })
+      )
+    } finally {
+      if (previo === undefined) {
+        delete process.env.NEXT_PUBLIC_URL
+      } else {
+        process.env.NEXT_PUBLIC_URL = previo
+      }
+    }
+  })
+
   it("responde 200 con Cache-Control: no-store porque el body incluye el token", async () => {
     const res = await POST(request({ hitoId: "hito_1" }))
 

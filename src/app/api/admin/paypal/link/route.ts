@@ -26,6 +26,7 @@ import {
   esPaypalLinkError,
   type PaypalLinkErrorCodigo,
 } from "@/lib/paypal/links"
+import { resolverBaseUrlPublica } from "@/lib/paypal/utils"
 import { paypalLinkBodySchema } from "@/lib/paypal/validation"
 
 const MENSAJE_NO_DISPONIBLE =
@@ -172,10 +173,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: MENSAJE_NO_DISPONIBLE }, { status: 503 })
   }
 
-  let baseUrl: string
-  try {
-    baseUrl = new URL(req.url).origin
-  } catch {
+  // Detras del proxy de Railway el origin interno es https://0.0.0.0:8080, por
+  // eso la base publica sale de NEXT_PUBLIC_URL y solo cae al origin de la
+  // request cuando la env no esta definida.
+  const baseUrl = resolverBaseUrlPublica(process.env.NEXT_PUBLIC_URL, req.url)
+  if (!baseUrl) {
     return NextResponse.json({ error: "Solicitud invalida" }, { status: 400 })
   }
 

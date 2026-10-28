@@ -1551,6 +1551,103 @@ describe("GET /pago/paypal/cancelado (parte B)", () => {
   })
 })
 
+describe("redirect a estado detras del proxy (base publica)", () => {
+  const BASE_PUBLICA = "https://staging.pixelarch.dev"
+  const ORIGEN_INTERNO = "http://0.0.0.0:8080"
+
+  /**
+   * Simula la request tal como la ve la app detras del proxy de Railway: el
+   * origin es el interno. `NEXT_PUBLIC_URL` debe mandar en el `Location`.
+   */
+  function requestInterno(
+    path: string,
+    params: Record<string, string>,
+    ip: string
+  ): Request {
+    const url = new URL(path, ORIGEN_INTERNO)
+    for (const [clave, valor] of Object.entries(params)) {
+      url.searchParams.set(clave, valor)
+    }
+    return new Request(url, { headers: { "x-forwarded-for": ip } })
+  }
+
+  async function conBasePublica<T>(fn: () => Promise<T>): Promise<T> {
+    const previo = process.env.NEXT_PUBLIC_URL
+    process.env.NEXT_PUBLIC_URL = BASE_PUBLICA
+
+    try {
+      return await fn()
+    } finally {
+      if (previo === undefined) {
+        delete process.env.NEXT_PUBLIC_URL
+      } else {
+        process.env.NEXT_PUBLIC_URL = previo
+      }
+    }
+  }
+
+  function expectLocationPublico(res: Response): void {
+    const location = res.headers.get("location") ?? ""
+    expect(location.startsWith(`${BASE_PUBLICA}/pago/paypal/estado`)).toBe(true)
+    expect(location).not.toContain("0.0.0.0:8080")
+  }
+
+  it("usa NEXT_PUBLIC_URL en /pago/paypal/[token]", async () => {
+    mocks.findUnique.mockResolvedValue(null)
+
+    const res = await conBasePublica(() =>
+      GET(
+        requestInterno("/pago/paypal/token_interno", {}, "198.51.100.71"),
+        contexto("token_interno")
+      )
+    )
+
+    expectLocationPublico(res)
+    expect(estadoDeRedirect(res)).toBe("invalidado")
+  })
+
+  it("usa NEXT_PUBLIC_URL en el retorno", async () => {
+    const token = "token_ret_base_publica"
+    const orderId = "ORDER-RET-BASE-PUBLICA"
+
+    mocks.findUnique.mockResolvedValue(enlace({ token, externalId: orderId }))
+    mocks.getOrder.mockResolvedValue(ordenCapturada(orderId, token))
+
+    const res = await conBasePublica(() =>
+      GETRetorno(
+        requestInterno(
+          "/pago/paypal/retorno",
+          { enlace: token, token: orderId },
+          "198.51.100.72"
+        )
+      )
+    )
+
+    expectLocationPublico(res)
+    expect(estadoDeRedirect(res)).toBe("pagado")
+  })
+
+  it("usa NEXT_PUBLIC_URL en la cancelacion", async () => {
+    const token = "token_cancel_base_publica"
+    const orderId = "ORDER-CANCEL-BASE-PUBLICA"
+
+    mocks.findUnique.mockResolvedValue(enlace({ token, externalId: orderId }))
+
+    const res = await conBasePublica(() =>
+      GETCancelado(
+        requestInterno(
+          "/pago/paypal/cancelado",
+          { enlace: token, token: orderId },
+          "198.51.100.73"
+        )
+      )
+    )
+
+    expectLocationPublico(res)
+    expect(estadoDeRedirect(res)).toBe("pendiente")
+  })
+})
+
 describe("pagina /pago/paypal/estado", () => {
   function pagina(params: { token?: string; estado?: string }) {
     return EstadoPage({ searchParams: Promise.resolve(params) })

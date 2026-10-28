@@ -38,6 +38,7 @@ import {
   type CapturaPaypalProcesable,
   type ResultadoProcesamientoPaypal,
 } from "@/lib/paypal/process"
+import { resolverBaseUrlPublica } from "@/lib/paypal/utils"
 
 export const dynamic = "force-dynamic"
 
@@ -93,7 +94,12 @@ function respuestaDemasiadasSolicitudes(): NextResponse {
 }
 
 function urlEstado(req: Request, token: string, estado: EstadoPublico): URL {
-  const url = new URL("/pago/paypal/estado", req.url)
+  // Detras del proxy de Railway `req.url` puede ser el origen interno
+  // (0.0.0.0:8080). La base publica configurada manda; `req.url` queda solo
+  // como fallback cuando no hay base valida.
+  const base =
+    resolverBaseUrlPublica(process.env.NEXT_PUBLIC_URL, req.url) ?? req.url
+  const url = new URL("/pago/paypal/estado", base)
   url.searchParams.set("token", token)
   url.searchParams.set("estado", estado)
   return url

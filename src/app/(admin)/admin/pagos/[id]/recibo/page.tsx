@@ -37,6 +37,42 @@ function MarcoRecibo({ children }: { children: ReactNode }) {
   )
 }
 
+interface ConceptoReciboPagoInput {
+  enlacePago?: { concepto: string | null } | null
+  hito?: { titulo: string; proyecto: { titulo: string } } | null
+  suscripcion?: { servicio: { nombre: string } } | null
+  meses?: number | null
+}
+
+/**
+ * Concepto visible del recibo, compartido por el camino PayPal y el de
+ * Mercado Pago (Review T-05): enlace, "Proyecto — Hito", "Servicio — N meses"
+ * o el texto por defecto de cada pasarela.
+ */
+function conceptoReciboPago(
+  input: ConceptoReciboPagoInput,
+  porDefecto: string
+): string {
+  const conceptoEnlace = input.enlacePago?.concepto?.trim()
+  if (conceptoEnlace) return conceptoEnlace
+  if (input.hito) {
+    return `${input.hito.proyecto.titulo} — ${input.hito.titulo}`
+  }
+  if (input.suscripcion) {
+    return tituloLink(input.suscripcion.servicio.nombre, input.meses ?? 0)
+  }
+  return porDefecto
+}
+
+/**
+ * Recorta por puntos de codigo para no partir un par surrogate (emoji) al
+ * limitar el concepto de Mercado Pago (Review T-05).
+ */
+function truncarPorCodePoints(texto: string, maximo: number): string {
+  const puntos = Array.from(texto)
+  return puntos.length <= maximo ? texto : puntos.slice(0, maximo).join("")
+}
+
 export default async function ReciboPagoPage({
   params,
 }: {
@@ -49,9 +85,26 @@ export default async function ReciboPagoPage({
 
   const pago = await prisma.pago.findUnique({
     where: { id },
-    include: {
+    // Least-privilege (Review T-05): no se cargan notas, evidencia, datos de
+    // revision, origen ni `registradoPor`; el recibo nunca los imprime.
+    select: {
+      pasarela: true,
+      metodo: true,
+      estadoPago: true,
+      externalId: true,
+      paypalOrderId: true,
+      reciboId: true,
+      reciboEmitidoEn: true,
+      creadoEn: true,
+      monto: true,
+      montoAcordado: true,
+      comision: true,
+      moneda: true,
+      meses: true,
       cliente: { select: { nombre: true, email: true } },
-      hito: { select: { titulo: true, proyecto: { select: { titulo: true } } } },
+      hito: {
+        select: { titulo: true, proyecto: { select: { titulo: true } } },
+      },
       suscripcion: { select: { servicio: { select: { nombre: true } } } },
       enlacePago: { select: { concepto: true } },
     },
@@ -66,17 +119,12 @@ export default async function ReciboPagoPage({
   const cliente = { nombre: pago.cliente.nombre, email: pago.cliente.email }
 
   if (pasarela === "MERCADOPAGO") {
-    const conceptoEnlace = pago.enlacePago?.concepto?.trim()
-    const conceptoBase =
-      conceptoEnlace ||
-      (pago.hito
-        ? `${pago.hito.proyecto.titulo} — ${pago.hito.titulo}`
-        : pago.suscripcion
-          ? tituloLink(pago.suscripcion.servicio.nombre, pago.meses ?? 0)
-          : "Pago Mercado Pago")
     // RF-9/Review T-02: un concepto por encima del maximo se recorta para no
     // dejar un enlace "Ver recibo" que termine en `notFound`.
-    const concepto = conceptoBase.slice(0, RECIBO_MP_CONCEPTO_MAX)
+    const concepto = truncarPorCodePoints(
+      conceptoReciboPago(pago, "Pago Mercado Pago"),
+      RECIBO_MP_CONCEPTO_MAX
+    )
 
     const evaluacion = evaluarDatosReciboMercadoPago({
       estadoPago: pago.estadoPago,
@@ -108,13 +156,7 @@ export default async function ReciboPagoPage({
     const referenciaExterna = pago.externalId ?? pago.paypalOrderId
     if (!referenciaExterna) notFound()
 
-    const concepto =
-      pago.enlacePago?.concepto ??
-      (pago.hito
-        ? `${pago.hito.proyecto.titulo} — ${pago.hito.titulo}`
-        : pago.suscripcion
-          ? tituloLink(pago.suscripcion.servicio.nombre, pago.meses ?? 0)
-          : "Pago PayPal")
+    const concepto = conceptoReciboPago(pago, "Pago PayPal")
 
     let recibo: ReciboPaypalDatos
     try {

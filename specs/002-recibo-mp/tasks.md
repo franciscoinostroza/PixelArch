@@ -74,7 +74,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Review T-02:** bifurcar con `pasarelaEfectivaPago(pago)`, no `pago.pasarela` cruda; manejar concepto > `RECIBO_MP_CONCEPTO_MAX` (truncar/rechazar) para evitar link muerto; cubrir PayPal legacy `MANUAL`+`metodo=PAYPAL`.
   - **Review T-04:** normalizar estado trim/upper antes de estadoUI; truncar/rechazar concepto > RECIBO_MP_CONCEPTO_MAX; construir ReciboMercadoPagoDatos solo desde evaluarDatos/construir (moneda fail-open); select de Prisma solo cliente.nombre/email; usar el mismo Date para id y documento; pasarelaEfectivaPago y PayPal legacy.
 
-- [ ] **T-06 (AC-8, AC-9, AC-10, AC-17, AC-19, AC-20, AC-22, AC-23, AC-25, AC-26) Bordes, seguridad y regresion de la pagina MP**
+- [x] **T-06 (AC-8, AC-9, AC-10, AC-17, AC-19, AC-20, AC-22, AC-23, AC-25, AC-26) Bordes, seguridad y regresion de la pagina MP**
   - Extender `src/__tests__/app/recibo-mp-page.test.tsx`:
     - `FAILED` y `PENDING` -> `notFound`, sin recibo;
     - `REFUNDED`/`CONTRACARGO` -> recibo con estado real, nunca "Pagado", montos intactos;
@@ -102,6 +102,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Deps:** T-01..T-06.
   - **Review T-03:** documentar reciboIdClassName como desvío del plan §2.4 y su motivo (paridad DOM PayPal).
   - **Review T-04:** evaluar import "server-only" en mp-recibo como defensa en profundidad (opcional).
+  - **Review T-06:** documentar concepto por code points, guard MP (mercadopago.com.ar/puntos), select least-privilege, desvío mínimo del concepto PayPal y spy email; actualizar test counts.
 
 - [ ] **T-08 (AC-21, AC-24) Verificacion final**
   - Ejecutar `node node_modules\vitest\vitest.mjs run` (suite completa, sin watch).
@@ -112,6 +113,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Review T-02 (opcional):** test barato de `/admin/cobros` sin link; evaluar alinear `coincideFiltroHistorial` con `metodo` (R-11).
   - **Review T-03:** opcional snapshot/innerHTML golden del recibo PayPal previo; acotar el test CSS al bloque @media print.
   - **Review T-05:** confirmar que los timeouts de registrar-pago-paypal son preexistentes; suite/build final.
+  - **Review T-06:** TZ Buenos Aires/medianoche UTC, fixture AC-9 con comisión >0, monto null a nivel página, guard AR.
 
 - [ ] **T-09 (AC-19, AC-21, AC-22) Gate de staging y T-38 (sin codigo, no es commit)**
   - En staging (`paypal-staging`, esquema ya aplicado): abrir un recibo MP historico/seed con `externalId`, un pago MP confirmado de staging, un recibo PayPal, verificar links en `/admin/pagos` y detalle, rol asistente y una impresion A4.

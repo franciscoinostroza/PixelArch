@@ -113,7 +113,8 @@ describe("pagina del recibo PayPal (T-13, AC-10, AC-12)", () => {
     expect(mocks.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "pago_1" },
-        include: expect.objectContaining({
+        // Review T-05: select least-privilege compartido por ambos recibos.
+        select: expect.objectContaining({
           cliente: expect.anything(),
           enlacePago: expect.anything(),
           hito: expect.anything(),

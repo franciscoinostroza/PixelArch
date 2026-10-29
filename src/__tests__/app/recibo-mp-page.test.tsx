@@ -1,14 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import type { ReactNode } from "react"
 
 /**
- * T-05 (AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-12, AC-13, AC-14, AC-17):
- * pagina imprimible del recibo de Mercado Pago, camino feliz.
+ * T-05 (AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-12, AC-13, AC-14, AC-17)
+ * + T-06 (AC-8, AC-9, AC-10, AC-17, AC-19, AC-20, AC-22, AC-23, AC-25, AC-26):
+ * pagina imprimible del recibo de Mercado Pago.
  *
- * Prisma, Clerk y la navegacion se mockean; no se toca la base real ni se
- * llama a Mercado Pago. La derivacion del identificador se ejecuta de verdad
- * (`mp-recibo.ts`) para comprobar que el documento y el id usan la misma fecha.
+ * Prisma, Clerk, la API de Mercado Pago y la navegacion se mockean; no se toca
+ * la base real ni se llama a ninguna pasarela. La derivacion del identificador
+ * se ejecuta de verdad (`mp-recibo.ts`) para comprobar que el documento y el id
+ * usan la misma fecha. El email se envuelve con un spy sobre la implementacion
+ * real de `@/lib/notifications` (Review T-05).
  */
 
 const mocks = vi.hoisted(() => ({
@@ -24,6 +27,8 @@ const mocks = vi.hoisted(() => ({
   suscripcionUpdateMany: vi.fn(),
   enlaceUpdate: vi.fn(),
   enlaceUpdateMany: vi.fn(),
+  obtenerPagoMp: vi.fn(),
+  crearLinkDePago: vi.fn(),
   sendPaymentReceipt: vi.fn(),
   redirect: vi.fn((url: string) => {
     throw new Error(`REDIRECT:${url}`)
@@ -59,9 +64,19 @@ vi.mock("@/lib/prisma", () => ({
   },
 }))
 
-vi.mock("@/lib/notifications", () => ({
-  sendPaymentReceipt: mocks.sendPaymentReceipt,
+// AC-22: la pagina no debe consultar la API de Mercado Pago.
+vi.mock("@/lib/mercadopago", () => ({
+  obtenerPagoMp: mocks.obtenerPagoMp,
+  crearLinkDePago: mocks.crearLinkDePago,
 }))
+
+// Review T-05: spy sobre el export real, no un modulo falso que podria ocultar
+// un import roto. El recibo solo lee datos del CRM y nunca debe llamarlo.
+vi.mock("@/lib/notifications", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/notifications")>()
+  mocks.sendPaymentReceipt.mockImplementation(actual.sendPaymentReceipt)
+  return { ...actual, sendPaymentReceipt: mocks.sendPaymentReceipt }
+})
 
 vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
@@ -117,8 +132,15 @@ function staff(rol: "admin" | "asistente" = "admin") {
 }
 
 describe("pagina del recibo Mercado Pago (T-05)", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
+    // `clearAllMocks` limpia la implementacion del spy; se vuelve a enlazar la
+    // real para que el test siga comprobando el export de `@/lib/notifications`.
+    const notifications =
+      await vi.importActual<typeof import("@/lib/notifications")>(
+        "@/lib/notifications"
+      )
+    mocks.sendPaymentReceipt.mockImplementation(notifications.sendPaymentReceipt)
     staff()
   })
 
@@ -257,7 +279,21 @@ describe("pagina del recibo Mercado Pago (T-05)", () => {
     expect(mocks.findUnique).toHaveBeenCalledTimes(1)
     expect(mocks.findUnique).toHaveBeenCalledWith({
       where: { id: "pago_mp" },
-      include: {
+      // Review T-05: select least-privilege; ni notas, ni evidencia, ni autor.
+      select: {
+        pasarela: true,
+        metodo: true,
+        estadoPago: true,
+        externalId: true,
+        paypalOrderId: true,
+        reciboId: true,
+        reciboEmitidoEn: true,
+        creadoEn: true,
+        monto: true,
+        montoAcordado: true,
+        comision: true,
+        moneda: true,
+        meses: true,
         // Solo los datos del cliente del CRM imprescindibles (RF-8).
         cliente: { select: { nombre: true, email: true } },
         hito: {
@@ -267,6 +303,24 @@ describe("pagina del recibo Mercado Pago (T-05)", () => {
         enlacePago: { select: { concepto: true } },
       },
     })
+
+    const consulta = mocks.findUnique.mock.calls[0][0] as {
+      select: Record<string, unknown>
+    }
+    for (const campo of [
+      "nota",
+      "evidencia",
+      "revisionNota",
+      "revisionEstado",
+      "revisionResueltaPor",
+      "registradoPor",
+      "origen",
+      "cotizacion",
+      "mpLink",
+      "mpPreferenceId",
+    ]) {
+      expect(consulta.select).not.toHaveProperty(campo)
+    }
   })
 
   it("arma el concepto con el proyecto y el hito (AC-4)", async () => {
@@ -435,5 +489,218 @@ describe("pagina del recibo Mercado Pago (T-05)", () => {
     expect(mocks.enlaceUpdate).not.toHaveBeenCalled()
     expect(mocks.enlaceUpdateMany).not.toHaveBeenCalled()
     expect(mocks.sendPaymentReceipt).not.toHaveBeenCalled()
+  })
+
+  /* ---------------------------------------------------------------------- */
+  /* T-06: bordes, seguridad y regresion                                    */
+  /* ---------------------------------------------------------------------- */
+
+  it.each(["FAILED", "PENDING"] as const)(
+    "no muestra recibo para un pago %s (AC-8)",
+    async (estadoPago) => {
+      mocks.findUnique.mockResolvedValue({ ...PAGO_MP, estadoPago })
+
+      await expect(ReciboMpPage(params())).rejects.toThrow("NOT_FOUND")
+
+      expect(mocks.notFound).toHaveBeenCalledTimes(1)
+      expect(mocks.findUnique).toHaveBeenCalledTimes(1)
+    }
+  )
+
+  it("no muestra recibo para un estado desconocido (AC-8, RF-3)", async () => {
+    // RF-3: cualquier estado no reconocido se trata como no elegible aunque el
+    // flujo actual de Mercado Pago no lo produzca.
+    mocks.findUnique.mockResolvedValue({ ...PAGO_MP, estadoPago: "CANCELED" })
+
+    await expect(ReciboMpPage(params())).rejects.toThrow("NOT_FOUND")
+
+    expect(mocks.notFound).toHaveBeenCalledTimes(1)
+    expect(mocks.findUnique).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    ["REFUNDED", "Reembolsado"],
+    ["CONTRACARGO", "Contracargo"],
+  ] as const)(
+    "muestra el estado real %s y conserva los montos (AC-9)",
+    async (estadoPago, etiqueta) => {
+      mocks.findUnique.mockResolvedValue({ ...PAGO_MP, estadoPago })
+
+      render(await ReciboMpPage(params()))
+
+      expect(screen.getByText(etiqueta)).toBeInTheDocument()
+      expect(screen.queryByText("Pagado")).not.toBeInTheDocument()
+
+      const tabla = screen.getByRole("table", { name: /desglose del pago/i })
+      expect(within(tabla).getByRole("rowheader", { name: "Monto acordado" })).toBeInTheDocument()
+      expect(within(tabla).getByRole("rowheader", { name: "Total cobrado (ARS)" })).toBeInTheDocument()
+      // Los montos no se recalculan: mismo monto acordado y total del CRM.
+      expect(screen.getAllByText("$1.000 ARS")).toHaveLength(2)
+    }
+  )
+
+  it("muestra REVISION como 'En revision' y nunca como 'Pagado' (AC-10)", async () => {
+    mocks.findUnique.mockResolvedValue({ ...PAGO_MP, estadoPago: "REVISION" })
+
+    render(await ReciboMpPage(params()))
+
+    expect(screen.getByText("En revision")).toBeInTheDocument()
+    expect(screen.queryByText("Pagado")).not.toBeInTheDocument()
+    // No sugiere una accion de cobro desde el recibo.
+    expect(screen.queryByRole("button", { name: /cobrar|pagar/i })).not.toBeInTheDocument()
+  })
+
+  it("emite recibo para un pago historico con pasarela MANUAL y metodo MERCADOPAGO (AC-19)", async () => {
+    mocks.findUnique.mockResolvedValue({
+      ...PAGO_MP,
+      pasarela: "MANUAL",
+      metodo: "MERCADOPAGO",
+    })
+
+    render(await ReciboMpPage(params()))
+
+    expect(screen.getByText("Mercado Pago")).toBeInTheDocument()
+    expect(screen.getByText(EXTERNAL_ID)).toBeInTheDocument()
+    expect(screen.getByText(RECIBO_ID)).toBeInTheDocument()
+  })
+
+  it.each([null, "", "   "] as const)(
+    "sin referencia externa no muestra recibo ni inventa una (AC-20): %s",
+    async (externalId) => {
+      mocks.findUnique.mockResolvedValue({ ...PAGO_MP, externalId })
+
+      await expect(ReciboMpPage(params())).rejects.toThrow("NOT_FOUND")
+
+      expect(mocks.notFound).toHaveBeenCalledTimes(1)
+      expect(mocks.findUnique).toHaveBeenCalledTimes(1)
+    }
+  )
+
+  it("recorta los espacios del externalId para el identificador y la referencia visible (Review T-05)", async () => {
+    mocks.findUnique.mockResolvedValue({
+      ...PAGO_MP,
+      externalId: `  ${EXTERNAL_ID}  `,
+    })
+
+    render(await ReciboMpPage(params()))
+
+    // El id se deriva de la referencia recortada y la vista muestra el valor
+    // recortado, sin inventar ni duplicar espacios.
+    expect(screen.getByText(RECIBO_ID)).toBeInTheDocument()
+    expect(screen.getByText(EXTERNAL_ID).textContent).toBe(EXTERNAL_ID)
+    expect(screen.queryByText(`  ${EXTERNAL_ID}  `)).not.toBeInTheDocument()
+  })
+
+  it("no consulta la API de Mercado Pago al abrir el recibo (AC-22)", async () => {
+    mocks.findUnique.mockResolvedValue(PAGO_MP)
+
+    render(await ReciboMpPage(params()))
+
+    expect(mocks.obtenerPagoMp).not.toHaveBeenCalled()
+    expect(mocks.crearLinkDePago).not.toHaveBeenCalled()
+  })
+
+  it("no envia el email existente al abrir el recibo (AC-23)", async () => {
+    mocks.findUnique.mockResolvedValue(PAGO_MP)
+
+    render(await ReciboMpPage(params()))
+
+    // El spy envuelve la implementacion real (Review T-05); el recibo visual no
+    // reenvia ni modifica el email de `sendPaymentReceipt`.
+    expect(mocks.sendPaymentReceipt).not.toHaveBeenCalled()
+    expect(mocks.sendPaymentReceipt.getMockImplementation()).toBeTypeOf("function")
+  })
+
+  it("no muestra recibo si el desglose de montos no reconcilia (AC-25)", async () => {
+    mocks.findUnique.mockResolvedValue({
+      ...PAGO_MP,
+      monto: 100000,
+      montoAcordado: 90000,
+      comision: 0,
+    })
+
+    await expect(ReciboMpPage(params())).rejects.toThrow("NOT_FOUND")
+  })
+
+  it("no muestra recibo si hay comision registrada sin monto acordado (AC-25, RF-13)", async () => {
+    // RF-13: sin `montoAcordado` se usa el total cobrado; si ademas hay comision
+    // mayor que 0, el desglose no reconcilia y no se emite un recibo inventado.
+    mocks.findUnique.mockResolvedValue({
+      ...PAGO_MP,
+      monto: 10606,
+      montoAcordado: null,
+      comision: 606,
+    })
+
+    await expect(ReciboMpPage(params())).rejects.toThrow("NOT_FOUND")
+
+    expect(mocks.notFound).toHaveBeenCalledTimes(1)
+  })
+
+  it("no muestra recibo si la fecha del recibo es invalida (AC-25)", async () => {
+    mocks.findUnique.mockResolvedValue({
+      ...PAGO_MP,
+      reciboEmitidoEn: new Date("fecha-invalida"),
+    })
+
+    await expect(ReciboMpPage(params())).rejects.toThrow("NOT_FOUND")
+  })
+
+  it("no muestra recibo si la referencia externa supera el maximo (AC-25)", async () => {
+    mocks.findUnique.mockResolvedValue({
+      ...PAGO_MP,
+      externalId: "R".repeat(129),
+    })
+
+    await expect(ReciboMpPage(params())).rejects.toThrow("NOT_FOUND")
+  })
+
+  it("no muestra recibo si falta el cliente del CRM (AC-25)", async () => {
+    mocks.findUnique.mockResolvedValue({ ...PAGO_MP, cliente: null })
+
+    await expect(ReciboMpPage(params())).rejects.toThrow("NOT_FOUND")
+  })
+
+  it("no muestra recibo si el pago no existe (AC-25)", async () => {
+    mocks.findUnique.mockResolvedValue(null)
+
+    await expect(ReciboMpPage(params())).rejects.toThrow("NOT_FOUND")
+  })
+
+  it("no muestra recibo si la moneda no es ARS ni USD (AC-25)", async () => {
+    mocks.findUnique.mockResolvedValue({ ...PAGO_MP, moneda: "eur" })
+
+    await expect(ReciboMpPage(params())).rejects.toThrow("NOT_FOUND")
+  })
+
+  it("trunca el concepto por puntos de codigo sin partir un emoji (Review T-05)", async () => {
+    const concepto = `${"C".repeat(199)}😀resto`
+    mocks.findUnique.mockResolvedValue({
+      ...PAGO_MP,
+      enlacePago: { concepto },
+    })
+
+    render(await ReciboMpPage(params()))
+
+    const esperado = `${"C".repeat(199)}😀`
+    const nodo = screen.getByText(esperado)
+    expect(nodo.textContent).toBe(esperado)
+    expect(nodo.textContent).not.toContain("\uFFFD")
+    expect(Array.from(nodo.textContent ?? "")).toHaveLength(200)
+  })
+
+  it("mantiene la misma fecha e identificador en dos renders (AC-26)", async () => {
+    mocks.findUnique.mockResolvedValue(PAGO_MP)
+
+    const primero = render(await ReciboMpPage(params()))
+    expect(screen.getByText("20 de octubre de 2026")).toBeInTheDocument()
+    expect(screen.getByText(RECIBO_ID)).toBeInTheDocument()
+    const htmlPrimero = primero.container.innerHTML
+    primero.unmount()
+
+    const segundo = render(await ReciboMpPage(params()))
+    expect(screen.getByText("20 de octubre de 2026")).toBeInTheDocument()
+    expect(screen.getByText(RECIBO_ID)).toBeInTheDocument()
+    expect(segundo.container.innerHTML).toBe(htmlPrimero)
   })
 })

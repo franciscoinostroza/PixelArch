@@ -45,7 +45,8 @@ function textoOpcional(valor: string | null | undefined): string | null {
 function textoRequerido(
   valor: string,
   campo: string,
-  maximo: number
+  maximo: number,
+  contarPorCodePoints = false
 ): string {
   const texto = textoOpcional(valor)
   if (texto === null) {
@@ -54,7 +55,12 @@ function textoRequerido(
       `El campo ${campo} del recibo es obligatorio.`
     )
   }
-  if (texto.length > maximo) {
+  // Los textos visibles se limitan por puntos de codigo para no rechazar ni
+  // partir emojis: `length` cuenta unidades UTF-16 (Review T-05).
+  const longitud = contarPorCodePoints
+    ? Array.from(texto).length
+    : texto.length
+  if (longitud > maximo) {
     throw new ReciboMpValidationError(
       campo,
       `El campo ${campo} del recibo no puede superar ${maximo} caracteres.`
@@ -133,7 +139,8 @@ export function construirReciboMercadoPago(
   const concepto = textoRequerido(
     input.concepto,
     "concepto",
-    RECIBO_MP_CONCEPTO_MAX
+    RECIBO_MP_CONCEPTO_MAX,
+    true
   )
   const moneda = monedaReciboMp(input.moneda)
   if (!moneda) {

@@ -38,9 +38,16 @@ permission:
     "git show*": allow
     "git add*": allow
     "git commit*": allow
-    "git push*": allow
+    "git push origin paypal-staging*": allow
     "git push --force*": deny
     "git push -f *": deny
+    "git push*--force*": deny
+    "git push*-f*": deny
+    "git push origin main*": deny
+    "git push origin master*": deny
+    "git commit*--amend*": deny
+    "git add --force*": deny
+    "git add -f *": deny
     "git switch -c*": allow
     "git switch*": allow
     "*;*": deny

@@ -16,6 +16,9 @@ permission:
     "git log*": allow
     "git diff*": allow
     "git show*": allow
+    "git add*": allow
+    "git commit*": allow
+    "git push origin paypal-staging*": allow
     "ls*": allow
     "Get-ChildItem*": allow
     "*--output*": deny
@@ -23,6 +26,15 @@ permission:
     "*&&*": deny
     "*||*": deny
     "*|*": deny
+    "git commit*--amend*": deny
+    "git add --force*": deny
+    "git add -f *": deny
+    "git push --force*": deny
+    "git push -f *": deny
+    "git push*--force*": deny
+    "git push*-f*": deny
+    "git push origin main*": deny
+    "git push origin master*": deny
   task:
     "*": deny
     "planner": allow

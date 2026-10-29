@@ -127,7 +127,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Review T-02:** click real sobre un link MP, un PayPal actual y un PayPal legacy `MANUAL`+`metodo=PAYPAL`; confirmar `/admin/cobros` sin "Ver recibo".
   - **Review T-03:** verificar A4 físico y precedencia de @page (globals 2cm vs admin 12mm); imprimir referencia de 128 chars.
   - **Review T-04:** @page ya anotado; verificar A4 físico y margen.
-  - Estado 2026-10-29: BLOQUEADO por autorización de T-38; smoke de staging pendiente; no se mergea/deploya a producción.
+  - Estado 2026-10-29: smoke staging PASS (recibo MP en /admin/pagos y detalle, recibo PayPal, /admin/cobros sin link, asistente, A4, sin PII). T-09 sigue [ ] y bloqueado SOLO por autorización de T-38; no merge/deploy a producción.
 
 ## Cobertura AC -> tarea y test
 

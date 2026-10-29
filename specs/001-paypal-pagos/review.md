@@ -129,6 +129,10 @@ AC → tareas en `tasks.md`). No hay AC sin cobertura.
 
 ## 6. Acciones obligatorias antes de T-38
 
+> **Runbook T-38:** [`./t-38-production.md`](./t-38-production.md) — gates, backup/restore, migracion y
+> backfill antes del merge, FF-merge, deploy con PayPal deshabilitado, smoke, PayPal live, monitoreo y
+> rollback. Es documentacion de planificacion: no autoriza la ejecucion.
+
 1. **PA-11 aprobado por el dueno (2026-10-29):** tarifa `540`/`30` con tolerancia ±US$0,01.
    **T-38 no fue autorizado** en esta sesion: el rollout a produccion queda pendiente y no se ejecuta
    hasta que el dueno lo autorice de forma explicita.

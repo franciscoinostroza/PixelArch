@@ -105,7 +105,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Review T-04:** evaluar import "server-only" en mp-recibo como defensa en profundidad (opcional).
   - **Review T-06:** documentar concepto por code points, guard MP (mercadopago.com.ar/puntos), select least-privilege, desvío mínimo del concepto PayPal y spy email; actualizar test counts.
 
-- [ ] **T-08 (AC-21, AC-24) Verificacion final**
+- [x] **T-08 (AC-21, AC-24) Verificacion final**
   - Ejecutar `node node_modules\vitest\vitest.mjs run` (suite completa, sin watch).
   - Ejecutar `node node_modules\typescript\bin\tsc --noEmit`, `npm run lint` (sin errores nuevos sobre el baseline) y `node node_modules\next\dist\bin\next build`.
   - Confirmar que los tests PayPal de recibo, proceso e idempotencia siguen verdes y que no hay llamadas reales a MP/PayPal.
@@ -115,6 +115,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Review T-03:** opcional snapshot/innerHTML golden del recibo PayPal previo; acotar el test CSS al bloque @media print.
   - **Review T-05:** confirmar que los timeouts de registrar-pago-paypal son preexistentes; suite/build final.
   - **Review T-06:** TZ Buenos Aires/medianoche UTC, fixture AC-9 con comisión >0, monto null a nivel página, guard AR.
+  - PASS 2026-10-29: 1582/1582 tests, tsc 0, lint baseline, build OK.
 
 - [ ] **T-09 (AC-19, AC-21, AC-22) Gate de staging y T-38 (sin codigo, no es commit)**
   - En staging (`paypal-staging`, esquema ya aplicado): abrir un recibo MP historico/seed con `externalId`, un pago MP confirmado de staging, un recibo PayPal, verificar links en `/admin/pagos` y detalle, rol asistente y una impresion A4.
@@ -126,6 +127,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Review T-02:** click real sobre un link MP, un PayPal actual y un PayPal legacy `MANUAL`+`metodo=PAYPAL`; confirmar `/admin/cobros` sin "Ver recibo".
   - **Review T-03:** verificar A4 físico y precedencia de @page (globals 2cm vs admin 12mm); imprimir referencia de 128 chars.
   - **Review T-04:** @page ya anotado; verificar A4 físico y margen.
+  - Estado 2026-10-29: BLOQUEADO por autorización de T-38; smoke de staging pendiente; no se mergea/deploya a producción.
 
 ## Cobertura AC -> tarea y test
 

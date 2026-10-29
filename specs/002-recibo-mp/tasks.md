@@ -48,7 +48,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Hecho cuando:** la suite PayPal de recibo sigue verde y el CSS declara A4; no hay cambios de textos/clases en el DOM PayPal.
   - **Deps:** ninguna (puede ir en paralelo con T-02). Hacer antes de T-04.
 
-- [ ] **T-04 (AC-3, AC-6, AC-7, AC-13, AC-15, AC-16, AC-26) Componente del recibo Mercado Pago**
+- [x] **T-04 (AC-3, AC-6, AC-7, AC-13, AC-15, AC-16, AC-26) Componente del recibo Mercado Pago**
   - Crear `src/components/ui/recibo-mercadopago.tsx` (`"use client"`): recibe `ReciboMercadoPagoDatos` (`import type { ReciboMercadoPago as ReciboMercadoPagoDatos } from "@/lib/mp-utils"`, browser-safe), cliente y estado; delega en `ReciboPago`.
   - Filas: "Monto acordado" siempre; "Comisión de Mercado Pago" solo si `comision > 0`; total "Total cobrado (ARS|USD)". Nota y `caption` segun moneda/comision. `idTitulo="recibo-mercadopago-titulo"`.
   - El generico `ReciboPago` muestra el estado con `estadoUI`; el test verifica "Pagado", "En revision", "Reembolsado" y "Contracargo", y que `REVISION`/`REFUNDED`/`CONTRACARGO` nunca digan "Pagado".
@@ -72,6 +72,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Hecho cuando:** el test nuevo pasa, el test PayPal sigue pasando y la pagina hace exactamente una consulta al pago (`findUnique`).
   - **Deps:** T-01, T-02, T-04.
   - **Review T-02:** bifurcar con `pasarelaEfectivaPago(pago)`, no `pago.pasarela` cruda; manejar concepto > `RECIBO_MP_CONCEPTO_MAX` (truncar/rechazar) para evitar link muerto; cubrir PayPal legacy `MANUAL`+`metodo=PAYPAL`.
+  - **Review T-04:** normalizar estado trim/upper antes de estadoUI; truncar/rechazar concepto > RECIBO_MP_CONCEPTO_MAX; construir ReciboMercadoPagoDatos solo desde evaluarDatos/construir (moneda fail-open); select de Prisma solo cliente.nombre/email; usar el mismo Date para id y documento; pasarelaEfectivaPago y PayPal legacy.
 
 - [ ] **T-06 (AC-8, AC-9, AC-10, AC-17, AC-19, AC-20, AC-22, AC-23, AC-25, AC-26) Bordes, seguridad y regresion de la pagina MP**
   - Extender `src/__tests__/app/recibo-mp-page.test.tsx`:
@@ -86,6 +87,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
     - dos renders/impresiones con la misma fecha -> mismo texto (AC-26).
   - Corregir la pagina solo si los tests revelan un hueco (guardas de datos, `notFound`).
   - Opcional recomendado: extender el guard de red de `src/__tests__/setup.ts` a `*.mercadopago.com` con un helper test-only, sin tocar producto.
+  - **Review T-04:** cubrir estado lowercase, concepto >200, moneda inesperada y PII real del select; considerar TZ America/Argentina/Buenos_Aires para el test de fecha.
   - **Hecho cuando:** todos los bordes pasan y no hay llamadas reales a MP ni emails.
   - **Deps:** T-05.
 
@@ -98,6 +100,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Hecho cuando:** docs coherentes y matriz AC -> tarea completa.
   - **Deps:** T-01..T-06.
   - **Review T-03:** documentar reciboIdClassName como desvío del plan §2.4 y su motivo (paridad DOM PayPal).
+  - **Review T-04:** evaluar import "server-only" en mp-recibo como defensa en profundidad (opcional).
 
 - [ ] **T-08 (AC-21, AC-24) Verificacion final**
   - Ejecutar `node node_modules\vitest\vitest.mjs run` (suite completa, sin watch).
@@ -117,6 +120,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Deps:** T-08.
   - **Review T-02:** click real sobre un link MP, un PayPal actual y un PayPal legacy `MANUAL`+`metodo=PAYPAL`; confirmar `/admin/cobros` sin "Ver recibo".
   - **Review T-03:** verificar A4 físico y precedencia de @page (globals 2cm vs admin 12mm); imprimir referencia de 128 chars.
+  - **Review T-04:** @page ya anotado; verificar A4 físico y margen.
 
 ## Cobertura AC -> tarea
 

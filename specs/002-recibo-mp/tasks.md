@@ -59,7 +59,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
 
 ## Fase 3: Pagina y bordes
 
-- [ ] **T-05 (AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-12, AC-13, AC-14, AC-17) Pagina del recibo MP (camino feliz)**
+- [x] **T-05 (AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-12, AC-13, AC-14, AC-17) Pagina del recibo MP (camino feliz)**
   - Modificar `src/app/(admin)/admin/pagos/[id]/recibo/page.tsx`:
     - `requireStaff()` primero; sin staff `redirect("/admin")` sin consultar;
     - una sola `prisma.pago.findUnique` con `cliente`, `hito.proyecto`, `suscripcion.servicio`, `enlacePago.concepto`;
@@ -88,6 +88,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - Corregir la pagina solo si los tests revelan un hueco (guardas de datos, `notFound`).
   - Opcional recomendado: extender el guard de red de `src/__tests__/setup.ts` a `*.mercadopago.com` con un helper test-only, sin tocar producto.
   - **Review T-04:** cubrir estado lowercase, concepto >200, moneda inesperada y PII real del select; considerar TZ America/Argentina/Buenos_Aires para el test de fecha.
+  - **Review T-05:** evaluar select explícito least-privilege; spy real de email; truncado por code points; helper de concepto compartido MP/PayPal; extender guard de red a *.mercadopago.com; cubrir externalId con espacios/trim.
   - **Hecho cuando:** todos los bordes pasan y no hay llamadas reales a MP ni emails.
   - **Deps:** T-05.
 
@@ -110,6 +111,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Deps:** T-01..T-07.
   - **Review T-02 (opcional):** test barato de `/admin/cobros` sin link; evaluar alinear `coincideFiltroHistorial` con `metodo` (R-11).
   - **Review T-03:** opcional snapshot/innerHTML golden del recibo PayPal previo; acotar el test CSS al bloque @media print.
+  - **Review T-05:** confirmar que los timeouts de registrar-pago-paypal son preexistentes; suite/build final.
 
 - [ ] **T-09 (AC-19, AC-21, AC-22) Gate de staging y T-38 (sin codigo, no es commit)**
   - En staging (`paypal-staging`, esquema ya aplicado): abrir un recibo MP historico/seed con `externalId`, un pago MP confirmado de staging, un recibo PayPal, verificar links en `/admin/pagos` y detalle, rol asistente y una impresion A4.

@@ -195,7 +195,7 @@ describe("pagina del recibo PayPal (T-13, AC-10, AC-12)", () => {
   it("devuelve notFound para un pago que no es de PayPal", async () => {
     mocks.findUnique.mockResolvedValue({
       ...PAGO_PAYPAL,
-      pasarela: "MERCADOPAGO",
+      pasarela: "MANUAL",
     })
 
     await expect(ReciboPaypalPage(params())).rejects.toThrow("NOT_FOUND")

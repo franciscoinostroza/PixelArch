@@ -9,7 +9,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
 
 ## Fase 1: Dominio y elegibilidad
 
-- [ ] **T-01 (AC-6, AC-7, AC-9, AC-10, AC-11, AC-12, AC-25) Dominio del recibo MP**
+- [x] **T-01 (AC-6, AC-7, AC-9, AC-10, AC-11, AC-12, AC-25) Dominio del recibo MP**
   - Modificar `src/lib/mp-utils.ts` (browser-safe, sin `node:crypto`): `ESTADOS_RECIBO_MERCADOPAGO`, `esEstadoReciboMercadoPago`, `ReciboMpValidationError`, `validarMontosReciboMp`, `monedaReciboMp`, `resolverFechaReciboMp`, `RECIBO_MP_REFERENCIA_MAX`, `RECIBO_MP_CONCEPTO_MAX` y el tipo `ReciboMercadoPago`.
   - Crear `src/lib/mp-recibo.ts` (server-only): `RECIBO_MP_PREFIJO`, `RECIBO_MP_HASH_HEX`, `RECIBO_MP_ID_MAX`, `generarReciboIdMp` (SHA-256), `construirReciboMercadoPago`, `evaluarDatosReciboMercadoPago`. Importa los helpers de `mp-utils.ts`; no importa Prisma, React ni red.
   - Identificador `MP-AAAAMMDD-<32 hex>`: SHA-256 de la referencia recortada a 128 bits, fecha UTC (`reciboEmitidoEn ?? creadoEn`), sin PII, sin ids internos, sin `PAY-`. No se persiste.
@@ -18,6 +18,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - Crear `src/__tests__/lib/mp-recibo.test.ts` (id, construccion, evaluacion, claves exactas) y extender `src/__tests__/lib/mp-utils.test.ts` (montos, moneda, fecha, estados): formato/estabilidad/unicidad/sin PII; ARS/USD; comision 0 y >0; `montoAcordado` nulo; totales inconsistentes; fecha/moneda/referencia invalidas; estados.
   - **Hecho cuando:** `node node_modules\vitest\vitest.mjs run src/__tests__/lib/mp-recibo.test.ts src/__tests__/lib/mp-utils.test.ts` pasa; `tsc --noEmit` limpio.
   - **Deps:** ninguna.
+  - **PASS tester+reviewer; recs no bloqueantes:** trim de referencia y UTC fecha/ID/estadoUI a cubrir en T-04/T-05; flake registrar-pago-paypal documentado para T-08; import "server-only" opcional.
 
 - [ ] **T-02 (AC-8, AC-9, AC-10, AC-11, AC-18, AC-19, AC-20, AC-21) Pasarela efectiva y elegibilidad MP en el historial**
   - Modificar `src/lib/paypal/view.ts`:

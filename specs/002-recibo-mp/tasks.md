@@ -39,7 +39,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
 
 ## Fase 2: Presentacion imprimible
 
-- [ ] **T-03 (AC-15, AC-16, AC-21, AC-26) Componente generico y adaptador PayPal**
+- [x] **T-03 (AC-15, AC-16, AC-21, AC-26) Componente generico y adaptador PayPal**
   - Crear `src/components/ui/recibo-pago.tsx` (`"use client"`): boton "Imprimir recibo" (`window.print`, `print:hidden`, foco visible), `<article aria-labelledby>`, encabezado (numero de recibo con `break-words`), `<dl>`, tabla con `aria-label="Desglose del pago"`, `caption` sr-only, `th scope`, `tfoot`, nota y pie.
   - Fecha con `Intl.DateTimeFormat("es-AR", { timeZone: "UTC" })`; sin `new Date()` en render.
   - Refactorizar `src/components/ui/recibo-paypal.tsx` como adaptador: mismos exports/props (`ReciboPaypal`, `ReciboPaypalProps`, `ReciboPaypalCliente`), mismos textos, clases e `idTitulo="recibo-paypal-titulo"`. No cambiar su salida.
@@ -55,6 +55,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - Crear `src/__tests__/components/recibo-mercadopago.test.tsx`: contenido, ARS `$... ARS` sin `US$`, USD `US$...` sin `$... ARS`, comision 0 sin fila de comision, comision >0 con desglose, sin PII del pagador, `print:hidden`, caption/scope, estado como texto, misma fecha en dos renders.
   - **Hecho cuando:** el test del componente pasa y el componente no importa `mp-recibo` en runtime.
   - **Deps:** T-01, T-03.
+  - **Review T-03:** usar el default de reciboIdClassName (break-words); agregar test directo de ReciboPago (idTitulo/break-words) o cubrir el default; asertar break-words en la referencia externa.
 
 ## Fase 3: Pagina y bordes
 
@@ -96,6 +97,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - Revisar que cada AC de `spec.md` tenga al menos una tarea/test en este archivo; anotar cualquier desvio.
   - **Hecho cuando:** docs coherentes y matriz AC -> tarea completa.
   - **Deps:** T-01..T-06.
+  - **Review T-03:** documentar reciboIdClassName como desvío del plan §2.4 y su motivo (paridad DOM PayPal).
 
 - [ ] **T-08 (AC-21, AC-24) Verificacion final**
   - Ejecutar `node node_modules\vitest\vitest.mjs run` (suite completa, sin watch).
@@ -104,6 +106,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Hecho cuando:** suite/typecheck/build limpios; lint sin errores nuevos; resultados anotados para el reviewer.
   - **Deps:** T-01..T-07.
   - **Review T-02 (opcional):** test barato de `/admin/cobros` sin link; evaluar alinear `coincideFiltroHistorial` con `metodo` (R-11).
+  - **Review T-03:** opcional snapshot/innerHTML golden del recibo PayPal previo; acotar el test CSS al bloque @media print.
 
 - [ ] **T-09 (AC-19, AC-21, AC-22) Gate de staging y T-38 (sin codigo, no es commit)**
   - En staging (`paypal-staging`, esquema ya aplicado): abrir un recibo MP historico/seed con `externalId`, un pago MP confirmado de staging, un recibo PayPal, verificar links en `/admin/pagos` y detalle, rol asistente y una impresion A4.
@@ -113,6 +116,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Hecho cuando:** checklist de staging completo y T-38 autorizado/ejecutado en el orden acordado.
   - **Deps:** T-08.
   - **Review T-02:** click real sobre un link MP, un PayPal actual y un PayPal legacy `MANUAL`+`metodo=PAYPAL`; confirmar `/admin/cobros` sin "Ver recibo".
+  - **Review T-03:** verificar A4 físico y precedencia de @page (globals 2cm vs admin 12mm); imprimir referencia de 128 chars.
 
 ## Cobertura AC -> tarea
 

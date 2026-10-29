@@ -491,8 +491,9 @@
   border: 1px solid rgba(248,113,113,0.35);
 }
 
-/* Recibo imprimible: sin sidebar ni margenes del admin en papel/PDF. */
+/* Recibo imprimible: A4 sin sidebar ni margenes del admin en papel/PDF. */
 @media print {
+  @page { size: A4; margin: 12mm }
   .a-shell { display: block !important }
   .a-shell .a-side,
   .a-shell .a-menu,

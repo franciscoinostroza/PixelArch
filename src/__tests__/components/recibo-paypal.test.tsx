@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 
 /**
@@ -78,6 +78,21 @@ describe("ReciboPaypal: contenido y desglose (AC-10, AC-24)", () => {
     expect(screen.queryByText("US$106.56")).not.toBeInTheDocument()
   })
 
+  it("muestra la misma fecha en dos renders con la misma fecha (AC-26)", () => {
+    // 01:00 UTC es el dia anterior en Argentina: el formateo debe fijarse en
+    // UTC para no variar entre servidor, hidratacion e impresiones.
+    const recibo = { ...RECIBO, fecha: new Date("2026-10-20T01:00:00.000Z") }
+
+    const primero = render(<ReciboPaypal {...props({ recibo })} />)
+    expect(screen.getByText("20 de octubre de 2026")).toBeInTheDocument()
+    const domPrimero = primero.container.innerHTML
+    primero.unmount()
+
+    const segundo = render(<ReciboPaypal {...props({ recibo })} />)
+    expect(screen.getByText("20 de octubre de 2026")).toBeInTheDocument()
+    expect(segundo.container.innerHTML).toBe(domPrimero)
+  })
+
   it("usa el separador de miles argentino", () => {
     render(
       <ReciboPaypal
@@ -128,15 +143,60 @@ describe("ReciboPaypal: contenido y desglose (AC-10, AC-24)", () => {
       render(<ReciboPaypal {...props()} />)
       const boton = screen.getByRole("button", { name: "Imprimir recibo" })
       expect(boton).toHaveClass("print:hidden")
+      // AC-16: foco visible al recorrer el recibo con teclado.
+      expect(boton).toHaveClass("focus-visible:ring-2")
+      expect(boton).toHaveClass("focus-visible:ring-cyan")
       const articulo = screen.getByRole("article")
       expect(articulo).toHaveClass("print:shadow-none")
       expect(articulo).toHaveClass("print:p-0")
       expect(articulo).toHaveClass("print:border-0")
+      await user.tab()
+      expect(boton).toHaveFocus()
       await user.click(boton)
       expect(print).toHaveBeenCalledTimes(1)
     } finally {
       window.print = originalPrint
     }
+  })
+
+  it("conserva el DOM historico y la tabla semantica accesible (AC-16, AC-21)", () => {
+    render(<ReciboPaypal {...props()} />)
+
+    const articulo = screen.getByRole("article")
+    const titulo = screen.getByRole("heading", {
+      level: 1,
+      name: "Recibo interno de pago",
+    })
+    expect(titulo).toHaveAttribute("id", "recibo-paypal-titulo")
+    expect(articulo).toHaveAttribute("aria-labelledby", "recibo-paypal-titulo")
+
+    const definiciones = articulo.querySelector("dl")
+    expect(definiciones).not.toBeNull()
+    expect(definiciones?.querySelectorAll("dt")).toHaveLength(6)
+
+    const tabla = screen.getByRole("table", { name: /desglose del pago/i })
+    const caption = tabla.querySelector("caption")
+    expect(caption).toHaveClass("sr-only")
+    expect(caption).toHaveTextContent("Desglose del pago en dólares estadounidenses")
+
+    const columnas = within(tabla).getAllByRole("columnheader")
+    expect(columnas).toHaveLength(2)
+    for (const columna of columnas) {
+      expect(columna).toHaveAttribute("scope", "col")
+    }
+
+    // Monto acordado, comision y total (tfoot) se leen como texto.
+    const filas = within(tabla).getAllByRole("rowheader")
+    expect(filas).toHaveLength(3)
+    for (const fila of filas) {
+      expect(fila).toHaveAttribute("scope", "row")
+    }
+    const total = within(tabla).getByRole("rowheader", {
+      name: "Total cobrado (USD)",
+    })
+    const pie = tabla.querySelector("tfoot")
+    expect(pie).not.toBeNull()
+    expect(pie).toContainElement(total)
   })
 
   it("la hoja de estilos de impresion oculta sidebar y margenes del admin (AC-10)", () => {
@@ -151,6 +211,9 @@ describe("ReciboPaypal: contenido y desglose (AC-10, AC-24)", () => {
     expect(mediaPrint).toBeGreaterThanOrEqual(0)
     const bloque = css.slice(mediaPrint)
 
+    // AC-15: el recibo se imprime en una pagina A4 con margenes acotados.
+    expect(bloque).toMatch(/@page\s*\{[^}]*size:\s*A4/)
+    expect(bloque).toMatch(/@page\s*\{[^}]*margin:\s*12mm/)
     expect(bloque).toMatch(/\.a-shell\s*\{[^}]*display:\s*block/)
     expect(bloque).toMatch(
       /\.a-shell \.a-side,[\s\S]*?\.a-shell \.a-menu,[\s\S]*?\.a-shell \.a-side-foot\s*\{[^}]*display:\s*none/

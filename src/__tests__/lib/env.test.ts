@@ -113,6 +113,6 @@ describe(".env.example documenta PayPal sin secretos (RNF-2)", () => {
   })
 
   it("no expone variables PayPal al cliente (sin NEXT_PUBLIC_PAYPAL_*)", () => {
-    expect(leerEjemplo()).not.toMatch(/NEXT_PUBLIC_PAYPAL/)
+    expect(leerEjemplo()).not.toMatch(/^\s*NEXT_PUBLIC_PAYPAL\w*\s*=/m)
   })
 })

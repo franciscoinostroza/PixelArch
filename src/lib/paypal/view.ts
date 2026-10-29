@@ -26,6 +26,13 @@ import type {
   OrigenPago,
   Pasarela,
 } from "@prisma/client"
+import {
+  RECIBO_MP_REFERENCIA_MAX,
+  esEstadoReciboMercadoPago,
+  monedaReciboMp,
+  resolverFechaReciboMp,
+  validarMontosReciboMp,
+} from "@/lib/mp-utils"
 import { formatearMonto, normalizeMoneda, type LocaleMonto, type Moneda } from "@/lib/pagos"
 
 export const PASARELAS_HISTORIAL = ["PAYPAL", "MERCADOPAGO", "MANUAL"] as const
@@ -128,6 +135,33 @@ export function pasarelaEfectiva(valor: string | null | undefined): Pasarela {
 
 export function etiquetaPasarela(valor: string | null | undefined): string {
   return PASARELA_LABEL[pasarelaEfectiva(valor)]
+}
+
+export interface PasarelaEfectivaPagoInput {
+  pasarela?: string | null
+  metodo?: string | null
+}
+
+/**
+ * Pasarela operativa de un pago, con la misma regla que usa el historial:
+ * - `pasarela` manda cuando es `PAYPAL` o `MERCADOPAGO`;
+ * - si es `MANUAL`, nula o invalida, se usa `metodo` como respaldo para los
+ *   datos historicos previos al backfill;
+ * - si ninguno coincide, es `MANUAL`.
+ *
+ * No se inventa una pasarela para metodos que no son de una pasarela de cobro
+ * (transferencia, efectivo, otro).
+ */
+export function pasarelaEfectivaPago(
+  input: PasarelaEfectivaPagoInput
+): Pasarela {
+  const pasarela = normalizarPasarela(input.pasarela)
+  if (pasarela === "PAYPAL" || pasarela === "MERCADOPAGO") return pasarela
+
+  const porMetodo = normalizarPasarela(input.metodo)
+  if (porMetodo === "PAYPAL" || porMetodo === "MERCADOPAGO") return porMetodo
+
+  return "MANUAL"
 }
 
 export function normalizarRevision(
@@ -740,9 +774,11 @@ export function mapearEstadoPagoVisible(
 
 export type MotivoReciboHistorial =
   | "DISPONIBLE"
-  | "NO_PAYPAL"
+  | "PASARELA_NO_ELEGIBLE"
   | "SIN_RECIBO"
   | "SIN_REFERENCIA"
+  | "ESTADO_NO_ELEGIBLE"
+  | "DATOS_INCONSISTENTES"
 
 export interface ElegibilidadReciboHistorial {
   disponible: boolean
@@ -759,8 +795,15 @@ export interface ElegibilidadReciboHistorial {
 export interface ElegibilidadReciboInput {
   id: string
   pasarela?: string | null
+  metodo?: string | null
+  estadoPago?: string | null
+  monto?: number | null
+  montoAcordado?: number | null
+  comision?: number | null
+  moneda?: string | null
   reciboId?: string | null
   reciboEmitidoEn?: Date | string | null
+  creadoEn?: Date | string | null
   externalId?: string | null
   paypalOrderId?: string | null
   /**
@@ -771,44 +814,138 @@ export interface ElegibilidadReciboInput {
 }
 
 /**
- * El recibo interno solo aplica a pagos PayPal con `reciboId` y una referencia
- * guardada en `Pago` (`externalId` o `paypalOrderId`), que es exactamente la
- * condicion de la pagina del recibo. Un pago MP o manual nunca expone el recibo
- * PayPal aunque tuviera un `reciboId` historico, y un `EnlacePago` sin
- * referencia en el pago no habilita un recibo que la pagina no podria mostrar.
+ * Elegibilidad del recibo interno:
+ *
+ * - **PayPal**: se conserva la regla existente (`reciboId` + una referencia
+ *   guardada en `Pago`). Un `EnlacePago` sin referencia en el pago no habilita
+ *   un recibo que la pagina no podria mostrar.
+ * - **Mercado Pago**: estado con recibo, `externalId` (payment id) dentro del
+ *   maximo, fecha (`reciboEmitidoEn ?? creadoEn`), moneda ARS/USD y montos que
+ *   reconcilien. El `reciboId` queda en `null` porque el identificador MP se
+ *   deriva en la pagina (`mp-recibo.ts`, server-only).
+ * - **Manual**: no tiene recibo.
+ *
+ * Solo se usan helpers browser-safe de `mp-utils.ts`: este modulo lo importa
+ * un componente cliente y no debe arrastrar `node:crypto`.
  */
 export function evaluarElegibilidadRecibo(
   input: ElegibilidadReciboInput
 ): ElegibilidadReciboHistorial {
   const pagoId = textoOpcional(input.id)
-  const pasarela = normalizarPasarela(input.pasarela)
-  const reciboId = textoOpcional(input.reciboId)
-  const referencia =
-    textoOpcional(input.externalId) ?? textoOpcional(input.paypalOrderId)
-  const emitidoEn = fechaOpcional(input.reciboEmitidoEn)
+  const pasarela = pasarelaEfectivaPago(input)
+  const hrefDisponible =
+    pagoId !== null
+      ? `/admin/pagos/${encodeURIComponent(pagoId)}/recibo`
+      : null
 
-  const base = {
-    reciboId,
-    referencia,
-    emitidoEn,
-    emitidoEnIso: emitidoEn?.toISOString() ?? null,
+  if (pasarela === "PAYPAL") {
+    const reciboId = textoOpcional(input.reciboId)
+    const referencia =
+      textoOpcional(input.externalId) ?? textoOpcional(input.paypalOrderId)
+    const emitidoEn = fechaOpcional(input.reciboEmitidoEn)
+
+    const base = {
+      reciboId,
+      referencia,
+      emitidoEn,
+      emitidoEnIso: emitidoEn?.toISOString() ?? null,
+    }
+
+    if (!reciboId) {
+      return { ...base, disponible: false, motivo: "SIN_RECIBO", href: null }
+    }
+    if (!referencia) {
+      return { ...base, disponible: false, motivo: "SIN_REFERENCIA", href: null }
+    }
+
+    return {
+      ...base,
+      disponible: true,
+      motivo: "DISPONIBLE",
+      href: hrefDisponible,
+    }
   }
 
-  if (pasarela !== "PAYPAL") {
-    return { ...base, disponible: false, motivo: "NO_PAYPAL", href: null }
-  }
-  if (!reciboId) {
-    return { ...base, disponible: false, motivo: "SIN_RECIBO", href: null }
-  }
-  if (!referencia) {
-    return { ...base, disponible: false, motivo: "SIN_REFERENCIA", href: null }
+  if (pasarela === "MERCADOPAGO") {
+    const referencia = textoOpcional(input.externalId)
+    const emitidoEn = resolverFechaReciboMp(
+      input.reciboEmitidoEn,
+      input.creadoEn
+    )
+    const base = {
+      reciboId: null,
+      referencia,
+      emitidoEn,
+      emitidoEnIso: emitidoEn?.toISOString() ?? null,
+    }
+
+    if (referencia === null) {
+      return { ...base, disponible: false, motivo: "SIN_REFERENCIA", href: null }
+    }
+    if (referencia.length > RECIBO_MP_REFERENCIA_MAX) {
+      return {
+        ...base,
+        disponible: false,
+        motivo: "DATOS_INCONSISTENTES",
+        href: null,
+      }
+    }
+    if (!esEstadoReciboMercadoPago(input.estadoPago)) {
+      return {
+        ...base,
+        disponible: false,
+        motivo: "ESTADO_NO_ELEGIBLE",
+        href: null,
+      }
+    }
+    if (!emitidoEn || !monedaReciboMp(input.moneda)) {
+      return {
+        ...base,
+        disponible: false,
+        motivo: "DATOS_INCONSISTENTES",
+        href: null,
+      }
+    }
+    if (typeof input.monto !== "number") {
+      return {
+        ...base,
+        disponible: false,
+        motivo: "DATOS_INCONSISTENTES",
+        href: null,
+      }
+    }
+
+    try {
+      validarMontosReciboMp({
+        monto: input.monto,
+        montoAcordado: input.montoAcordado,
+        comision: input.comision,
+      })
+    } catch {
+      return {
+        ...base,
+        disponible: false,
+        motivo: "DATOS_INCONSISTENTES",
+        href: null,
+      }
+    }
+
+    return {
+      ...base,
+      disponible: true,
+      motivo: "DISPONIBLE",
+      href: hrefDisponible,
+    }
   }
 
   return {
-    ...base,
-    disponible: true,
-    motivo: "DISPONIBLE",
-    href: pagoId ? `/admin/pagos/${encodeURIComponent(pagoId)}/recibo` : null,
+    disponible: false,
+    motivo: "PASARELA_NO_ELEGIBLE",
+    reciboId: null,
+    referencia: null,
+    emitidoEn: null,
+    emitidoEnIso: null,
+    href: null,
   }
 }
 
@@ -838,6 +975,8 @@ export interface PagoHistorialInput {
   montoEsperado?: number | null
   moneda?: string | null
   pasarela?: string | null
+  /** Metodo historico de cobro; respaldo cuando `pasarela` es `MANUAL`. */
+  metodo?: string | null
   origen?: string | null
   externalId?: string | null
   paypalOrderId?: string | null
@@ -869,7 +1008,8 @@ export interface PagoHistorial {
 
 /** Compone todos los helpers en la fila que renderizan las tablas del CRM. */
 export function mapearPagoHistorial(input: PagoHistorialInput): PagoHistorial {
-  const pasarela = pasarelaEfectiva(input.pasarela)
+  const pasarela = pasarelaEfectivaPago(input)
+  const base = { ...input, pasarela }
   const origen = normalizarOrigen(input.origen)
   const creadoEn = fechaOpcional(input.creadoEn)
 
@@ -882,11 +1022,11 @@ export function mapearPagoHistorial(input: PagoHistorialInput): PagoHistorial {
     origen,
     origenEtiqueta: origen ? ORIGEN_PAGO_LABEL[origen] : null,
     concepto: mapearConceptoPago(input),
-    referencias: mapearReferenciasPago(input),
+    referencias: mapearReferenciasPago(base),
     desglose: mapearDesglosePago(input),
     envio: mapearEnvioPago(input.enlacePago),
     autor: mapearAutorPago(input),
     estado: mapearEstadoPagoVisible(input.estadoPago, input.revisionEstado),
-    recibo: evaluarElegibilidadRecibo(input),
+    recibo: evaluarElegibilidadRecibo(base),
   }
 }

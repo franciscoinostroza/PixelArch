@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 
 /**
@@ -32,8 +34,10 @@ import {
   mapearReferenciasPago,
   normalizarPasarela,
   pasarelaEfectiva,
+  pasarelaEfectivaPago,
   type PagoHistorialInput,
 } from "@/lib/paypal/view"
+import { RECIBO_MP_REFERENCIA_MAX } from "@/lib/mp-utils"
 
 const AHORA = new Date("2026-10-20T12:00:00.000Z")
 const RECIBO = "PAY-20261020-ABCDEF123456"
@@ -107,6 +111,28 @@ describe("normalizacion y etiquetas (AC-11)", () => {
     expect(etiquetaPasarela(null)).toBe("Manual")
     expect(etiquetaPasarela("PAYPAL")).toBe("PayPal")
     expect(etiquetaPasarela("MERCADOPAGO")).toBe("Mercado Pago")
+  })
+
+  it("resuelve la pasarela efectiva con el metodo como respaldo historico (AC-19)", () => {
+    expect(
+      pasarelaEfectivaPago({ pasarela: "PAYPAL", metodo: "MERCADOPAGO" })
+    ).toBe("PAYPAL")
+    expect(
+      pasarelaEfectivaPago({ pasarela: "MERCADOPAGO", metodo: "PAYPAL" })
+    ).toBe("MERCADOPAGO")
+    expect(
+      pasarelaEfectivaPago({ pasarela: "MANUAL", metodo: "MERCADOPAGO" })
+    ).toBe("MERCADOPAGO")
+    expect(pasarelaEfectivaPago({ pasarela: null, metodo: "PAYPAL" })).toBe(
+      "PAYPAL"
+    )
+    expect(pasarelaEfectivaPago({ pasarela: "STRIPE", metodo: "PAYPAL" })).toBe(
+      "PAYPAL"
+    )
+    expect(
+      pasarelaEfectivaPago({ pasarela: "MANUAL", metodo: "TRANSFERENCIA" })
+    ).toBe("MANUAL")
+    expect(pasarelaEfectivaPago({})).toBe("MANUAL")
   })
 
   it("etiqueta la revision y descarta valores desconocidos", () => {
@@ -707,17 +733,215 @@ describe("elegibilidad del recibo (AC-10, AC-11, AC-12)", () => {
     })
   })
 
-  it("nunca habilita el recibo de Mercado Pago o manual", () => {
-    for (const pasarela of ["MERCADOPAGO", "MANUAL", null, undefined]) {
+  it("habilita el recibo de un pago de Mercado Pago elegible (AC-18, AC-19)", () => {
+    const recibo = evaluarElegibilidadRecibo({
+      id: "pago_mp",
+      pasarela: "MERCADOPAGO",
+      reciboId: RECIBO,
+      estadoPago: "SUCCEEDED",
+      monto: 500000,
+      montoAcordado: 500000,
+      comision: 0,
+      moneda: "ars",
+      externalId: "MP-123",
+      creadoEn: AHORA,
+    })
+
+    expect(recibo).toEqual({
+      disponible: true,
+      motivo: "DISPONIBLE",
+      reciboId: null,
+      referencia: "MP-123",
+      emitidoEn: AHORA,
+      emitidoEnIso: "2026-10-20T12:00:00.000Z",
+      href: "/admin/pagos/pago_mp/recibo",
+    })
+  })
+
+  it("usa el metodo como respaldo para un pago MP historico (AC-19)", () => {
+    const recibo = evaluarElegibilidadRecibo({
+      id: "pago_mp_legacy",
+      pasarela: "MANUAL",
+      metodo: "MERCADOPAGO",
+      estadoPago: "SUCCEEDED",
+      monto: 500000,
+      montoAcordado: 500000,
+      comision: 0,
+      moneda: "ars",
+      externalId: "MP-LEGACY",
+      creadoEn: AHORA,
+    })
+
+    expect(recibo).toMatchObject({
+      disponible: true,
+      motivo: "DISPONIBLE",
+      reciboId: null,
+      referencia: "MP-LEGACY",
+      href: "/admin/pagos/pago_mp_legacy/recibo",
+    })
+  })
+
+  it("usa el metodo como respaldo para un recibo PayPal historico", () => {
+    const recibo = evaluarElegibilidadRecibo({
+      id: "pago_paypal_legacy",
+      pasarela: "MANUAL",
+      metodo: "PAYPAL",
+      reciboId: RECIBO,
+      externalId: "CAPTURE-1",
+    })
+
+    expect(recibo).toMatchObject({
+      disponible: true,
+      motivo: "DISPONIBLE",
+      reciboId: RECIBO,
+      referencia: "CAPTURE-1",
+      href: "/admin/pagos/pago_paypal_legacy/recibo",
+    })
+  })
+
+  it("habilita el recibo MP en los estados con cobro, sin reciboId (AC-9, AC-10)", () => {
+    for (const estadoPago of [
+      "SUCCEEDED",
+      "REVISION",
+      "REFUNDED",
+      "CONTRACARGO",
+    ]) {
+      const recibo = evaluarElegibilidadRecibo({
+        id: `pago_${estadoPago}`,
+        pasarela: "MERCADOPAGO",
+        estadoPago,
+        monto: 500000,
+        montoAcordado: 500000,
+        comision: 0,
+        moneda: "ars",
+        externalId: `MP-${estadoPago}`,
+        creadoEn: AHORA,
+      })
+
+      expect(recibo).toMatchObject({
+        disponible: true,
+        motivo: "DISPONIBLE",
+        reciboId: null,
+        href: `/admin/pagos/pago_${estadoPago}/recibo`,
+      })
+    }
+  })
+
+  it("no habilita el recibo en estados fallidos, pendientes o desconocidos (AC-8)", () => {
+    for (const estadoPago of ["FAILED", "PENDING", "OTRO", null]) {
       const recibo = evaluarElegibilidadRecibo({
         id: "pago_mp",
-        pasarela,
-        reciboId: RECIBO,
-        externalId: "REF-1",
+        pasarela: "MERCADOPAGO",
+        estadoPago,
+        monto: 500000,
+        montoAcordado: 500000,
+        comision: 0,
+        moneda: "ars",
+        externalId: "MP-123",
+        creadoEn: AHORA,
       })
+
       expect(recibo).toMatchObject({
         disponible: false,
-        motivo: "NO_PAYPAL",
+        motivo: "ESTADO_NO_ELEGIBLE",
+        href: null,
+      })
+    }
+  })
+
+  it("no habilita el recibo MP sin referencia externa (AC-20)", () => {
+    const recibo = evaluarElegibilidadRecibo({
+      id: "pago_mp",
+      pasarela: "MERCADOPAGO",
+      estadoPago: "SUCCEEDED",
+      monto: 500000,
+      montoAcordado: 500000,
+      comision: 0,
+      moneda: "ars",
+      externalId: "   ",
+      creadoEn: AHORA,
+    })
+
+    expect(recibo).toMatchObject({
+      disponible: false,
+      motivo: "SIN_REFERENCIA",
+      reciboId: null,
+      referencia: null,
+      href: null,
+    })
+  })
+
+  it("rechaza una referencia MP fuera del maximo (AC-25)", () => {
+    const recibo = evaluarElegibilidadRecibo({
+      id: "pago_mp",
+      pasarela: "MERCADOPAGO",
+      estadoPago: "SUCCEEDED",
+      monto: 500000,
+      montoAcordado: 500000,
+      comision: 0,
+      moneda: "ars",
+      externalId: "R".repeat(RECIBO_MP_REFERENCIA_MAX + 1),
+      creadoEn: AHORA,
+    })
+
+    expect(recibo).toMatchObject({
+      disponible: false,
+      motivo: "DATOS_INCONSISTENTES",
+      href: null,
+    })
+  })
+
+  it("rechaza montos MP que no reconcilian o datos incompletos (AC-25)", () => {
+    const base = {
+      id: "pago_mp",
+      pasarela: "MERCADOPAGO",
+      estadoPago: "SUCCEEDED",
+      monto: 500000,
+      montoAcordado: 500000,
+      comision: 0,
+      moneda: "ars",
+      externalId: "MP-123",
+      creadoEn: AHORA,
+    }
+
+    for (const override of [
+      { monto: 400000 },
+      { monto: null },
+      { moneda: "eur" },
+      { creadoEn: new Date(Number.NaN) },
+      { comision: 1000 },
+    ]) {
+      expect(
+        evaluarElegibilidadRecibo({ ...base, ...override })
+      ).toMatchObject({
+        disponible: false,
+        motivo: "DATOS_INCONSISTENTES",
+        href: null,
+      })
+    }
+  })
+
+  it("no habilita el recibo de un pago manual (AC-18)", () => {
+    for (const pasarela of ["MANUAL", null, undefined, "STRIPE"]) {
+      const recibo = evaluarElegibilidadRecibo({
+        id: "pago_manual",
+        pasarela,
+        estadoPago: "SUCCEEDED",
+        monto: 500000,
+        montoAcordado: 500000,
+        comision: 0,
+        moneda: "ars",
+        externalId: "TRANSFERENCIA-1",
+        creadoEn: AHORA,
+      })
+
+      expect(recibo).toEqual({
+        disponible: false,
+        motivo: "PASARELA_NO_ELEGIBLE",
+        reciboId: null,
+        referencia: null,
+        emitidoEn: null,
+        emitidoEnIso: null,
         href: null,
       })
     }
@@ -842,7 +1066,38 @@ describe("fila compuesta del historial (AC-11, AC-12, AC-19)", () => {
     expect(fila.envio.enviado).toBe(false)
     expect(fila.autor.nombre).toBeNull()
     expect(fila.recibo.disponible).toBe(false)
-    expect(fila.recibo.motivo).toBe("NO_PAYPAL")
+    expect(fila.recibo.motivo).toBe("PASARELA_NO_ELEGIBLE")
+  })
+
+  it("muestra como Mercado Pago una fila historica con metodo y sin backfill (AC-19)", () => {
+    const fila = mapearPagoHistorial({
+      id: "pago_mp_legacy",
+      estadoPago: "SUCCEEDED",
+      monto: 500000,
+      montoAcordado: 500000,
+      comision: 0,
+      moneda: "ars",
+      pasarela: "MANUAL",
+      metodo: "MERCADOPAGO",
+      externalId: "MP-123",
+      creadoEn: AHORA,
+      enlacePago: { externalId: "PREF-1" },
+    })
+
+    expect(fila).toMatchObject({
+      pasarela: "MERCADOPAGO",
+      pasarelaEtiqueta: "Mercado Pago",
+    })
+    expect(fila.referencias.paymentId).toBe("MP-123")
+    expect(fila.referencias.preferenceId).toBe("PREF-1")
+    expect(fila.referencias.principal?.etiqueta).toBe("Preferencia PREF-1")
+    expect(fila.recibo).toMatchObject({
+      disponible: true,
+      motivo: "DISPONIBLE",
+      reciboId: null,
+      referencia: "MP-123",
+      href: "/admin/pagos/pago_mp_legacy/recibo",
+    })
   })
 
   it("no filtra PII del cliente ni del pagador aunque el caller la pase", () => {
@@ -880,5 +1135,24 @@ describe("fila compuesta del historial (AC-11, AC-12, AC-19)", () => {
     expect(Object.keys(fila)).not.toContain("pagador")
     expect(Object.keys(fila)).not.toContain("email")
     expect(Object.keys(fila.concepto)).not.toContain("cliente")
+  })
+})
+
+/**
+ * T-02 (R-8): `view.ts` lo importa un componente cliente
+ * (`revision-paypal-button.tsx`). La elegibilidad MP debe usar solo helpers
+ * browser-safe de `mp-utils.ts`; importar `mp-recibo.ts` arrastraria
+ * `node:crypto` al bundle del navegador.
+ */
+describe("limite browser-safe de view.ts (T-02, R-8)", () => {
+  it("no importa el dominio server-only mp-recibo ni node:crypto", () => {
+    const fuente = readFileSync(
+      join(process.cwd(), "src/lib/paypal/view.ts"),
+      "utf8"
+    )
+
+    expect(fuente).toMatch(/@\/lib\/mp-utils/)
+    expect(fuente).not.toMatch(/@\/lib\/mp-recibo/)
+    expect(fuente).not.toMatch(/from\s+["']node:crypto["']/)
   })
 })

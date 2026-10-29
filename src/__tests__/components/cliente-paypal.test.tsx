@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 
 /**
  * T-24 (AC-10, AC-12, AC-19, AC-22): historial de pagos del detalle del
@@ -323,7 +323,9 @@ describe("Detalle del cliente: historial PayPal (T-24)", () => {
     expect(screen.getByText(/Envío: .*Email/)).toBeInTheDocument()
     expect(screen.getByText("Idioma: Español")).toBeInTheDocument()
 
-    const recibo = screen.getByRole("link", { name: /ver recibo/i })
+    const recibo = within(
+      screen.getByTestId("pago-pago_paypal")
+    ).getByRole("link", { name: /ver recibo/i })
     expect(recibo).toHaveAttribute("href", "/admin/pagos/pago_paypal/recibo")
   })
 
@@ -343,7 +345,11 @@ describe("Detalle del cliente: historial PayPal (T-24)", () => {
 
     expect(mocks.requireStaff).toHaveBeenCalledTimes(1)
     expect(screen.getByText("Historial de pagos")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: /ver recibo/i })).toBeInTheDocument()
+    expect(
+      within(screen.getByTestId("pago-pago_paypal")).getByRole("link", {
+        name: /ver recibo/i,
+      })
+    ).toBeInTheDocument()
     expect(
       screen.queryByRole("button", { name: /nuevo proyecto/i })
     ).not.toBeInTheDocument()
@@ -357,11 +363,44 @@ describe("Detalle del cliente: historial PayPal (T-24)", () => {
     expect(screen.queryByText("+54 9 11 0000-0000")).not.toBeInTheDocument()
   })
 
-  it("no muestra recibo para un pago de Mercado Pago", async () => {
+  it("muestra el recibo de un pago de Mercado Pago elegible (AC-18, AC-19)", async () => {
     await renderPage()
 
-    expect(screen.getAllByRole("link", { name: /ver recibo/i })).toHaveLength(1)
-    expect(screen.getByText("Mercado Pago")).toBeInTheDocument()
+    const filaMp = within(screen.getByTestId("pago-pago_mp"))
+    expect(
+      filaMp.getByRole("link", { name: /ver recibo/i })
+    ).toHaveAttribute("href", "/admin/pagos/pago_mp/recibo")
+    expect(filaMp.getByText("Mercado Pago")).toBeInTheDocument()
+
+    // PayPal conserva su propio enlace.
+    expect(
+      within(screen.getByTestId("pago-pago_paypal")).getByRole("link", {
+        name: /ver recibo/i,
+      })
+    ).toHaveAttribute("href", "/admin/pagos/pago_paypal/recibo")
+    expect(
+      screen.getAllByRole("link", { name: /ver recibo/i })
+    ).toHaveLength(2)
+  })
+
+  it("mantiene visible un pago MP sin referencia externa y no le da recibo (AC-20)", async () => {
+    mocks.clienteFindUnique.mockResolvedValue({
+      ...clienteDemo(),
+      pagos: [{ ...PAGO_MP, externalId: null }],
+    })
+
+    await renderPage()
+
+    const fila = within(screen.getByTestId("pago-pago_mp"))
+    expect(fila.getByText("Mercado Pago")).toBeInTheDocument()
+    expect(fila.getByText("Total: $5.000 ARS")).toBeInTheDocument()
+    expect(
+      fila.queryByRole("link", { name: /ver recibo/i })
+    ).not.toBeInTheDocument()
+
+    expect(
+      screen.queryByRole("link", { name: /ver recibo/i })
+    ).not.toBeInTheDocument()
   })
 
   it("muestra autor, fecha y canal de un pago manual sin enlace (AC-12)", async () => {
@@ -449,7 +488,14 @@ describe("Detalle del cliente: historial PayPal (T-24)", () => {
     expect(mocks.requireStaff).toHaveBeenCalledTimes(1)
     expect(screen.getByText("Sitio ACME — Anticipo")).toBeInTheDocument()
     expect(
-      screen.getByRole("link", { name: /ver recibo/i })
+      within(screen.getByTestId("pago-pago_paypal")).getByRole("link", {
+        name: /ver recibo/i,
+      })
+    ).toBeInTheDocument()
+    expect(
+      within(screen.getByTestId("pago-pago_mp")).getByRole("link", {
+        name: /ver recibo/i,
+      })
     ).toBeInTheDocument()
   })
 

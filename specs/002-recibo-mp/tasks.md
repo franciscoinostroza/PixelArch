@@ -20,7 +20,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Deps:** ninguna.
   - **PASS tester+reviewer; recs no bloqueantes:** trim de referencia y UTC fecha/ID/estadoUI a cubrir en T-04/T-05; flake registrar-pago-paypal documentado para T-08; import "server-only" opcional.
 
-- [ ] **T-02 (AC-8, AC-9, AC-10, AC-11, AC-18, AC-19, AC-20, AC-21) Pasarela efectiva y elegibilidad MP en el historial**
+- [x] **T-02 (AC-8, AC-9, AC-10, AC-11, AC-18, AC-19, AC-20, AC-21) Pasarela efectiva y elegibilidad MP en el historial**
   - Modificar `src/lib/paypal/view.ts`:
     - exportar `pasarelaEfectivaPago({ pasarela, metodo })` con la regla actual de `/admin/pagos`: `pasarela` manda salvo `MANUAL`/nula/invalida; luego `metodo`; si no, `MANUAL`;
     - agregar `metodo` a `PagoHistorialInput`;
@@ -70,6 +70,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - En `src/__tests__/app/recibo-paypal-page.test.tsx` cambiar solo el fixture del caso "no es de PayPal" de `MERCADOPAGO` a `MANUAL`, para conservar la intencion (MP ahora tiene recibo).
   - **Hecho cuando:** el test nuevo pasa, el test PayPal sigue pasando y la pagina hace exactamente una consulta al pago (`findUnique`).
   - **Deps:** T-01, T-02, T-04.
+  - **Review T-02:** bifurcar con `pasarelaEfectivaPago(pago)`, no `pago.pasarela` cruda; manejar concepto > `RECIBO_MP_CONCEPTO_MAX` (truncar/rechazar) para evitar link muerto; cubrir PayPal legacy `MANUAL`+`metodo=PAYPAL`.
 
 - [ ] **T-06 (AC-8, AC-9, AC-10, AC-17, AC-19, AC-20, AC-22, AC-23, AC-25, AC-26) Bordes, seguridad y regresion de la pagina MP**
   - Extender `src/__tests__/app/recibo-mp-page.test.tsx`:
@@ -102,6 +103,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - Confirmar que los tests PayPal de recibo, proceso e idempotencia siguen verdes y que no hay llamadas reales a MP/PayPal.
   - **Hecho cuando:** suite/typecheck/build limpios; lint sin errores nuevos; resultados anotados para el reviewer.
   - **Deps:** T-01..T-07.
+  - **Review T-02 (opcional):** test barato de `/admin/cobros` sin link; evaluar alinear `coincideFiltroHistorial` con `metodo` (R-11).
 
 - [ ] **T-09 (AC-19, AC-21, AC-22) Gate de staging y T-38 (sin codigo, no es commit)**
   - En staging (`paypal-staging`, esquema ya aplicado): abrir un recibo MP historico/seed con `externalId`, un pago MP confirmado de staging, un recibo PayPal, verificar links en `/admin/pagos` y detalle, rol asistente y una impresion A4.
@@ -110,6 +112,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - Smoke post-T-38: health, pagos, detalle, recibo MP, recibo PayPal, asistente.
   - **Hecho cuando:** checklist de staging completo y T-38 autorizado/ejecutado en el orden acordado.
   - **Deps:** T-08.
+  - **Review T-02:** click real sobre un link MP, un PayPal actual y un PayPal legacy `MANUAL`+`metodo=PAYPAL`; confirmar `/admin/cobros` sin "Ver recibo".
 
 ## Cobertura AC -> tarea
 

@@ -241,7 +241,9 @@ describe("/admin/pagos: PayPal (T-23)", () => {
       within(screen.getByTestId("pago-pago_paypal")).getByText("Pagado")
     ).toBeInTheDocument()
 
-    const recibo = screen.getByRole("link", { name: /ver recibo/i })
+    const recibo = within(
+      screen.getByTestId("pago-pago_paypal")
+    ).getByRole("link", { name: /ver recibo/i })
     expect(recibo).toHaveAttribute("href", "/admin/pagos/pago_paypal/recibo")
   })
 
@@ -260,7 +262,75 @@ describe("/admin/pagos: PayPal (T-23)", () => {
     expect(screen.queryByText("· PayPal")).not.toBeInTheDocument()
     expect(screen.queryByText("· Mercado Pago")).not.toBeInTheDocument()
 
-    expect(screen.getAllByRole("link", { name: /ver recibo/i })).toHaveLength(1)
+    expect(
+      filaPaypal.getByRole("link", { name: /ver recibo/i })
+    ).toHaveAttribute("href", "/admin/pagos/pago_paypal/recibo")
+    expect(filaMp.getByRole("link", { name: /ver recibo/i })).toHaveAttribute(
+      "href",
+      "/admin/pagos/pago_mp/recibo"
+    )
+    expect(
+      screen.getAllByRole("link", { name: /ver recibo/i })
+    ).toHaveLength(2)
+  })
+
+  it("mantiene visibles los pagos MP fallidos y pendientes sin enlace al recibo (AC-8, AC-18)", async () => {
+    mocks.findMany.mockResolvedValue([
+      {
+        ...PAGO_MP,
+        id: "pago_mp_failed",
+        estadoPago: "FAILED",
+        externalId: "MP-FAILED",
+      },
+      {
+        ...PAGO_MP,
+        id: "pago_mp_pending",
+        estadoPago: "PENDING",
+        externalId: "MP-PENDING",
+      },
+    ])
+    mocks.count.mockResolvedValue(2)
+
+    await renderPage()
+
+    const fallido = within(screen.getByTestId("pago-pago_mp_failed"))
+    expect(fallido.getByText("Fallido")).toBeInTheDocument()
+    expect(
+      fallido.queryByRole("link", { name: /ver recibo/i })
+    ).not.toBeInTheDocument()
+
+    const pendiente = within(screen.getByTestId("pago-pago_mp_pending"))
+    expect(pendiente.getByText("Pendiente")).toBeInTheDocument()
+    expect(
+      pendiente.queryByRole("link", { name: /ver recibo/i })
+    ).not.toBeInTheDocument()
+
+    expect(
+      screen.queryByRole("link", { name: /ver recibo/i })
+    ).not.toBeInTheDocument()
+  })
+
+  it("trata como Mercado Pago una fila historica con metodo y muestra su recibo (AC-19)", async () => {
+    mocks.findMany.mockResolvedValue([
+      {
+        ...PAGO_MP,
+        id: "pago_mp_legacy",
+        pasarela: "MANUAL",
+        metodo: "MERCADOPAGO",
+      },
+    ])
+    mocks.count.mockResolvedValue(1)
+
+    await renderPage()
+
+    const fila = within(screen.getByTestId("pago-pago_mp_legacy"))
+    expect(
+      fila.getByText(/Mercado Pago · Automático · Cliente Demo/)
+    ).toBeInTheDocument()
+    expect(fila.getByRole("link", { name: /ver recibo/i })).toHaveAttribute(
+      "href",
+      "/admin/pagos/pago_mp_legacy/recibo"
+    )
   })
 
   it("expone ajustes y eventos que requieren accion", async () => {

@@ -19,6 +19,7 @@ import {
   mapearEstadoPagoVisible,
   mapearPagoHistorial,
   normalizarPasarela,
+  pasarelaEfectivaPago,
 } from "@/lib/paypal/view"
 
 const PER_PAGE = 20
@@ -42,27 +43,6 @@ function fechaDeFiltro(
   if (!valor) return null
   const fecha = new Date(finDelDia ? `${valor}T23:59:59` : valor)
   return Number.isFinite(fecha.getTime()) ? fecha : null
-}
-
-function pasarelaDesdeMetodo(
-  metodo: string | null | undefined
-): "PAYPAL" | "MERCADOPAGO" | null {
-  if (metodo === "PAYPAL") return "PAYPAL"
-  if (metodo === "MERCADOPAGO") return "MERCADOPAGO"
-  return null
-}
-
-/**
- * `Pago.pasarela` manda; para datos historicos previos al backfill se usa el
- * metodo como respaldo, de modo que un pago PayPal viejo no se muestre como
- * manual. Nunca se inventa una pasarela para pagos sin metodo.
- */
-function pasarelaDePago(pago: {
-  pasarela?: string | null
-  metodo?: string | null
-}): string | null {
-  if (pago.pasarela && pago.pasarela !== "MANUAL") return pago.pasarela
-  return pasarelaDesdeMetodo(pago.metodo) ?? pago.pasarela ?? "MANUAL"
 }
 
 /** Une los eventos del pago y los de su link sin duplicar por id. */
@@ -189,7 +169,7 @@ export default async function AdminPagos({
   const totalPages = Math.ceil(total / PER_PAGE)
 
   const filas: PagoTablaFila[] = pagos.map((pago) => {
-    const pasarela = pasarelaDePago(pago)
+    const pasarela = pasarelaEfectivaPago(pago)
     const historial = mapearPagoHistorial({ ...pago, pasarela })
     const pagoAjuste: AjustePaypalPago = {
       id: pago.id,

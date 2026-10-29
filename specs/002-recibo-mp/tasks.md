@@ -94,12 +94,13 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
 
 ## Fase 4: Cierre
 
-- [ ] **T-07 (AC-24) Documentacion y trazabilidad**
+- [x] **T-07 (AC-24) Documentacion y trazabilidad**
   - Actualizar `AGENTS.md`: recibo MP disponible en `/admin/pagos` y detalle; sin cambios de esquema; estado T-38; retirar "recibo imprimible de Mercado Pago" del backlog.
   - Actualizar `MEMORY.md`: identificador derivado, elegibilidad (estados/referencia), A4, sin red/email, gate T-38.
   - Revisar que cada AC de `spec.md` tenga al menos una tarea/test en este archivo; anotar cualquier desvio.
   - **Hecho cuando:** docs coherentes y matriz AC -> tarea completa.
   - **Deps:** T-01..T-06.
+  - **Cierre:** `AGENTS.md` y `MEMORY.md` actualizados (id `MP-AAAAMMDD-<32 hex>`, elegibilidad, A4, solo lectura, gate T-38, backlog sin el recibo MP, 1582/83 tests). Matriz AC ampliada con test principal; desvios anotados abajo. No se toco codigo, T-08 ni T-09.
   - **Review T-03:** documentar reciboIdClassName como desvío del plan §2.4 y su motivo (paridad DOM PayPal).
   - **Review T-04:** evaluar import "server-only" en mp-recibo como defensa en profundidad (opcional).
   - **Review T-06:** documentar concepto por code points, guard MP (mercadopago.com.ar/puntos), select least-privilege, desvío mínimo del concepto PayPal y spy email; actualizar test counts.
@@ -126,36 +127,47 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Review T-03:** verificar A4 físico y precedencia de @page (globals 2cm vs admin 12mm); imprimir referencia de 128 chars.
   - **Review T-04:** @page ya anotado; verificar A4 físico y margen.
 
-## Cobertura AC -> tarea
+## Cobertura AC -> tarea y test
 
-| AC | Tareas |
-|----|--------|
-| AC-1 | T-05 |
-| AC-2 | T-05 |
-| AC-3 | T-04, T-05 |
-| AC-4 | T-05 |
-| AC-5 | T-05 |
-| AC-6 | T-01, T-04, T-05 |
-| AC-7 | T-01, T-04, T-05 |
-| AC-8 | T-02, T-06 |
-| AC-9 | T-01, T-02, T-04, T-06 |
-| AC-10 | T-01, T-02, T-04, T-06 |
-| AC-11 | T-01, T-02 |
-| AC-12 | T-01, T-05 |
-| AC-13 | T-04, T-05 |
-| AC-14 | T-05 |
-| AC-15 | T-03, T-04 |
-| AC-16 | T-03, T-04 |
-| AC-17 | T-05, T-06 |
-| AC-18 | T-02 |
-| AC-19 | T-02, T-06, T-09 |
-| AC-20 | T-02, T-06 |
-| AC-21 | T-02, T-03, T-08, T-09 |
-| AC-22 | T-06, T-09 |
-| AC-23 | T-06 |
-| AC-24 | T-07, T-08 |
-| AC-25 | T-01, T-06 |
-| AC-26 | T-03, T-04, T-06 |
+| AC | Tareas | Test principal |
+|----|--------|----------------|
+| AC-1 | T-05 | `app/recibo-mp-page.test.tsx` (redirect sin staff, sin `findUnique`) |
+| AC-2 | T-05 | `app/recibo-mp-page.test.tsx` (asistente) |
+| AC-3 | T-04, T-05 | `app/recibo-mp-page.test.tsx` + `components/recibo-mercadopago.test.tsx` |
+| AC-4 | T-05 | `app/recibo-mp-page.test.tsx` (concepto proyecto — hito) |
+| AC-5 | T-05 | `app/recibo-mp-page.test.tsx` (servicio — N meses) |
+| AC-6 | T-01, T-04, T-05 | `lib/mp-utils.test.ts` + `components/recibo-mercadopago.test.tsx` + pagina (ARS) |
+| AC-7 | T-01, T-04, T-05 | `lib/mp-utils.test.ts` + `components/recibo-mercadopago.test.tsx` + pagina (USD) |
+| AC-8 | T-02, T-06 | `lib/paypal-view.test.ts` + `app/recibo-mp-page.test.tsx` (`FAILED`/`PENDING`/desconocido) |
+| AC-9 | T-01, T-02, T-04, T-06 | `lib/mp-utils.test.ts` + `components/recibo-mercadopago.test.tsx` + pagina (`REFUNDED`/`CONTRACARGO`) |
+| AC-10 | T-01, T-02, T-04, T-06 | `lib/mp-utils.test.ts` + `components/recibo-mercadopago.test.tsx` + pagina (`REVISION`) |
+| AC-11 | T-01, T-02 | `lib/mp-recibo.test.ts` + `lib/mp-utils.test.ts` + pagina (id derivado) |
+| AC-12 | T-01, T-05 | `lib/mp-recibo.test.ts` + pagina (referencia exacta) |
+| AC-13 | T-04, T-05 | `components/recibo-mercadopago.test.tsx` + pagina (sin PII del pagador) |
+| AC-14 | T-05 | `app/recibo-mp-page.test.tsx` (nota/evidencia/revision/origen/registradoPor ocultos) |
+| AC-15 | T-03, T-04 | `components/recibo-mercadopago.test.tsx` + `components/recibo-paypal.test.tsx` (`@page` A4/12mm, `print:hidden`) |
+| AC-16 | T-03, T-04 | `components/recibo-mercadopago.test.tsx` (caption, `scope`, estado texto, foco) |
+| AC-17 | T-05, T-06 | `app/recibo-mp-page.test.tsx` (solo lectura, sin email) |
+| AC-18 | T-02 | `lib/paypal-view.test.ts` + `components/pagos-paypal.test.tsx` + `components/cliente-paypal.test.tsx` |
+| AC-19 | T-02, T-06, T-09 | `lib/paypal-view.test.ts` + pagina (historico `MANUAL`+`metodo=MERCADOPAGO`) |
+| AC-20 | T-02, T-06 | `lib/paypal-view.test.ts` + pagina (sin `externalId` -> sin link/`notFound`) |
+| AC-21 | T-02, T-03, T-08, T-09 | `app/recibo-paypal-page.test.tsx` + `components/recibo-paypal.test.tsx` + `lib/paypal-view.test.ts` (regresion) |
+| AC-22 | T-06, T-09 | `lib/mercadopago-sin-red.test.ts` + pagina (`@/lib/mercadopago` no llamado) |
+| AC-23 | T-06 | `app/recibo-mp-page.test.tsx` (spy de `sendPaymentReceipt`, email intacto) |
+| AC-24 | T-07, T-08 | `spec-coverage.test.ts` + suite completa de T-08 |
+| AC-25 | T-01, T-06 | `lib/mp-recibo.test.ts` + `lib/mp-utils.test.ts` + pagina (datos inconsistentes) |
+| AC-26 | T-03, T-04, T-06 | `components/recibo-mercadopago.test.tsx` + pagina (misma fecha/id en dos renders) |
+
+## Desvios y decisiones de implementacion
+
+- **`reciboIdClassName` en `ReciboPago` (T-03):** el plan §2.4 no preveia esta prop. Se agrego opcional con default `mt-1 break-words font-mono text-sm font-semibold`; el adaptador PayPal pasa su clase historica `mt-1 font-mono text-sm font-semibold` para conservar el DOM y las clases exactas (AC-21). MP usa el default y gana `break-words` para ids largos en A4. Cubierto en `recibo-mercadopago.test.tsx`.
+- **Concepto por code points (T-05/T-06):** en lugar de rechazar un concepto mayor a `RECIBO_MP_CONCEPTO_MAX` (200), la pagina lo trunca con `Array.from(...)` para no partir un par surrogate (emoji) ni dejar un link "Ver recibo" que termine en `notFound`. `construirReciboMercadoPago` tambien cuenta el concepto por code points; la referencia externa se valida por unidades UTF-16 porque es un id ASCII. Tests: "recorta a 200 caracteres..." y "trunca el concepto por puntos de codigo...".
+- **Guard de red MP (T-06):** el guard de `src/__tests__/setup.ts` se extendio a `*.mercadopago.com` (incluye `api.`/`www.` y mayusculas). Sigue envolviendo **solo `fetch`**: no bloquea `mercadopago.com.ar` (host de checkout que aparece en fixtures), SDKs ni otros clientes HTTP; no es un sandbox de red. Tests en `mercadopago-sin-red.test.ts`.
+- **Select least-privilege (T-06):** la pagina usa un `select` explicito (`pasarela`, `metodo`, estado, referencias, montos, fechas, `meses`, `cliente.nombre/email`, hito/proyecto, servicio y concepto del enlace). No trae notas, evidencia, revision, origen, `registradoPor`, `mpLink` ni `checkoutUrl`; el recibo no puede imprimirlos ni por error.
+- **Concepto PayPal (desvio minimo, T-05):** se extrajo `conceptoReciboPago` compartido. PayPal conserva el orden enlace -> proyecto/hito -> `tituloLink(servicio, meses)` -> "Pago PayPal", pero ahora hace `trim` del concepto del enlace y cae al siguiente si queda vacio. Sin cambios de textos, clases ni DOM; tests PayPal verdes.
+- **Spy de email (T-06):** el test envuelve la implementacion real de `sendPaymentReceipt` con `importOriginal`, de modo que AC-23 verifica que no se invoca y que el export sigue existiendo, sin mockear la plantilla.
+- **`import "server-only"` en `mp-recibo.ts` (T-07):** no se agrego. La separacion `mp-utils.ts` (browser-safe) / `mp-recibo.ts` (server-only por `node:crypto`) y la regla de que `view.ts`/componentes solo importan `mp-utils.ts` se mantiene por convencion y tests; queda como mejora opcional sin cambio de comportamiento.
+- **Conteo de tests (T-07):** suite de **1582 tests en 83 archivos**; 1580 verdes + 2 timeouts intermitentes preexistentes de `registrar-pago-paypal.test.tsx` (5 s), documentados para T-08. No es regresion de 002.
 
 ## Notas de ejecucion
 
@@ -163,3 +175,4 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
 - Tests focalizados: `node node_modules\vitest\vitest.mjs run src/__tests__/lib/mp-utils.test.ts src/__tests__/lib/mp-recibo.test.ts src/__tests__/lib/paypal-view.test.ts src/__tests__/components/recibo-mercadopago.test.tsx src/__tests__/app/recibo-mp-page.test.tsx`.
 - No usar `npm test` en watch; no tocar la base real; mockear Prisma y la navegacion.
 - Marcar `[x]` solo despues de tester + reviewer. Si un AC cambia, actualizar spec/plan/tasks en el mismo cambio.
+- T-07 es solo documentacion: no toca `src/**` ni ejecuta T-08/T-09. Conteo vigente: **1582 tests en 83 archivos** (1580 verdes + 2 timeouts intermitentes preexistentes de `registrar-pago-paypal`, a confirmar en T-08).

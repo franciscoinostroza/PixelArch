@@ -3,8 +3,9 @@
 > Memoria operativa del agente (workflow, comandos, gotchas): ver **MEMORY.md**.
 
 **Ultima actualizacion:** 29 de octubre de 2026
-**Build:** TypeScript 0 errores | **Tests:** 1431 pasando (79 archivos) | **PayPal:** staging validado (T-37 PASS con observaciones, commit `139b8cb`, deploy `4c765526`); produccion **no** deployada (T-38 pendiente, no autorizado)
-**Deploy Railway:** Online (Mercado Pago) | **BD:** PostgreSQL sincronizada en staging; produccion sin migracion PayPal (`db push` en T-38) | **Clerk:** Auth admin/asistente (gate con modal) | **Sanity:** Studio + Schemas + 15 articulos | **Pagos:** CRM por proyectos/hitos + soporte mensual + Mercado Pago (links) + PayPal (USD)
+**Build:** TypeScript 0 errores | **Tests:** 1582 en 83 archivos (1580 verdes + 2 timeouts intermitentes preexistentes de `registrar-pago-paypal`, a confirmar en T-08) | **PayPal:** staging validado (T-37 PASS con observaciones, commit `139b8cb`, deploy `4c765526`); produccion **no** deployada (T-38 pendiente, no autorizado)
+**Recibo MP:** implementado en `paypal-staging` (T-01..T-07); `AGENTS.md`/`MEMORY.md` al dia, **sin cambios de schema** y pendiente del gate T-38
+**Deploy Railway:** Online (Mercado Pago) | **BD:** PostgreSQL sincronizada en staging; produccion sin migracion PayPal (`db push` en T-38) | **Clerk:** Auth admin/asistente (gate con modal) | **Sanity:** Studio + Schemas + 15 articulos | **Pagos:** CRM por proyectos/hitos + soporte mensual + Mercado Pago (links) + PayPal (USD) + recibo interno PayPal/MP
 **URL:** https://pixelarch.dev
 
 ---
@@ -63,7 +64,7 @@ Constitucion → Spec (QUE/POR QUE) → Plan (COMO) → Tareas → Implementacio
 | Resend | v6 | Emails transaccionales |
 | Sentry | 11 | Errors + tracing + replay (condicional a SENTRY_DSN, tunnel `/monitoring`) |
 | PayPal | REST Orders v2 | `fetch` nativo, checkout alojado, webhook verificado con firma (sin SDK) |
-| Vitest | 3.2.6 | Testing (1431 tests, 79 archivos) |
+| Vitest | 3.2.6 | Testing (1582 tests, 83 archivos; flake preexistente de `registrar-pago-paypal`) |
 | Deploy | Railway | Auto-deploy desde GitHub |
 
 ---
@@ -120,11 +121,11 @@ Roles (`publicMetadata.role`, sin alias `assistant`):
 |------|--------------|
 | `/admin/dashboard` | Metricas (ingresos USD/ARS, por cobrar 7d, clientes, suscripciones, vencidos) + ultimos clientes + chart estados · admin-only |
 | `/admin/clientes` | Lista paginada (20/pag) con busqueda + **alta manual de clientes** |
-| `/admin/clientes/[id]` | Datos + editar + notas + **proyectos por hitos** (crear, editar, agregar/eliminar hitos, link MP/PayPal, registrar pago) + **soporte** (activar, precio, vencimiento, deploy, link PayPal) + historial · registro manual PayPal solo admin |
-| `/admin/cobros` | **Hitos pendientes (vencidos/por vencer/sin fecha) + Soportes** con acciones: registrar pago, link MP (recordado 30 dias) / PayPal (link 30 dias), recordar (WhatsApp/email), pausar |
+| `/admin/clientes/[id]` | Datos + editar + notas + **proyectos por hitos** (crear, editar, agregar/eliminar hitos, link MP/PayPal, registrar pago) + **soporte** (activar, precio, vencimiento, deploy, link PayPal) + historial con **"Ver recibo"** para pagos PayPal/MP elegibles · registro manual PayPal solo admin |
+| `/admin/cobros` | **Hitos pendientes (vencidos/por vencer/sin fecha) + Soportes** con acciones: registrar pago, link MP (recordado 30 dias) / PayPal (link 30 dias), recordar (WhatsApp/email), pausar · sin link de recibo |
 | `/admin/servicios` | Catalogo de productos desde Prisma con precios y estado activo/inactivo · admin-only |
-| `/admin/pagos` | Historial con filtros (estado, rango fechas, pasarela) + paginacion + moneda/metodo + desglose PayPal (acordado/comision/total) + revision/ajustes (admin) |
-| `/admin/pagos/[id]/recibo` | Recibo interno imprimible de un pago PayPal (staff; datos del cliente del CRM, sin PII del pagador) |
+| `/admin/pagos` | Historial con filtros (estado, rango fechas, pasarela) + paginacion + moneda/metodo + desglose PayPal (acordado/comision/total) + revision/ajustes (admin) + **"Ver recibo"** para pagos PayPal/MP elegibles |
+| `/admin/pagos/[id]/recibo` | Recibo interno imprimible de un pago **PayPal o Mercado Pago** (staff; datos del cliente del CRM, sin PII del pagador; A4). MP: id derivado, estados elegibles y referencia externa obligatoria |
 | `/admin/blog` | Gestion del blog (enlaza a Sanity Studio) · admin-only |
 
 La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las acciones de registro manual PayPal, reembolso/contracargo y resolucion de diferencias se ocultan en la UI para la asistente y las APIs las rechazan con `requireAdmin()`.
@@ -179,7 +180,8 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 | `audit.ts` | Logica pura de la auditoria (normalizeUrl, SSRF guard, scores, findings) |
 | `pagos.ts` | Conversiones ARS/USD, vencimientos (+1 mes), precio de plan, metodos de pago |
 | `mercadopago.ts` | SDK MP: crear link de pago (Checkout Pro, vigencia) + consultar pago |
-| `mp-utils.ts` | Logica pura MP: meses, mapeo de estados, vencimiento por meses, titulos |
+| `mp-utils.ts` | Logica pura MP browser-safe: meses, mapeo de estados, vencimiento por meses, titulos + dominio del recibo (estados, montos, moneda, fecha) |
+| `mp-recibo.ts` | Dominio **server-only** del recibo MP: id derivado SHA-256 (`MP-AAAAMMDD-<32 hex>`), construccion y evaluacion (sin Prisma, red ni email) |
 | `paypal/config.ts` | `paypalConfig()`: envs server-only, sandbox/produccion, base URL, webhook id y tarifa; nunca lanza |
 | `paypal/client.ts` | OAuth con cache, create/get/capture order, verify webhook, timeouts y errores sanitizados |
 | `paypal/fees.ts` | Gross-up entero, snapshot de tarifa y validacion USD/centavos |
@@ -194,6 +196,7 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 | `paypal/review.ts` | Aceptar/rechazar diferencias de monto o moneda |
 | `paypal/redact.ts` | Redaccion de PII/secretos para logs y Sentry |
 | `paypal/validation.ts` | Esquemas Zod de bodies y webhooks |
+| `paypal/view.ts` | Pasarela efectiva (`pasarela` + fallback `metodo`), referencias, desglose y elegibilidad de recibo PayPal/MP |
 | `reading-time.ts` | Tiempo de lectura desde Portable Text |
 | `chat.ts` | Intents del chat demo (PixelBot) |
 | `deploy.ts` | Pausar/reanudar deploys (Railway/Vercel) |
@@ -212,7 +215,9 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 | `ui/registrar-pago-paypal-button.tsx` | Registro manual PayPal con evidencia textual/URL (solo admin) |
 | `ui/ajuste-paypal-button.tsx` | Reembolso/contracargo y decision sobre hito/meses (solo admin) |
 | `ui/revision-paypal-button.tsx` | Aceptar/rechazar diferencia de monto (solo admin) |
-| `ui/recibo-paypal.tsx` / `ui/pago-paypal-row.tsx` | Recibo imprimible y fila de historial PayPal |
+| `ui/recibo-pago.tsx` | Recibo imprimible generico (marca, cliente, tabla, estado, pie, boton `print`) |
+| `ui/recibo-paypal.tsx` / `ui/recibo-mercadopago.tsx` | Adaptadores del recibo para PayPal (DOM historico) y Mercado Pago (ARS/USD, comision 0 o real) |
+| `ui/pago-paypal-row.tsx` | Fila de historial PayPal/MP con desglose y "Ver recibo" |
 | `ui/faq-accordion.tsx` / `ui/product-faq.tsx` | Acordeones de FAQ |
 | `sections/blog-grid.tsx` | Grid del blog con filtros por tags + tiempo de lectura |
 | `sections/audit-tool.tsx` | Herramienta de auditoria interactiva |
@@ -255,6 +260,14 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 - **Sin cambios de Dockerfile**: no hay `NEXT_PUBLIC_PAYPAL_*`; las envs PayPal son server-only y se inyectan en runtime. Si falta la config, `paypalConfig()` deshabilita PayPal (503 en las APIs) y Mercado Pago sigue operativo.
 - **Pendiente operativo**: T-38 (no autorizado). Produccion sigue en `cdafe04` (`main` sin PayPal): falta `prisma db push`/backfill **antes** del merge/auto-deploy, FF-merge de `paypal-staging` para conservar `139b8cb`, envs/webhook live y smoke test. Staging quedo validado con el commit `139b8cb` (deploy `4c765526`); no deployar PayPal a produccion hasta completar T-38.
 
+### Recibo interno de Mercado Pago (Oct 2026; staging, gate T-38)
+- **Ruta unica** `/admin/pagos/[id]/recibo` para pagos PayPal y Mercado Pago; "Ver recibo" en `/admin/pagos` y en el detalle del cliente para pagos MP elegibles. `/admin/cobros` no muestra el link (D-10).
+- **Elegibilidad:** pasarela efectiva (`pasarela` manda; respaldo `metodo` para historicos), estados `SUCCEEDED`, `REVISION`, `REFUNDED` o `CONTRACARGO`, `externalId` (payment id) obligatorio y montos que reconcilien. `FAILED`, `PENDING`, estados desconocidos y pagos manuales sin referencia no tienen recibo.
+- **Identificador derivado** `MP-AAAAMMDD-<32 hex>`: SHA-256 de `externalId` recortado a 128 bits y fecha UTC (`reciboEmitidoEn ?? creadoEn`). No se persiste, no usa PII ni ids internos y no colisiona con `PAY-`.
+- **Sin cambios de schema:** no hay columnas, migracion ni backfill. La feature viaja con la migracion/backfill de PayPal (T-38); no merge/deploy a produccion antes de ese gate.
+- **Impresion A4** (`@page { size: A4; margin: 12mm }` en `admin.css`), estado como texto, tabla con `caption`/`scope` y boton/volver ocultos al imprimir. Aplica tambien al recibo PayPal solo en papel/margen.
+- **Solo lectura:** una consulta Prisma con `select` minimo, sin llamadas a la API de MP, sin email (`sendPaymentReceipt` no cambia) y sin mutaciones. Solo datos del cliente del CRM; sin PII del pagador ni datos de tarjeta.
+
 ### Monitoreo propio (`/estado`)
 - Tabla `UptimeCheck` + **Railway Function `uptime-cron`** cada 10 min (dispara `/api/cron/uptime` con el secret; unica fuente, sin GitHub Actions)
 - 4 servicios: Sitio web, Blog, API, Base de datos (uptime, latencia, historial 90 dias, incidentes)
@@ -294,8 +307,8 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 ## Pendiente
 
 - [ ] Pasos manuales: desactivar registro publico en Clerk + invitar a la asistente · borrar el webhook de Polar en su panel
-- [ ] **T-38 (no autorizado):** PayPal a produccion — `prisma db push` + backfill en produccion **antes** del merge a `main`/auto-deploy (H-2), FF-merge de `paypal-staging` para conservar `139b8cb`, deploy con PayPal deshabilitado, envs/webhook live, smoke (health, admin, link MP, link PayPal de bajo monto si se aprueba) y monitoreo; rollback = quitar envs PayPal. Produccion hoy sigue en `cdafe04`, sin PayPal.
-- [ ] Backlog PayPal/MP (no bloqueante): recibo imprimible de Mercado Pago · investigar firmas MP (H-6) · estado publico "en revision" (H-5) · rate limit del webhook PayPal (H-7) · fallback de `NEXT_PUBLIC_URL` (H-8) · `.railway/` en `.gitignore` (H-9).
+- [ ] **T-38 (no autorizado):** PayPal + recibo MP a produccion — `prisma db push` + backfill en produccion **antes** del merge a `main`/auto-deploy (H-2), FF-merge de `paypal-staging` para conservar `139b8cb`, deploy con PayPal deshabilitado, envs/webhook live, smoke (health, admin, link MP, link PayPal de bajo monto si se aprueba, recibo MP, recibo PayPal) y monitoreo; rollback = quitar envs PayPal. Produccion hoy sigue en `cdafe04`, sin PayPal.
+- [ ] Backlog PayPal/MP (no bloqueante): investigar firmas MP (H-6) · estado publico "en revision" (H-5) · rate limit del webhook PayPal (H-7) · fallback de `NEXT_PUBLIC_URL` (H-8) · `.railway/` en `.gitignore` (H-9).
 
 ## Descartado / no planificado (por decision, Sept 2026)
 
@@ -307,7 +320,7 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 ## Tests
 
 ```
-✓ 79 test files | 1431 tests | all passed
+83 test files | 1582 tests (1580 verdes + 2 timeouts intermitentes preexistentes de registrar-pago-paypal)
 ```
 
 `npm test` — correr tests
@@ -319,9 +332,10 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 ```
 TypeScript — 0 errores (verificado)
 PayPal — staging validado (T-37 PASS con observaciones, `139b8cb` / deploy `4c765526`); produccion pendiente (T-38, no autorizado)
+Recibo MP — implementado en `paypal-staging` (T-01..T-07); produccion pendiente del mismo gate T-38
 ```
 
-> No deployar PayPal a produccion hasta completar T-38 (migracion/backfill antes del merge). El build de paginas no se re-verifico en produccion despues de PayPal; en staging el build paso en `139b8cb`.
+> No deployar PayPal ni el recibo MP a produccion hasta completar T-38 (migracion/backfill antes del merge). El build de paginas no se re-verifico en produccion despues de PayPal; en staging el build paso en `139b8cb`.
 
 ---
 

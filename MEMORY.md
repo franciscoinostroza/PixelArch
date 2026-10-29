@@ -82,13 +82,23 @@ npm install / npm uninstall                            # npm si funciona
 - **Link publico:** `/pago/paypal/*` es publico, `no-store`, `no-referrer` y `noindex`; `/pago` y `/pago/(.*)` estan en `ROUTES.public` y los webhooks quedan fuera del matcher. El guest checkout depende de PayPal (`NO_PREFERENCE`).
 - **Sin cambios de Dockerfile:** no hay `NEXT_PUBLIC_PAYPAL_*`; las envs PayPal son server-only y se inyectan en runtime. Solo haria falta `ARG`/`ENV` si algun dia se usa el JS SDK del lado cliente.
 - **Estado de la BD / deploy:** staging ya tiene aplicado `db push` + backfill (`Postgres-gdmt`, separado de produccion) y quedo **validado en T-37** (PASS con observaciones, commit `139b8cb`, deploy `4c765526`; evidencia en `specs/001-paypal-pagos/review.md`). **Produccion no cambio**: sigue en `cdafe04` (`main` sin PayPal), sin migracion ni deploy. T-38 **no autorizado**: el orden obligatorio es `db push` + backfill en produccion **antes** del merge a `main`/auto-deploy (H-2), luego deploy con PayPal deshabilitado, envs/webhook live y smoke. FF-merge de `paypal-staging` para conservar `139b8cb`. Sin envs PayPal queda deshabilitado y MP sigue operativo.
-- **Tests/verificacion:** `node node_modules\vitest\vitest.mjs run` (suite 1431/79 sin red; guard en `src/__tests__/setup.ts`), `node node_modules\typescript\bin\tsc --noEmit`, `npm run lint` (deuda preexistente) y `node node_modules\next\dist\bin\next build` cuando se pida. No hay llamadas reales a PayPal en CI; el sandbox es manual en Railway staging.
+- **Tests/verificacion:** `node node_modules\vitest\vitest.mjs run` (suite 1582/83 sin red; guard en `src/__tests__/setup.ts`), `node node_modules\typescript\bin\tsc --noEmit`, `npm run lint` (deuda preexistente) y `node node_modules\next\dist\bin\next build` cuando se pida. No hay llamadas reales a PayPal/MP en CI; el sandbox es manual en Railway staging. Queda el flake preexistente de `registrar-pago-paypal` (2 timeouts de 5 s) para T-08.
+
+## Gotchas recibo MP (Oct 2026)
+
+- **Ruta y alcance:** `/admin/pagos/[id]/recibo` sirve PayPal y Mercado Pago. "Ver recibo" aparece en `/admin/pagos` y en el detalle del cliente para MP elegible; no se agrega a `/admin/cobros` (D-10). La asistente puede abrirlo; sigue siendo solo lectura (sin registro manual, ajustes ni revision).
+- **Identificador derivado:** `MP-AAAAMMDD-<32 hex>` = SHA-256 de `externalId` con `trim()` recortado a 128 bits (32 hex, mayusculas) + fecha UTC (`reciboEmitidoEn ?? creadoEn`). No se persiste, no requiere backfill, no usa PII ni ids internos y no usa el prefijo `PAY-`. Misma referencia + misma fecha = mismo id; `Pago.externalId` es `@unique`.
+- **Elegibilidad:** usar `pasarelaEfectivaPago` (`pasarela` manda; `metodo` como respaldo historico; si no, `MANUAL`). MP exige estado `SUCCEEDED`, `REVISION`, `REFUNDED` o `CONTRACARGO`, `externalId` no vacio (<=128) y montos que reconcilien (`montoAcordado + comision === monto`, `montoAcordado ?? monto`, `comision ?? 0`, moneda `ars`/`usd`). `FAILED`, `PENDING`, desconocidos y manual sin `externalId` no tienen recibo. Si falta un dato o no reconcilia: `notFound`, nunca recibo a medias.
+- **Separacion server-only:** `mp-utils.ts` es browser-safe (estados, montos, moneda, fecha, tipo `ReciboMercadoPago`); `mp-recibo.ts` usa `node:crypto` y solo lo importan la pagina y sus tests. `paypal/view.ts` y los componentes cliente no deben importar `mp-recibo.ts` en runtime (`ReciboMercadoPago` usa `import type`).
+- **A4:** `@page { size: A4; margin: 12mm }` vive en `admin.css` y aplica a ambos recibos; el boton "Imprimir recibo" y "Volver a pagos" usan `print:hidden`. La fecha se formatea con `Intl.DateTimeFormat("es-AR", { timeZone: "UTC" })` para que servidor/cliente/impresiones coincidan.
+- **Sin red, email ni mutaciones:** la pagina hace una sola `findUnique` con `select` minimo (sin notas, evidencia, revision, origen, `registradoPor` ni `mpLink`), no llama a la API de MP, no ejecuta `sendPaymentReceipt` y no actualiza pago/hito/soporte/enlace. Solo muestra cliente del CRM; nunca PII del pagador, tarjeta ni cuenta MP.
+- **Desvios menores:** `ReciboPago` acepta `reciboIdClassName` para que PayPal conserve su clase historica y MP use el default con `break-words`; el concepto MP se trunca por code points (200) en la pagina en lugar de rechazarse; el helper de concepto se comparte con PayPal (trim del enlace). El guard de tests bloquea `*.mercadopago.com` y `*.paypal.com` solo en `fetch`; no cubre `mercadopago.com.ar` ni otros clientes HTTP.
+- **Gate T-38:** no mergear a `main` ni deployar a produccion antes del `db push` + backfill de T-38. La feature no agrega schema/migracion/envs; viaja en el mismo deploy y el rollback es revertir el commit.
 
 ## Backlog abierto (2026-10-29)
 
-- Recibo imprimible de Mercado Pago (acuerdo con el dueno; no es AC de T-37).
-- Investigar firmas MP: warnings `Webhook MP con firma invalida` e IPN vacia (H-6).
 - Estado publico "en revision" para pagos en `REVISION`, sin exponer datos internos (H-5).
+- Investigar firmas MP: warnings `Webhook MP con firma invalida` e IPN vacia (H-6).
 - Rate limit/hardening del webhook PayPal, sin romper reintentos legitimos (H-7).
 - Fallback controlado de `NEXT_PUBLIC_URL` cuando es invalida (H-8).
 - Agregar `.railway/` a `.gitignore` (H-9).
@@ -102,10 +112,17 @@ npm install / npm uninstall                            # npm si funciona
 - WhatsApp: `5491132464045`; mensajes en `src/lib/contact.ts`.
 - El **Sentry MCP no esta en opencode**; el plugin `@sentry/agent-plugin` quedo instalado para **Claude Code** (skills sentry-*).
 
+## Sesion 29 oct 2026 — Recibo MP (T-01..T-07)
+
+- Implementado el recibo interno de Mercado Pago en `paypal-staging`: dominio (`mp-utils.ts`/`mp-recibo.ts`), elegibilidad y links en el historial (`paypal/view.ts`), `ReciboPago` generico + adaptadores PayPal/MP, pagina generalizada y bordes (estados, sin referencia, sin red/email, A4). **Sin cambios de schema, migracion, backfill ni envs.**
+- Identificador `MP-AAAAMMDD-<32 hex>` derivado de `externalId` + fecha UTC; no se persiste. Elegibilidad MP: `SUCCEEDED`/`REVISION`/`REFUNDED`/`CONTRACARGO` + `externalId` + montos/moneda/fecha validos. Links en `/admin/pagos` y detalle; nunca en `/admin/cobros`.
+- Docs al dia (`AGENTS.md`, `MEMORY.md`, `specs/002-recibo-mp/tasks.md`); **T-07 `[x]`**. Desvios anotados en `tasks.md`: `reciboIdClassName`, concepto por code points, guard MP solo `fetch`/`*.mercadopago.com`, select least-privilege, concepto PayPal compartido y spy de email.
+- Suite: **1582 tests en 83 archivos** (1580 verdes + 2 timeouts intermitentes preexistentes de `registrar-pago-paypal`, a confirmar en T-08); `tsc --noEmit` limpio. **T-08/T-09 pendientes.** Gate T-38 sigue sin autorizar: no merge a `main` ni deploy a produccion antes de `db push` + backfill.
+
 ## Sesion 29 oct 2026 — Cierre documental T-37
 
 - T-37 queda `[x]` en `tasks.md`: **PASS con observaciones**; evidencia en `specs/001-paypal-pagos/review.md`; **T-38 no autorizado** en esta sesion.
-- Suite: **1431/1431 tests en 79 archivos**; `tsc --noEmit` 0 errores; build `PASS` en `139b8cb`.
+- Suite al cerrar T-37 (antes de 002): **1431/1431 tests en 79 archivos**; `tsc --noEmit` 0 errores; build `PASS` en `139b8cb`.
 - Staging validado: commit `139b8cb`, deploy `4c765526`, health `ok`; 14/14 pasos `PASS` (pasos 5, 11 y 14 con limitacion/observacion).
 - Produccion intacta: deploy `554f70d7-4ebd-47db-9812-b831052c9a32`, commit `cdafe04` (`main` sin PayPal), sin migracion ni deploy. No se toco `src/**`, `prisma/**` ni `railway.toml`.
 
@@ -117,7 +134,7 @@ npm install / npm uninstall                            # npm si funciona
 
 ## Sesion 27 oct 2026 — PayPal (T-31..T-35)
 
-- T-31..T-34 cerradas: `node node_modules\vitest\vitest.mjs run` da **1427/1427 tests en 79 archivos** (al 27 oct; hoy 1431), sin llamadas reales a PayPal (guard de red en `src/__tests__/setup.ts`).
+- T-31..T-34 cerradas: `node node_modules\vitest\vitest.mjs run` da **1427/1427 tests en 79 archivos** (al 27 oct; hoy 1582/83 tras el recibo MP), sin llamadas reales a PayPal/MP (guard de red en `src/__tests__/setup.ts`).
 - `node node_modules\typescript\bin\tsc --noEmit`: limpio. `npm run lint`: deuda preexistente de la app (18 errores, 18 warnings al 27 oct 2026); T-35 solo toca docs.
 - T-35 deja `.env.example`, `AGENTS.md` y `MEMORY.md` con el flujo, modelos, estados y gotchas PayPal. No se toco codigo; en `specs/` solo se marcaron T-31..T-34.
 - **BD sin migrar** (falta `db push` + backfill) y PayPal sin deploy: T-36 (runbook sandbox), T-37 (staging) y T-38 (rollout) siguen abiertas. No deployar PayPal antes.

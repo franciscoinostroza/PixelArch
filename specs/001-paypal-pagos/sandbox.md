@@ -3,11 +3,13 @@
 **Tarea:** T-36 (AC-29; RNF-11)
 **Spec:** ./spec.md
 **Plan:** ./plan.md §7.3 (webhook), §7.5 (migracion y rollback), §7.7 (checklist)
-**Estado:** preparado. Este documento **no ejecuta** deploy, no carga variables ni toca base de datos.
+**Estado:** runbook de T-36; **T-37 ejecutado en staging** (evidencia en `review.md`). T-38 pendiente
+de aprobacion explicita del dueno. Este documento no ejecuta deploy, no carga variables ni toca la
+base de datos.
 
-> **Alcance de T-36:** solo define el procedimiento y la evidencia. El deploy y la ejecucion del
-> checklist los hacen **T-37** (Railway staging) y **T-38** (produccion). **AC-29 queda pendiente**
-> hasta que los 14 pasos de §4 se completen y la evidencia quede registrada; cerrar T-36 no cierra AC-29.
+> **Alcance:** T-36 definio el procedimiento. T-37 ejecuto el checklist 1-14 en **Railway staging con
+> Postgres separado**; **AC-29 quedo validado en staging**. T-38 (produccion) no se ejecuto y requiere
+> aprobacion separada del dueno.
 
 ---
 
@@ -343,7 +345,8 @@ Se considera listo solo si:
 1. Los 14 pasos de §4 estan `PASS` o, en guest checkout, `NO APLICA` con justificacion de que PayPal
    no lo ofrecio (AC-28 es condicional). No hay `FAIL` ni `BLOCKED`.
 2. La tarifa real fue validada y el snapshot del link/pago coincide; si se ajusto, se regenero el
-   link y se confirmo el nuevo total.
+   link y se confirmo el nuevo total. La comparacion aplica la tolerancia de redondeo de la nota al
+   final de esta seccion.
 3. La idempotencia quedo demostrada: un solo `Pago` y una sola acreditacion de meses ante eventos
    repetidos o simultaneos.
 4. La firma invalida/ausente devuelve `401` sin crear `Pago` y el evento tecnico no tiene PII.
@@ -355,8 +358,19 @@ Se considera listo solo si:
 8. La suite automatizada, el typecheck y el build estan limpios; AC-21 cubierto sin llamadas reales
    a PayPal (T-31..T-34).
 9. La evidencia de §5 esta completa, redactada y registrada; no hay secretos ni PII.
-10. El dueno aprueba explicitamente habilitar PayPal en produccion (PA-11) y el reviewer valida la
-    evidencia. Solo entonces se ejecuta T-38.
+10. **PA-11 aprobado por el dueno (2026-10-29):** tarifa `540`/`30` con tolerancia ±US$0,01. **T-38
+    no fue autorizado** en esa sesion y sigue condicionado a una autorizacion explicita del dueno;
+    solo entonces se ejecuta el rollout a produccion.
+
+> **Tolerancia de redondeo (evidencia T-37).** Se acepta una diferencia de hasta **±US$0,01
+> (1 centavo)** entre la comision informada por PayPal y la calculada por la app, porque el gross-up
+> usa `ceil` a centavos enteros. El total cobrado debe seguir siendo `montoAcordado + comision` del
+> snapshot; la tolerancia no habilita a recalcular pagos historicos ni a cambiar la tarifa.
+> En T-37, PayPal informo US$6,05 de comision y US$100,51 netos sobre un cobro de US$100,50; la app
+> calculo US$6,06 (total US$106,56). La diferencia de US$0,01 quedo dentro de tolerancia y **no** se
+> cambio `540`/`30`. **El dueno aprobo la tarifa `540`/`30` con tolerancia ±US$0,01 el 2026-10-29
+> (PA-11).** T-38 sigue condicionado a autorizacion explicita; la aprobacion de PA-11 no autoriza el
+> rollout.
 
 ---
 
@@ -397,11 +411,12 @@ el valor nuevo en el repo, en la evidencia ni en el chat.
 |---|---|---|
 | **T-35** | Documentacion operativa (`.env.example`, `AGENTS.md`, `MEMORY.md`) | Dependencia declarada de T-36; no la ejecuta este documento. |
 | **T-36** | Este runbook | Preparado; no ejecuta deploy ni marca tareas. |
-| **T-37** | Crea/verifica staging, aplica `db push`/backfill, carga envs sandbox, configura webhook y ejecuta §4 | Pendiente. |
-| **T-38** | Rollout a produccion solo tras aprobar §6 | Pendiente. |
+| **T-37** | Crea/verifica staging, aplica `db push`/backfill, carga envs sandbox, configura webhook y ejecuta §4 | **Ejecutada en staging.** Checklist 1-14 `PASS` (pasos 5, 11 y 14 con limitacion/observacion); evidencia en `review.md`. |
+| **T-38** | Rollout a produccion solo tras aprobar §6 | **Pendiente** de aprobacion explicita del dueno (PA-11); no ejecutada. |
 
-**AC-29 queda pendiente** hasta que T-37 ejecute los 14 pasos y la evidencia se registre. T-36 no
-cierra AC-29 ni modifica `tasks.md`.
+**AC-29 quedo validado en staging** con los 14 pasos de T-37 y la evidencia registrada en
+`review.md`. T-38 sigue siendo el rollout a produccion y requiere aprobacion separada. Este documento
+no modifica `tasks.md`.
 
 ---
 
@@ -418,6 +433,9 @@ cierra AC-29 ni modifica `tasks.md`.
 ---
 
 ## 10. Registro de ejecucion (plantilla)
+
+> El registro real de T-37 esta en `review.md` §2 y en `t-37-staging.md` §9. Esta plantilla se
+> conserva como referencia de los campos esperados.
 
 | Campo | Valor |
 |---|---|

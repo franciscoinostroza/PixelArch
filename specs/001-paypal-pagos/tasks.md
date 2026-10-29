@@ -68,7 +68,7 @@ Reglas:
 
 ## Fase 7: Deploy
 
-- [ ] T-37 (AC-16, AC-29) Deploy sandbox: crear/verificar el entorno **Railway staging con Postgres separado**, aplicar `prisma db push`/backfill en esa BD, cargar envs sandbox, configurar el webhook sandbox contra la URL publica estable de staging, validar la tarifa real y ejecutar el checklist completo; verificar que produccion no se toca · `prisma/schema.prisma`, `specs/001-paypal-pagos/sandbox.md` · T-03, T-36.
+- [x] T-37 (AC-16, AC-29) Deploy sandbox: crear/verificar el entorno **Railway staging con Postgres separado**, aplicar `prisma db push`/backfill en esa BD, cargar envs sandbox, configurar el webhook sandbox contra la URL publica estable de staging, validar la tarifa real y ejecutar el checklist completo; verificar que produccion no se toca · `prisma/schema.prisma`, `specs/001-paypal-pagos/sandbox.md` · T-03, T-36. PASS con observaciones; evidencia en review.md; T-38 no autorizado en esta sesión.
 - [ ] T-38 (AC-29) Rollout produccion: solo despues de aprobar el checklist en staging; migracion/backfill en produccion antes del deploy, deploy con PayPal deshabilitado, cargar envs y webhook de produccion, smoke test (health, admin, link MP, link PayPal de bajo monto si el dueno lo aprueba), monitorear logs/Sentry y confirmar MP intacto; rollback = quitar envs PayPal · `railway.toml`, `.env.example`, `specs/001-paypal-pagos/sandbox.md` · T-37.
 
 ---

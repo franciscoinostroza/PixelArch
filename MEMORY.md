@@ -4,6 +4,8 @@
 > **MEMORY.md** = como trabajar en el (workflow, comandos, gotchas, lecciones).
 > Actualizar al final de cada sesion con lo aprendido.
 
+**Ultima actualizacion:** 2026-10-29
+
 ---
 
 ## Como trabaja el dueno (Franco)
@@ -79,8 +81,17 @@ npm install / npm uninstall                            # npm si funciona
 - **Evidencia y PII:** el registro manual acepta evidencia textual/URL (capture/order id, comprobante o nota), sin archivos ni storage. No se persisten email/nombre/direccion del pagador; el recibo usa los datos del cliente del CRM. Logs/Sentry solo ids, monto, moneda y estado; PII redactada.
 - **Link publico:** `/pago/paypal/*` es publico, `no-store`, `no-referrer` y `noindex`; `/pago` y `/pago/(.*)` estan en `ROUTES.public` y los webhooks quedan fuera del matcher. El guest checkout depende de PayPal (`NO_PREFERENCE`).
 - **Sin cambios de Dockerfile:** no hay `NEXT_PUBLIC_PAYPAL_*`; las envs PayPal son server-only y se inyectan en runtime. Solo haria falta `ARG`/`ENV` si algun dia se usa el JS SDK del lado cliente.
-- **Estado de la BD / deploy:** las tablas `EnlacePago`, `EventoPasarela`, `AjustePago` y los campos nuevos de `Pago` **no estan migrados**. Correr `node node_modules\prisma\build\index.js db push` + `generate` y el backfill de `plan.md` §4.2. Faltan el sandbox en Railway staging con Postgres separado (T-36/T-37) y el rollout (T-38). **No deployar PayPal** hasta completar T-37/T-38; sin envs PayPal queda deshabilitado y MP sigue operativo.
-- **Tests/verificacion:** `node node_modules\vitest\vitest.mjs run` (suite 1427/79 sin red; guard en `src/__tests__/setup.ts`), `node node_modules\typescript\bin\tsc --noEmit`, `npm run lint` (deuda preexistente) y `node node_modules\next\dist\bin\next build` cuando se pida. No hay llamadas reales a PayPal en CI; el sandbox es manual en Railway staging.
+- **Estado de la BD / deploy:** staging ya tiene aplicado `db push` + backfill (`Postgres-gdmt`, separado de produccion) y quedo **validado en T-37** (PASS con observaciones, commit `139b8cb`, deploy `4c765526`; evidencia en `specs/001-paypal-pagos/review.md`). **Produccion no cambio**: sigue en `cdafe04` (`main` sin PayPal), sin migracion ni deploy. T-38 **no autorizado**: el orden obligatorio es `db push` + backfill en produccion **antes** del merge a `main`/auto-deploy (H-2), luego deploy con PayPal deshabilitado, envs/webhook live y smoke. FF-merge de `paypal-staging` para conservar `139b8cb`. Sin envs PayPal queda deshabilitado y MP sigue operativo.
+- **Tests/verificacion:** `node node_modules\vitest\vitest.mjs run` (suite 1431/79 sin red; guard en `src/__tests__/setup.ts`), `node node_modules\typescript\bin\tsc --noEmit`, `npm run lint` (deuda preexistente) y `node node_modules\next\dist\bin\next build` cuando se pida. No hay llamadas reales a PayPal en CI; el sandbox es manual en Railway staging.
+
+## Backlog abierto (2026-10-29)
+
+- Recibo imprimible de Mercado Pago (acuerdo con el dueno; no es AC de T-37).
+- Investigar firmas MP: warnings `Webhook MP con firma invalida` e IPN vacia (H-6).
+- Estado publico "en revision" para pagos en `REVISION`, sin exponer datos internos (H-5).
+- Rate limit/hardening del webhook PayPal, sin romper reintentos legitimos (H-7).
+- Fallback controlado de `NEXT_PUBLIC_URL` cuando es invalida (H-8).
+- Agregar `.railway/` a `.gitignore` (H-9).
 
 ## Entorno
 
@@ -91,6 +102,13 @@ npm install / npm uninstall                            # npm si funciona
 - WhatsApp: `5491132464045`; mensajes en `src/lib/contact.ts`.
 - El **Sentry MCP no esta en opencode**; el plugin `@sentry/agent-plugin` quedo instalado para **Claude Code** (skills sentry-*).
 
+## Sesion 29 oct 2026 — Cierre documental T-37
+
+- T-37 queda `[x]` en `tasks.md`: **PASS con observaciones**; evidencia en `specs/001-paypal-pagos/review.md`; **T-38 no autorizado** en esta sesion.
+- Suite: **1431/1431 tests en 79 archivos**; `tsc --noEmit` 0 errores; build `PASS` en `139b8cb`.
+- Staging validado: commit `139b8cb`, deploy `4c765526`, health `ok`; 14/14 pasos `PASS` (pasos 5, 11 y 14 con limitacion/observacion).
+- Produccion intacta: deploy `554f70d7-4ebd-47db-9812-b831052c9a32`, commit `cdafe04` (`main` sin PayPal), sin migracion ni deploy. No se toco `src/**`, `prisma/**` ni `railway.toml`.
+
 ## Sesion 19 oct 2026 — Flujo SDD
 
 - Se porto el flujo SDD de `convertidor-pdf`: coordinator + planner/implementer/tester/reviewer, comandos `/specify`, `/plan`, `/implement`, `/verify`, constitucion y plantillas en `specs/`.
@@ -99,7 +117,7 @@ npm install / npm uninstall                            # npm si funciona
 
 ## Sesion 27 oct 2026 — PayPal (T-31..T-35)
 
-- T-31..T-34 cerradas: `node node_modules\vitest\vitest.mjs run` da **1427/1427 tests en 79 archivos**, sin llamadas reales a PayPal (guard de red en `src/__tests__/setup.ts`).
+- T-31..T-34 cerradas: `node node_modules\vitest\vitest.mjs run` da **1427/1427 tests en 79 archivos** (al 27 oct; hoy 1431), sin llamadas reales a PayPal (guard de red en `src/__tests__/setup.ts`).
 - `node node_modules\typescript\bin\tsc --noEmit`: limpio. `npm run lint`: deuda preexistente de la app (18 errores, 18 warnings al 27 oct 2026); T-35 solo toca docs.
 - T-35 deja `.env.example`, `AGENTS.md` y `MEMORY.md` con el flujo, modelos, estados y gotchas PayPal. No se toco codigo; en `specs/` solo se marcaron T-31..T-34.
 - **BD sin migrar** (falta `db push` + backfill) y PayPal sin deploy: T-36 (runbook sandbox), T-37 (staging) y T-38 (rollout) siguen abiertas. No deployar PayPal antes.

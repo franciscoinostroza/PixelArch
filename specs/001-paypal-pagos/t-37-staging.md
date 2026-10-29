@@ -5,9 +5,9 @@
 **Plan:** `./plan.md` §4.2 (backfill), §7.1 (variables), §7.2 (Railway), §7.3 (webhook), §7.5 (migracion y rollback), §7.7 (checklist)
 **Runbook base:** `./sandbox.md` §2.2, §3, §4 (pasos 1-14), §5, §6, §7, §10
 **Backfill:** `./backfill.sql`
-**Estado:** **PREPARADO — NO EJECUTADO**. Este documento no crea entornos, no carga variables, no ejecuta `db push` y no toca produccion.
+**Estado:** **EJECUTADO EN STAGING — P-1..P-8 completos**. Checklist 1-14 validado (pasos 5, 11 y 14 con limitacion/observacion); **T-38 pendiente de aprobacion explicita del dueno**. Este documento no toca produccion; la evidencia esta en `review.md`.
 
-> **Alcance:** preparar y ordenar la ejecucion de T-37. La ejecucion real la hace el implementer con aprobacion del dueno. T-37 no cierra AC-29 hasta que los 14 pasos de `sandbox.md` §4 esten `PASS` o `NO APLICA` y la evidencia quede registrada.
+> **Alcance:** T-37 se ejecuto en Railway staging con Postgres separado; los 14 pasos de `sandbox.md` §4 quedaron `PASS` con las salvedades de los pasos 5, 11 y 14. La evidencia, los hallazgos y el veredicto estan en `review.md`. El cierre formal en `tasks.md` lo hace el implementer.
 
 ---
 
@@ -34,7 +34,9 @@
 
 ---
 
-## 1. Estado actual y por que migrar antes del primer deploy
+## 1. Estado al preparar el runbook y por que migrar antes del primer deploy
+
+> Este es el estado previo a T-37. El resultado real de la ejecucion esta en §5 y en `review.md`.
 
 | Elemento | Estado real |
 |---|---|
@@ -153,16 +155,30 @@ Copia servicios y configuracion (y puede dejar cambios en staged). Riesgos concr
 
 | Paso | Accion | Comando / herramienta | Resultado esperado | Evidencia | Estado |
 |---|---|---|---|---|---|
-| **P-1** | Crear entorno `staging` vacio | `railway environment new staging` o dashboard Empty Environment | Entorno sin servicios, separado de production | Nombre/ID de entorno; captura | `PENDIENTE` |
-| **P-2** | Crear Postgres staging + servicio web nuevo + dominio | Dashboard o `railway add --database postgres`, `railway add --service PixelArch-staging`, `railway domain ...` | DB y web propios, region `us-west2`, dominio HTTPS | IDs, dominio, region, volumen; captura | `PENDIENTE` |
-| **P-3** | Cargar variables base sin PayPal | `railway variable set ... --skip-deploys` o dashboard/MCP | 6 requeridas + opcionales; cero `PAYPAL_*`; `DATABASE_URL` como referencia | Lista de nombres; captura sin valores | `PENDIENTE` |
-| **P-4** | Migrar staging (`db push` + `generate`) | `node node_modules\prisma\build\index.js db push` con URL efimera de staging | Esquema nuevo solo en staging; tablas nuevas presentes | `current_database()`, `\dt`, `to_regclass`; sin URL | `PENDIENTE` |
-| **P-5** | Primer deploy con PayPal deshabilitado + smoke | Conectar source / `railway up`; health; `/admin/pagos`; link MP | App arranca, admin carga, PayPal deshabilitado, MP operativo | Deployment ID/commit, health JSON, screenshots | `PENDIENTE` |
-| **P-6** | Cargar sandbox PayPal + webhook | PayPal Developer + `railway variable set` + redeploy | `PAYPAL_ENV=sandbox`; PayPal disponible; webhook 401 (no 503/404) | Webhook 7 eventos (id enmascarado), 401, UI | `PENDIENTE` / `BLOQUEADO (dueno)` |
-| **P-7** | Ejecutar checklist `sandbox.md` §4 (1-14) | UI admin + PayPal sandbox + requests de prueba | 14 pasos `PASS` o `NO APLICA`; ningun `FAIL`/`BLOCKED` | Registro §10 + evidencia §5 | `PENDIENTE` (depende de P-6) |
-| **P-8** | Confirmar produccion intacta + cierre/rollback | Lecturas de produccion; comparacion con baseline | Mismos conteos/ids/variables/deployment; sin datos sandbox | Comparacion + aprobacion del dueno | `PENDIENTE` |
+| **P-1** | Crear entorno `staging` vacio | `railway environment new staging` o dashboard Empty Environment | Entorno sin servicios, separado de production | Entorno `57936b79-5d77-4408-92b3-8d1b69f40647`, separado de `production` | `PASS` |
+| **P-2** | Crear Postgres staging + servicio web nuevo + dominio | Dashboard o `railway add --database postgres`, `railway add --service PixelArch-staging`, `railway domain ...` | DB y web propios, region `us-west2`, dominio HTTPS | `Postgres-gdmt`; servicio `3aab4a6e-3f35-42df-a604-256f5b635a0a`; `https://staging.pixelarch.dev` | `PASS` |
+| **P-3** | Cargar variables base sin PayPal | `railway variable set ... --skip-deploys` o dashboard/MCP | 6 requeridas + opcionales; cero `PAYPAL_*`; `DATABASE_URL` como referencia | 28 variables al cierre; sin credenciales de produccion de PayPal/MP ni control de deploys; H-1 resuelto (Clerk/Resend/Sentry por decision del dueno) | `PASS` (H-1 resuelto) |
+| **P-4** | Migrar staging (`db push` + `generate`) | `node node_modules\prisma\build\index.js db push` con URL efimera de staging | Esquema nuevo solo en staging; tablas nuevas presentes | Esquema aplicado solo en `Postgres-gdmt`; checklist 2 `PASS` | `PASS` |
+| **P-5** | Primer deploy con PayPal deshabilitado + smoke | Conectar source / `railway up`; health; `/admin/pagos`; link MP | App arranca, admin carga, PayPal deshabilitado, MP operativo | Health `ok`; checklist 1-4 `PASS`; PayPal deshabilitado y MP operativo | `PASS` |
+| **P-6** | Cargar sandbox PayPal + webhook | PayPal Developer + `railway variable set` + redeploy | `PAYPAL_ENV=sandbox`; PayPal disponible; webhook 401 (no 503/404) | Webhook sandbox con los 7 eventos; `PAYPAL_WEBHOOK_ID` coincidente; `401` sin firma; checklist 3 y 9 `PASS` | `PASS` |
+| **P-7** | Ejecutar checklist `sandbox.md` §4 (1-14) | UI admin + PayPal sandbox + requests de prueba | 14 pasos `PASS` o `NO APLICA`; ningun `FAIL`/`BLOCKED` | Deploy final `4c765526-acc7-421f-a62f-2c03745e0891` / commit `139b8cb`; 1-14 `PASS`: 5 con ±US$0,01 (H-3), 11 con observacion MP (H-6), 14 con observaciones; detalle en `review.md` §2 | `PASS` con limitacion/observacion |
+| **P-8** | Confirmar produccion intacta + cierre/rollback | Lecturas de produccion; comparacion con baseline | Mismos conteos/ids/variables/deployment; sin datos sandbox | Produccion: deploy `554f70d7-4ebd-47db-9812-b831052c9a32`, commit `cdafe04`, branch `main`, `/api/health` `ok`; sin migracion ni deploy PayPal; DB separada | `PASS` |
 
-**Dependencias:** P-3 antes de P-5 (variables build-time), P-4 antes de P-5 (esquema), P-6 antes de P-7, P-8 despues de P-7. Si P-6 esta bloqueado por credenciales del dueno, P-7 no empieza.
+**Resultado real (cierre de evidencia 2026-10-29):** P-1..P-8 `PASS`; checklist 1-14 `PASS` con las
+salvedades de los pasos 5 (tolerancia de redondeo ±US$0,01), 11 (warnings de firma MP, H-6) y 14
+(observaciones; produccion intacta).
+Sin `FAIL` ni `BLOCKED`. Evidencia, IDs y hallazgos H-1..H-9 en `review.md`.
+
+**H-1 (P-3):** se quitaron de staging `RAILWAY_API_TOKEN`, `CRON_SECRET`, `SANITY_REVALIDATE_SECRET` y
+`SANITY_API_TOKEN` (Editor/write); el sitio publico sigue funcionando. Quedan `CLERK_*`,
+`RESEND_API_KEY` y `SENTRY_AUTH_TOKEN`/`SENTRY_*` por decision explicita del dueno (staging no recibe
+clientes reales; emails de prueba al dueno).
+
+**T-38:** no ejecutado. Requiere aprobacion explicita del dueno y la migracion/backfill de produccion
+**antes** del merge a `main`/auto-deploy (H-2); FF-merge de `paypal-staging` para conservar `139b8cb`.
+
+**Dependencias (verificadas en la ejecucion):** P-3 antes de P-5 (variables build-time), P-4 antes de
+P-5 (esquema), P-6 antes de P-7, P-8 despues de P-7.
 
 **Mapeo con `sandbox.md` §3 (P-1..P-8):**
 
@@ -878,34 +894,35 @@ git add .railway                                      # nunca; el link local no 
 
 ---
 
-## 9. Registro de ejecucion T-37 (plantilla)
+## 9. Registro de ejecucion T-37 (completado)
 
 | Campo | Valor |
 |---|---|
-| Fecha | |
-| Ejecutor | |
-| Entorno | `staging` / `<staging-environment-id>` |
-| Servicio web | `<staging-web-service>` / `<staging-web-service-id>` |
-| Postgres staging | `<staging-postgres>` / `<staging-postgres-id>` |
-| URL publica | `https://<staging-domain>` |
-| Commit | `<commit>` (`RAILWAY_GIT_COMMIT_SHA`) |
-| BD staging | Nombre/fingerprint (sin credenciales) |
-| Resultado global | `APROBADO` / `RECHAZADO` / `BLOCKED` |
-| Aprobacion del dueno | |
-| Evidencia | `sandbox.md` §10 + `review.md` cuando el reviewer la reciba |
+| Fecha | 2026-10-29 (cierre de evidencia) |
+| Ejecutor | implementer (T-37) |
+| Entorno | `staging` / `57936b79-5d77-4408-92b3-8d1b69f40647` |
+| Servicio web | `3aab4a6e-3f35-42df-a604-256f5b635a0a` |
+| Postgres staging | `Postgres-gdmt` (id no reportado en este registro) |
+| URL publica | `https://staging.pixelarch.dev` |
+| Commit | `139b8cb` (`RAILWAY_GIT_COMMIT_SHA`) |
+| BD staging | `Postgres-gdmt`, separada de produccion (sin credenciales) |
+| Resultado global | `PASS CON OBSERVACIONES` en staging |
+| Aprobacion del dueno | Pendiente: PA-11 (tarifa `540`/`30`) y T-38 |
+| Evidencia | `review.md` + capturas del registro de T-37 |
 
 | Paso | Resultado (`PASS`/`FAIL`/`BLOCKED`) | Evidencia | Nota |
 |---|---|---|---|
-| P-1 Entorno vacio | | | |
-| P-2 Postgres + web + dominio | | | |
-| P-3 Variables base | | | |
-| P-4 `db push`/`generate` | | | |
-| P-5 Deploy PayPal off + smoke | | | |
-| P-6 Sandbox + webhook | | | |
-| P-7 Checklist 1-14 | | | |
-| P-8 Produccion intacta | | | |
+| P-1 Entorno vacio | `PASS` | `57936b79-5d77-4408-92b3-8d1b69f40647` | Separado de `production`. |
+| P-2 Postgres + web + dominio | `PASS` | `Postgres-gdmt`; `3aab4a6e-3f35-42df-a604-256f5b635a0a`; `https://staging.pixelarch.dev` | DB y web propios. |
+| P-3 Variables base | `PASS` | 28 variables al cierre; H-1 resuelto | Sin credenciales de produccion salvo Clerk/Resend/Sentry por decision del dueno. |
+| P-4 `db push`/`generate` | `PASS` | Checklist 2 | Esquema solo en staging. |
+| P-5 Deploy PayPal off + smoke | `PASS` | Health `ok`; checklist 1-4 | PayPal deshabilitado y MP operativo. |
+| P-6 Sandbox + webhook | `PASS` | Webhook 7 eventos; `401` sin firma | Checklist 3 y 9. |
+| P-7 Checklist 1-14 | `PASS` con limitacion/observacion | Deploy `4c765526-acc7-421f-a62f-2c03745e0891`; commit `139b8cb`; `review.md` §2 | Pasos 5, 11 y 14 con salvedades; sin `FAIL`/`BLOCKED`. |
+| P-8 Produccion intacta | `PASS` | Deploy `554f70d7-4ebd-47db-9812-b831052c9a32`; commit `cdafe04`; health `ok` | Sin migracion ni deploy PayPal. |
 
-Checklist funcional: usar la tabla de 14 filas de `sandbox.md` §10. No abreviar: cada fila necesita resultado y evidencia.
+Checklist funcional completo: `review.md` §2 (14 filas, sin abreviar). Este registro no reproduce
+secretos, tokens ni PII.
 
 ---
 
@@ -952,9 +969,9 @@ Las siguientes decisiones no bloquean la preparacion, pero si la ejecucion. Marc
 | 9 | Baseline de produccion | `/admin/pagos` + health + nombres de variables | SQL read-only adicional requiere autorizacion del dueno |
 | 10 | Tarifa gross-up | `540` bps + `30` centavos, validada en el paso 5 | Si PayPal informa otra tarifa, ajustar env y regenerar el link; no recalcular pagos historicos |
 
-Las filas 1-9 quedan `[NECESITA ACLARACION]` hasta que el dueno elija; los valores de “default recomendado” son recomendaciones, no supuestos aprobados. La fila 10 se valida en sandbox, no se supone.
+Las filas 1-9 eran decisiones de preparacion. Al cierre de T-37 quedaron registradas: Clerk, Resend y Sentry se reutilizan por decision explicita del dueno (H-1, `review.md` §4); el dominio staging es `https://staging.pixelarch.dev`; Mercado Pago de prueba se uso en el paso 11. La fila 10 se valido en sandbox con tolerancia ±US$0,01. Las filas no mencionadas quedan como referencia y no bloquean T-38.
 
-**Bloqueos por credenciales del dueno:** app sandbox de PayPal, business/personal sandbox, `webhook_id`, aprobacion de tarifa y autorizacion de T-38. Todos se marcan `BLOQUEADO HASTA QUE EL DUEÑO LO HAGA` y no se suplen con credenciales de produccion.
+**Bloqueos por credenciales del dueno:** la app sandbox, las cuentas business/personal y el `webhook_id` quedaron resueltos para T-37. Siguen pendientes la aprobacion de la tarifa y la autorizacion de T-38 (PA-11); no se suplen con credenciales de produccion.
 
 ---
 

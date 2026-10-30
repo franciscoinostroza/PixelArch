@@ -2,8 +2,9 @@
 
 > Memoria operativa del agente (workflow, comandos, gotchas): ver **MEMORY.md**.
 
-**Ultima actualizacion:** 29 de octubre de 2026
-**Build:** TypeScript 0 errores | **Tests:** 1582 en 83 archivos (1580 verdes + 2 timeouts intermitentes preexistentes de `registrar-pago-paypal`, a confirmar en T-08) | **PayPal:** staging validado (T-37 PASS con observaciones, commit `139b8cb`, deploy `4c765526`); produccion **no** deployada (T-38 pendiente, no autorizado)
+**Ultima actualizacion:** 30 de octubre de 2026
+**Build:** TypeScript 0 errores | **Lint:** 18 errores/18 warnings preexistentes | **Tests:** 1644 en 85 archivos (1644 verdes en la corrida de cierre; el flake ocasional de `registrar-pago-paypal` no aparecio) | **PayPal:** staging validado (T-37 PASS con observaciones, commit `139b8cb`, deploy `4c765526`); produccion **no** deployada (T-38 pendiente, no autorizado)
+**Hardening PayPal/MP (spec 003):** H-5/H-6/H-7/H-8/H-9 implementados y **PASS tester+reviewer** en `paypal-staging`; **sin cambios de schema/envs** y pendiente del gate T-38
 **Recibo MP:** implementado en `paypal-staging` (T-01..T-07); `AGENTS.md`/`MEMORY.md` al dia, **sin cambios de schema** y pendiente del gate T-38
 **Deploy Railway:** Online (Mercado Pago) | **BD:** PostgreSQL sincronizada en staging; produccion sin migracion PayPal (`db push` en T-38) | **Clerk:** Auth admin/asistente (gate con modal) | **Sanity:** Studio + Schemas + 15 articulos | **Pagos:** CRM por proyectos/hitos + soporte mensual + Mercado Pago (links) + PayPal (USD) + recibo interno PayPal/MP
 **URL:** https://pixelarch.dev
@@ -64,7 +65,7 @@ Constitucion → Spec (QUE/POR QUE) → Plan (COMO) → Tareas → Implementacio
 | Resend | v6 | Emails transaccionales |
 | Sentry | 11 | Errors + tracing + replay (condicional a SENTRY_DSN, tunnel `/monitoring`) |
 | PayPal | REST Orders v2 | `fetch` nativo, checkout alojado, webhook verificado con firma (sin SDK) |
-| Vitest | 3.2.6 | Testing (1582 tests, 83 archivos; flake preexistente de `registrar-pago-paypal`) |
+| Vitest | 3.2.6 | Testing (1644 tests, 85 archivos; flake ocasional de `registrar-pago-paypal`) |
 | Deploy | Railway | Auto-deploy desde GitHub |
 
 ---
@@ -268,6 +269,14 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 - **Impresion A4** (`@page { size: A4; margin: 12mm }` en `admin.css`), estado como texto, tabla con `caption`/`scope` y boton/volver ocultos al imprimir. Aplica tambien al recibo PayPal solo en papel/margen.
 - **Solo lectura:** una consulta Prisma con `select` minimo, sin llamadas a la API de MP, sin email (`sendPaymentReceipt` no cambia) y sin mutaciones. Solo datos del cliente del CRM; sin PII del pagador ni datos de tarjeta.
 
+### Hardening PayPal/MP (Oct 2026; spec 003, staging, gate T-38)
+- **H-5:** `/pago/paypal/estado` muestra "Pago en revision" cuando el link tiene un `Pago` en `REVISION`; `?estado=pagado` no asciende el estado y `?estado=error` conserva prioridad. Sin PII ni estados internos.
+- **H-6:** expediente `specs/003-hardening-paypal/h6-mp-firmas.md` (URL/secreto de staging confirmados sin valor; warnings 08:35/08:51 = ruido sin pago; eventos A/B procesados). Webhook MP: 300 solicitudes/min por origen, 20 firmas invalidas/10 min, topics que no son `payment` o sin `data.id` se ignoran con `200` **antes** de la firma y el log de firma invalida es `debug` sin PII. No se rota el secreto ni se toca el panel.
+- **H-7:** webhook PayPal con 300 solicitudes/min y 20 fallos de autenticidad/10 min por origen, cuerpo maximo 256 KiB (`413`), rechazos baratos antes de verificar y `429` reintentable; los eventos verificados conservan `200/500` e idempotencia.
+- **H-8:** con `NEXT_PUBLIC_URL` invalida, las redirecciones usan `Location` relativo a `/pago/paypal/estado` (sin `0.0.0.0` ni host interno) y la creacion de ordenes falla cerrado (no llama a PayPal).
+- **H-9:** `.railway/` en `.gitignore`; sin archivos versionados.
+- **Operacion:** limitadores en memoria best-effort (no distribuidos, se reinician con el deploy); sin envs, esquema ni migracion nuevos. T-38 sigue pendiente y no autorizado.
+
 ### Monitoreo propio (`/estado`)
 - Tabla `UptimeCheck` + **Railway Function `uptime-cron`** cada 10 min (dispara `/api/cron/uptime` con el secret; unica fuente, sin GitHub Actions)
 - 4 servicios: Sitio web, Blog, API, Base de datos (uptime, latencia, historial 90 dias, incidentes)
@@ -308,7 +317,8 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 
 - [ ] Pasos manuales: desactivar registro publico en Clerk + invitar a la asistente · borrar el webhook de Polar en su panel
 - [ ] **T-38 (no autorizado):** PayPal + recibo MP a produccion — `prisma db push` + backfill en produccion **antes** del merge a `main`/auto-deploy (H-2), FF-merge de `paypal-staging` para conservar `139b8cb`, deploy con PayPal deshabilitado, envs/webhook live, smoke (health, admin, link MP, link PayPal de bajo monto si se aprueba, recibo MP, recibo PayPal) y monitoreo; rollback = quitar envs PayPal. Produccion hoy sigue en `cdafe04`, sin PayPal.
-- [ ] Backlog PayPal/MP (no bloqueante): investigar firmas MP (H-6) · estado publico "en revision" (H-5) · rate limit del webhook PayPal (H-7) · fallback de `NEXT_PUBLIC_URL` (H-8) · `.railway/` en `.gitignore` (H-9).
+- [ ] **T-09 (spec 003, pendiente):** smoke manual en staging — link con pago en `REVISION`, webhook PayPal con firma invalida (`401`/`429`), topic ajeno a MP (`200` ignorado) y `git check-ignore` de `.railway/`. H-8 se valida con la suite.
+- [ ] Backlog PayPal/MP (no bloqueante): completar el identificador de cuenta/aplicacion MP de staging en el expediente H-6 · unificar el helper de IP y evaluar `debug` para el `429` de PayPal · R-9: otros consumidores de `NEXT_PUBLIC_URL` (`sitemap`, `robots`, RSS, cron, `mercadopago.ts`, `entregar`) siguen con `env || default`.
 
 ## Descartado / no planificado (por decision, Sept 2026)
 
@@ -320,7 +330,7 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 ## Tests
 
 ```
-83 test files | 1582 tests (1580 verdes + 2 timeouts intermitentes preexistentes de registrar-pago-paypal)
+85 test files | 1644 tests (1644 verdes en la corrida de cierre del 30 oct 2026; el flake ocasional de registrar-pago-paypal no aparecio)
 ```
 
 `npm test` — correr tests
@@ -331,11 +341,14 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 
 ```
 TypeScript — 0 errores (verificado)
+Lint — 18 errores/18 warnings preexistentes (sin errores nuevos)
+Build — PASS (next build local, 30 oct 2026)
 PayPal — staging validado (T-37 PASS con observaciones, `139b8cb` / deploy `4c765526`); produccion pendiente (T-38, no autorizado)
+Hardening PayPal/MP — H-5..H-9 PASS tester+reviewer en `paypal-staging`; T-09 (smoke de staging) pendiente
 Recibo MP — implementado en `paypal-staging` (T-01..T-07); produccion pendiente del mismo gate T-38
 ```
 
-> No deployar PayPal ni el recibo MP a produccion hasta completar T-38 (migracion/backfill antes del merge). El build de paginas no se re-verifico en produccion despues de PayPal; en staging el build paso en `139b8cb`.
+> No deployar PayPal ni el recibo MP a produccion hasta completar T-38 (migracion/backfill antes del merge). El build de paginas no se re-verifico en produccion despues de PayPal; en staging el build paso en `139b8cb` y el build local del cierre (30 oct 2026) paso con el codigo actual de `paypal-staging`.
 
 ---
 

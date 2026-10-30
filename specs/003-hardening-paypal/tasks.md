@@ -159,7 +159,8 @@ H-6 se verifica con el checklist del expediente (evidencia) y con tests de ruta 
 
 ## Fase 5: Cierre
 
-- [ ] **T-07 (transversal) Documentacion y trazabilidad**
+- [x] **T-07 (transversal) Documentacion y trazabilidad**
+  - **Estado:** PASS (2026-10-30) — `AGENTS.md`/`MEMORY.md` actualizados con H-5..H-9, conteos y backlog restante; T-38 sigue pendiente/no autorizado.
   - Actualizar `AGENTS.md` y `MEMORY.md`:
     - H-5/H-7/H-8/H-9 cerrados o en curso segun corresponda;
     - H-6 con su estado (evidencia + hardening) y el enlace al expediente;
@@ -169,7 +170,8 @@ H-6 se verifica con el checklist del expediente (evidencia) y con tests de ruta 
   - **Hecho cuando:** docs coherentes y matriz AC -> tarea completa.
   - **Deps:** T-01..T-06.
 
-- [ ] **T-08 (AC-H5-8, AC-H6-9, AC-H7-8, AC-H7-10, AC-H8-7, AC-H9-4) Verificacion final**
+- [x] **T-08 (AC-H5-8, AC-H6-9, AC-H7-8, AC-H7-10, AC-H8-7, AC-H9-4) Verificacion final**
+  - **Estado:** PASS (2026-10-30) — suite **1644/1644 tests en 85 archivos** (0 fallos; no aparecio el flake de `registrar-pago-paypal`), `tsc --noEmit` 0 errores, `npm run lint` 18 errores/18 warnings (deuda preexistente, sin errores nuevos) y `next build` PASS.
   - Ejecutar `node node_modules\vitest\vitest.mjs run` (suite completa, sin watch).
   - Ejecutar `node node_modules\typescript\bin\tsc --noEmit`, `npm run lint` (sin errores nuevos sobre el baseline) y `node node_modules\next\dist\bin\next build`.
   - Confirmar que los tests PayPal (webhook, proceso, idempotencia, links, recibo, pagina publica) y MP (webhook, Coexistencia A/B, links, recibo) siguen verdes y que no hay llamadas reales a PayPal/MP.
@@ -260,3 +262,5 @@ H-6 se verifica con el checklist del expediente (evidencia) y con tests de ruta 
 - PASS tester+reviewer (T-05/H-6 evidencia): checklist completo (URL/endpoint, secreto sin valor, warnings 08:35/08:51 sin pago, A/B, decision) y sin PII ni secretos. No bloqueante: completar el identificador de cuenta/aplicacion MP en la matriz.
 - PASS tester+reviewer (T-06/H-6 hardening MP): topic ajeno/sin `data.id` ignorados antes de la firma, 429 sin validar/consultar/escribir, `401` con `debug` sin PII, reset en firma valida y pago valido intacto. No bloqueante: umbrales reales de MP no ejercitados a nivel ruta (rate limit mockeado), precedencia `no-payment` sin secreto y helper de IP compartido.
 - PASS tester+reviewer (T-01/H-9): `.railway/` ignorado, `git ls-files .railway` vacio y diff solo de repo/docs.
+- PASS docs+verificacion (T-07/T-08, 2026-10-30): suite **1644/1644 tests en 85 archivos** (0 fallos), `tsc --noEmit` 0 errores, `npm run lint` 18 errores/18 warnings (baseline preexistente) y `next build` PASS. T-09 (smoke de staging) queda `[ ]` porque no se ejecuto en esta sesion; T-10/T-38 sigue `[ ]` y no autorizado.
+- **Pendiente del planner/coordinator:** reflejar en `spec.md` y `plan.md` el PASS tester+reviewer de H-6/H-7. El implementer no tiene permiso de edicion sobre `specs/**` salvo `tasks.md`; el alcance no cambia.

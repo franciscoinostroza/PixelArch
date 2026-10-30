@@ -4,7 +4,7 @@
 > **MEMORY.md** = como trabajar en el (workflow, comandos, gotchas, lecciones).
 > Actualizar al final de cada sesion con lo aprendido.
 
-**Ultima actualizacion:** 2026-10-29
+**Ultima actualizacion:** 2026-10-30
 
 ---
 
@@ -77,12 +77,13 @@ npm install / npm uninstall                            # npm si funciona
 - **Webhook:** `PAYPAL_WEBHOOK_ID` obligatorio; firma server-to-server con timeout de 4 s por llamada. Sin config 503; headers/firma invalidos 401 (evento tecnico sin PII); error de procesamiento 500 para reintento; duplicado/ignorado 200. Idempotencia por `EventoPasarela.eventoId` + `Pago.externalId`/`paypalOrderId`; refunds/reversiones/disputas solo marcan `requiereAccion` (sin automatismo).
 - **Rol `asistente`:** existe solo como `publicMetadata.role = "asistente"` (sin alias `assistant`). `requireStaff()` habilita link/envio; la asistente solo entra a `/admin/clientes`, `/admin/cobros` y `/admin/pagos` (detalle y recibo incluidos) y `/admin` la manda a `/admin/cobros`. Registro manual, ajustes/reembolsos y revision quedan con `requireAdmin()`.
 - **Rate limits:** APIs PayPal admin 20/min por IP; rutas publicas de pago 30/min por IP y 5/min por token. El limiter es en memoria (best-effort, no distribuido).
+- **Hardening webhooks (spec 003):** PayPal 300/min + 20 fallos de autenticidad/10 min por IP + cuerpo maximo 256 KiB (`413`); MP 300/min + 20 firmas invalidas/10 min, topics que no son `payment`/sin `data.id` se ignoran con `200` **antes** de la firma y el log de firma invalida es `debug` sin PII. Los `429` son temporales/reintentables; sin envs nuevas.
 - **Formato USD:** `formatearMonto` es-AR en CRM/recibos/digest (`US$100,50`, `US$1.000,50`); unica excepcion: plantilla EN con en-US (`US$100.50`). Centavos enteros; PayPal solo USD.
 - **Evidencia y PII:** el registro manual acepta evidencia textual/URL (capture/order id, comprobante o nota), sin archivos ni storage. No se persisten email/nombre/direccion del pagador; el recibo usa los datos del cliente del CRM. Logs/Sentry solo ids, monto, moneda y estado; PII redactada.
 - **Link publico:** `/pago/paypal/*` es publico, `no-store`, `no-referrer` y `noindex`; `/pago` y `/pago/(.*)` estan en `ROUTES.public` y los webhooks quedan fuera del matcher. El guest checkout depende de PayPal (`NO_PREFERENCE`).
 - **Sin cambios de Dockerfile:** no hay `NEXT_PUBLIC_PAYPAL_*`; las envs PayPal son server-only y se inyectan en runtime. Solo haria falta `ARG`/`ENV` si algun dia se usa el JS SDK del lado cliente.
-- **Estado de la BD / deploy:** staging ya tiene aplicado `db push` + backfill (`Postgres-gdmt`, separado de produccion) y quedo **validado en T-37** (PASS con observaciones, commit `139b8cb`, deploy `4c765526`; evidencia en `specs/001-paypal-pagos/review.md`). **Produccion no cambio**: sigue en `cdafe04` (`main` sin PayPal), sin migracion ni deploy. T-38 **no autorizado**: el orden obligatorio es `db push` + backfill en produccion **antes** del merge a `main`/auto-deploy (H-2), luego deploy con PayPal deshabilitado, envs/webhook live y smoke. FF-merge de `paypal-staging` para conservar `139b8cb`. Sin envs PayPal queda deshabilitado y MP sigue operativo.
-- **Tests/verificacion:** `node node_modules\vitest\vitest.mjs run` (suite 1582/83 sin red; guard en `src/__tests__/setup.ts`), `node node_modules\typescript\bin\tsc --noEmit`, `npm run lint` (deuda preexistente) y `node node_modules\next\dist\bin\next build` cuando se pida. No hay llamadas reales a PayPal/MP en CI; el sandbox es manual en Railway staging. Queda el flake preexistente de `registrar-pago-paypal` (2 timeouts de 5 s) para T-08.
+- **Estado de la BD / deploy:** staging ya tiene aplicado `db push` + backfill (`Postgres-gdmt`, separado de produccion) y quedo **validado en T-37** (PASS con observaciones, commit `139b8cb`, deploy `4c765526`; evidencia en `specs/001-paypal-pagos/review.md`). El hardening H-5..H-9 (spec 003) quedo **PASS tester+reviewer** en `paypal-staging`, sin schema/envs; T-09 (smoke de staging) pendiente. **Produccion no cambio**: sigue en `cdafe04` (`main` sin PayPal), sin migracion ni deploy. T-38 **no autorizado**: el orden obligatorio es `db push` + backfill en produccion **antes** del merge a `main`/auto-deploy (H-2), luego deploy con PayPal deshabilitado, envs/webhook live y smoke. FF-merge de `paypal-staging` para conservar `139b8cb`. Sin envs PayPal queda deshabilitado y MP sigue operativo.
+- **Tests/verificacion:** `node node_modules\vitest\vitest.mjs run` (suite 1644/1644 en 85 archivos al 30 oct 2026, sin red; guard en `src/__tests__/setup.ts`), `node node_modules\typescript\bin\tsc --noEmit`, `npm run lint` (18 errores/18 warnings preexistentes) y `node node_modules\next\dist\bin\next build` cuando se pida. No hay llamadas reales a PayPal/MP en CI; el sandbox es manual en Railway staging. El flake ocasional de `registrar-pago-paypal` no aparecio en la corrida de cierre.
 
 ## Gotchas recibo MP (Oct 2026)
 
@@ -95,13 +96,11 @@ npm install / npm uninstall                            # npm si funciona
 - **Desvios menores:** `ReciboPago` acepta `reciboIdClassName` para que PayPal conserve su clase historica y MP use el default con `break-words`; el concepto MP se trunca por code points (200) en la pagina en lugar de rechazarse; el helper de concepto se comparte con PayPal (trim del enlace). El guard de tests bloquea `*.mercadopago.com` y `*.paypal.com` solo en `fetch`; no cubre `mercadopago.com.ar` ni otros clientes HTTP.
 - **Gate T-38:** no mergear a `main` ni deployar a produccion antes del `db push` + backfill de T-38. La feature no agrega schema/migracion/envs; viaja en el mismo deploy y el rollback es revertir el commit.
 
-## Backlog abierto (2026-10-29)
+## Backlog abierto (2026-10-30)
 
-- Estado publico "en revision" para pagos en `REVISION`, sin exponer datos internos (H-5).
-- Investigar firmas MP: warnings `Webhook MP con firma invalida` e IPN vacia (H-6).
-- Rate limit/hardening del webhook PayPal, sin romper reintentos legitimos (H-7).
-- Fallback controlado de `NEXT_PUBLIC_URL` cuando es invalida (H-8).
-- Agregar `.railway/` a `.gitignore` (H-9).
+- **T-38 (no autorizado):** PayPal + recibo MP + hardening a produccion. `db push` + backfill **antes** del merge a `main`; FF-merge de `paypal-staging` para conservar `139b8cb`; envs/webhook live y smoke. Produccion sigue en `cdafe04`.
+- **T-09 (spec 003):** smoke manual de staging — link en `REVISION`, webhook PayPal con firma invalida (`401`/`429`), topic ajeno a MP (`200` ignorado) y `git check-ignore` de `.railway/`.
+- No bloqueante: completar el identificador de cuenta/aplicacion MP en el expediente H-6; unificar el helper de IP (PayPal/MP) y evaluar `debug` para el `429` de PayPal; R-9: otros consumidores de `NEXT_PUBLIC_URL` con `env || default`.
 
 ## Entorno
 
@@ -111,6 +110,12 @@ npm install / npm uninstall                            # npm si funciona
 - Emails de alertas/digest: `ADMIN_EMAIL` o `CONTACT_EMAIL` (hoy el Gmail del dueno).
 - WhatsApp: `5491132464045`; mensajes en `src/lib/contact.ts`.
 - El **Sentry MCP no esta en opencode**; el plugin `@sentry/agent-plugin` quedo instalado para **Claude Code** (skills sentry-*).
+
+## Sesion 30 oct 2026 — Cierre spec 003 (hardening PayPal/MP)
+
+- H-5..H-9 implementados en `paypal-staging` y **PASS tester+reviewer**: "Pago en revision" (H-5), expediente + hardening del webhook MP (H-6), limites y rechazos tempranos del webhook PayPal (H-7), `Location` relativo y fallo cerrado (H-8), `.railway/` ignorado (H-9). **Sin cambios de schema, envs, `Dockerfile`, `package.json` ni `railway.toml`.**
+- T-07 (docs) y T-08 (verificacion) cerradas: suite **1644/1644 en 85 archivos**, `tsc --noEmit` 0 errores, `npm run lint` 18 errores/18 warnings preexistentes y `next build` PASS. T-09 (smoke de staging) queda pendiente; **T-38 sigue no autorizado**.
+- `spec.md`/`plan.md` aun dicen "pendiente de tester/reviewer" para H-6/H-7: el implementer no puede editar `specs/**` salvo `tasks.md`; el planner/coordinator debe reflejar el PASS (el alcance no cambia).
 
 ## Sesion 29 oct 2026 — Recibo MP (T-01..T-07)
 

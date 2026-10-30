@@ -1,6 +1,6 @@
 # Spec 003: Hardening posterior a T-37/002 (H-5, H-6, H-7, H-8, H-9)
 
-**Estado:** en implementacion — H-5/H-7/H-8/H-9 implementadas o en curso; **H-6 ampliado por decision del dueno (2026-10-30):** evidencia de firmas MP + hardening del webhook MP.
+**Estado:** implementacion cerrada en staging (2026-10-30) — H-5, H-6, H-7, H-8 y H-9 implementadas y **PASS tester+reviewer**; **H-6** con evidencia en `h6-mp-firmas.md` y hardening del webhook MP. **T-38 pendiente y NO autorizado**; produccion sin cambios.
 **Fecha:** 2026-10-30 (original 2026-10-29)
 **Rama de implementacion:** `paypal-staging`.
 **Relacionada con:** `specs/001-paypal-pagos/spec.md`, `specs/001-paypal-pagos/review.md` §4 (H-5..H-9), `specs/002-recibo-mp/spec.md` y `specs/constitution.md` §1 a §7.
@@ -16,13 +16,13 @@
 
 Detalle de cada hallazgo:
 
-- **H-5:** cuando una captura PayPal queda en `REVISION` (diferencia de monto o moneda), el link se marca `PAGADO` y el pago queda pendiente de revision. La pagina publica `/pago/paypal/estado` derivaba "Pago acreditado" solo del estado del link, de modo que el comprador veia un cobro acreditado cuando en realidad estaba en revision. El retorno ya informa `pendiente`, pero la pagina lo ignoraba cuando el link figuraba `PAGADO`. **Corregido en T-03.**
-- **H-7:** `POST /api/webhooks/paypal` es publico y no tenia limite de solicitudes. Cada intento con headers y cuerpo parseables disparaba una verificacion server-to-server contra PayPal; los rechazos por headers, cuerpo, evento o firma escribian un `EventoPasarela` tecnico. Un tercero podia generar carga, ruido y filas sin autenticarse. A la vez, PayPal necesita reintentar sin bloqueos permanentes. **Implementado en T-04, pendiente de tester/reviewer.**
-- **H-8:** `resolverBaseUrlPublica` ya rechaza una `NEXT_PUBLIC_URL` invalida y no cae al origin de la request. Sin embargo, los ayudantes de redireccion de `/pago/paypal/[token]`, `/pago/paypal/retorno` y `/pago/paypal/cancelado` hacian `?? req.url`; detras del proxy de Railway ese origin puede ser `http://0.0.0.0:8080`, inaccesible para el comprador. El link manual del admin ya falla cerrado. **Corregido en T-02.**
-- **H-9:** `.railway/` no estaba en `.gitignore`. Es estado local de la CLI de Railway y no debe versionarse; ademas, la evidencia de T-37 se apoyo en scripts que ya no estan en el repo. **Pendiente (T-01).**
+- **H-5:** cuando una captura PayPal queda en `REVISION` (diferencia de monto o moneda), el link se marca `PAGADO` y el pago queda pendiente de revision. La pagina publica `/pago/paypal/estado` derivaba "Pago acreditado" solo del estado del link, de modo que el comprador veia un cobro acreditado cuando en realidad estaba en revision. El retorno ya informa `pendiente`, pero la pagina lo ignoraba cuando el link figuraba `PAGADO`. **Corregido en T-03; PASS tester+reviewer.**
+- **H-7:** `POST /api/webhooks/paypal` es publico y no tenia limite de solicitudes. Cada intento con headers y cuerpo parseables disparaba una verificacion server-to-server contra PayPal; los rechazos por headers, cuerpo, evento o firma escribian un `EventoPasarela` tecnico. Un tercero podia generar carga, ruido y filas sin autenticarse. A la vez, PayPal necesita reintentar sin bloqueos permanentes. **Implementado en T-04; PASS tester+reviewer (rate limit PayPal).**
+- **H-8:** `resolverBaseUrlPublica` ya rechaza una `NEXT_PUBLIC_URL` invalida y no cae al origin de la request. Sin embargo, los ayudantes de redireccion de `/pago/paypal/[token]`, `/pago/paypal/retorno` y `/pago/paypal/cancelado` hacian `?? req.url`; detras del proxy de Railway ese origin puede ser `http://0.0.0.0:8080`, inaccesible para el comprador. El link manual del admin ya falla cerrado. **Corregido en T-02; PASS tester+reviewer.**
+- **H-9:** `.railway/` no estaba en `.gitignore`. Es estado local de la CLI de Railway y no debe versionarse; ademas, la evidencia de T-37 se apoyo en scripts que ya no estan en el repo. **Implementado en T-01; PASS tester+reviewer (`.gitignore`).**
 - **H-6 (ampliado por decision del dueno, 2026-10-30):** ya no es solo investigacion. Incluye dos entregables:
-  1. **Evidencia:** que la URL de webhook de Mercado Pago en staging es la correcta, que `MP_WEBHOOK_SECRET` esta presente y coincide con el panel (confirmado por el dueno, sin registrar el valor), que los warnings `Webhook MP con firma invalida` de las 08:35 y 08:51 no tienen pago asociado y son POSTs invalidos/ruido, y que los eventos validos de Coexistencia A/B del paso 11 de T-37 se procesaron correctamente. **Expediente creado (T-05), pendiente de tester/reviewer.**
-  2. **Hardening del webhook MP:** limite de solicitudes y de firmas invalidas por origen, descarte de las notificaciones que no son `payment` (o que no traen `data.id`) **antes** de validar la firma, y log de firma invalida en `debug` sin `data.id`, firma, IP ni PII. La verificacion de firma se mantiene siempre activa; no se rota el secreto ni se toca el panel. **Implementado en T-06, pendiente de tester/reviewer.**
+  1. **Evidencia:** que la URL de webhook de Mercado Pago en staging es la correcta, que `MP_WEBHOOK_SECRET` esta presente y coincide con el panel (confirmado por el dueno, sin registrar el valor), que los warnings `Webhook MP con firma invalida` de las 08:35 y 08:51 no tienen pago asociado y son POSTs invalidos/ruido, y que los eventos validos de Coexistencia A/B del paso 11 de T-37 se procesaron correctamente. **Expediente creado (T-05) y PASS tester+reviewer; evidencia en `h6-mp-firmas.md`.**
+  2. **Hardening del webhook MP:** limite de solicitudes y de firmas invalidas por origen, descarte de las notificaciones que no son `payment` (o que no traen `data.id`) **antes** de validar la firma, y log de firma invalida en `debug` sin `data.id`, firma, IP ni PII. La verificacion de firma se mantiene siempre activa; no se rota el secreto ni se toca el panel. **Implementado en T-06; PASS tester+reviewer (hardening MP).**
 
 ### 1.2 Problema
 
@@ -300,7 +300,7 @@ Estas decisiones son defaults recomendados. No bloquean la implementacion: las d
 | **D-H6-3** | Descartar antes de la firma todo lo que no sea `payment` o no traiga `data.id`, con `200` ignorado. | Validar la firma primero (gasta trabajo y warnings en topics ajenos); `401` para topics ajenos (rompe la semantica de MP y genera reintentos). | H-6, AC-H6-4, AC-H6-8. |
 | **D-H6-4** | Log de firma invalida en `debug`, sin `data.id`, firma, IP ni PII. | `warn`/`info` (inunda produccion); loguear `data.id` (dato de pago y ruido). | H-6, AC-H6-7, RNF-1. |
 
-## 10. Preguntas abiertas
+## 10. Preguntas abiertas (no bloqueantes para el cierre)
 
 - **[NECESITA ACLARACION] H-6 (no bloqueante):** confirmar la fecha exacta y la zona horaria de los warnings de las 08:35 y 08:51 para la trazabilidad completa del expediente. La evidencia los registra con la hora del log de staging y deja la fecha/zona como dato a confirmar.
 - **[NECESITA ACLARACION] H-6 (no bloqueante):** confirmar si los warnings corresponden a la funcion "Probar" del panel, a un escaneo externo o a una IPN legacy de otra integracion. La evidencia actual prueba que no hubo pago ni cambio de estado; no alcanza para atribuir el origen.
@@ -310,6 +310,7 @@ Estas decisiones son defaults recomendados. No bloquean la implementacion: las d
 
 ## 11. Cierre
 
-- H-5, H-7, H-8 y H-9 pueden implementarse y probarse en `paypal-staging` sin produccion, sin esquema y sin envs.
-- H-6 se cierra en esta spec con dos entregables: el expediente de evidencia (URL/secreto correctos, warnings = ruido sin pago, eventos A/B procesados) y el hardening del webhook MP (limite de solicitudes y firmas, descarte de topics ajenos antes de la firma, log en `debug`). No se rota el secreto, no se toca el panel y no se desactiva la validacion.
-- T-38 sigue sin autorizacion. No hay merge a `main` ni deploy a produccion antes de completar el orden de T-38 (`db push` + backfill antes del merge).
+- **H-5, H-7, H-8 y H-9 quedan implementadas y con PASS tester+reviewer en `paypal-staging`**, sin produccion, sin cambios de esquema ni de envs. H-9 queda como higiene de repositorio.
+- **H-6 queda cerrado con dos entregables y PASS tester+reviewer:** el expediente `h6-mp-firmas.md` (URL/secreto correctos sin valor, warnings 08:35/08:51 = ruido sin pago, eventos A/B procesados) y el hardening del webhook MP (limite de solicitudes y firmas, descarte de topics ajenos antes de la firma, log en `debug`). No se rota el secreto, no se toca el panel y no se desactiva la validacion.
+- **T-38 sigue pendiente y NO autorizado.** No hay merge a `main` ni deploy a produccion antes de completar el orden de T-38 (`db push` + backfill antes del merge). Produccion no cambia en esta spec.
+- **Verificacion de cierre (T-07/T-08, 2026-10-30):** suite 1644/1644 tests en 85 archivos, `tsc --noEmit` 0 errores, lint 18 errores/18 warnings (baseline preexistente) y `next build` PASS. El smoke manual de staging (T-09) queda pendiente y no altera el PASS de implementacion.

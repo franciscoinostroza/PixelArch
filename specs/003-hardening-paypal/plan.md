@@ -1,7 +1,7 @@
 # Plan 003: Hardening posterior a T-37/002 (H-5, H-6, H-7, H-8, H-9)
 
 **Spec:** ./spec.md
-**Estado:** en implementacion — H-5/H-7/H-8 implementadas; H-6 ampliado por decision del dueno (2026-10-30): evidencia + hardening del webhook MP.
+**Estado:** implementacion cerrada en staging (2026-10-30) — H-5, H-6, H-7, H-8 y H-9 implementadas y **PASS tester+reviewer**; **T-38 pendiente y NO autorizado**; produccion sin cambios.
 **Fecha:** 2026-10-30 (original 2026-10-29)
 **Rama:** `paypal-staging`
 **Gate:** no merge a `main` ni deploy a produccion antes de T-38. T-38 no esta autorizado.
@@ -18,6 +18,8 @@ Cinco frentes independientes, sin cambios de esquema, envs, `Dockerfile`, `packa
 5. **H-6 (firmas MP + hardening):** dos entregables. (a) `specs/003-hardening-paypal/h6-mp-firmas.md` con la evidencia redactada (URL/endpoint de staging, secreto confirmado sin valor, warnings 08:35/08:51 sin pago, eventos validos de Coexistencia A/B) y la decision. (b) Hardening del webhook MP en `src/app/api/webhooks/mercadopago/route.ts` reutilizando el limitador de `src/lib/rate-limit.ts`: 300 solicitudes/min y 20 firmas invalidas/10 min por origen, descarte de `body.type !== "payment"`/sin `data.id` antes de la firma y log de firma invalida en `debug`. Sin rotar el secreto, sin tocar el panel y sin desactivar la firma.
 
 No hay cambios de comportamiento en montos, comisiones, checkout, links, emails, idempotencia ni procesamiento de capturas.
+
+**Estado de implementacion (2026-10-30):** los cinco frentes estan implementados y con PASS tester+reviewer. H-6 incluye el expediente `h6-mp-firmas.md` y el hardening del webhook MP. Verificacion T-07/T-08: suite 1644/1644 tests en 85 archivos, `tsc --noEmit` 0 errores, lint 18/18 (baseline preexistente) y `next build` PASS. El smoke manual de staging (T-09) sigue pendiente; T-38 no esta autorizado.
 
 ## 2. Arquitectura (componentes y flujo de datos)
 
@@ -687,9 +689,9 @@ Contrato HTTP: tabla de §2.5.2. El camino de un `payment` valido no cambia: `ob
 
 ### 7.2 Orden con T-38
 
-1. Implementar y probar H-5, H-7, H-8 y H-9 en `paypal-staging`.
-2. Cerrar H-6 con el expediente de evidencia y el hardening del webhook MP; no se rota el secreto ni se toca el panel.
-3. **No mergear a `main` ni deployar a produccion antes de T-38.** T-38 sigue el orden ya definido: `db push` + backfill en produccion **antes** del merge/auto-deploy, FF-merge de `paypal-staging` para conservar `139b8cb`, deploy con PayPal deshabilitado, envs/webhook live y smoke.
+1. **Hecho:** H-5, H-7, H-8 y H-9 implementadas y probadas en `paypal-staging`; PASS tester+reviewer.
+2. **Hecho:** H-6 cerrado con el expediente `h6-mp-firmas.md` y el hardening del webhook MP; PASS tester+reviewer. No se roto el secreto ni se toco el panel.
+3. **Pendiente y NO autorizado:** no mergear a `main` ni deployar a produccion antes de T-38. T-38 sigue el orden ya definido: `db push` + backfill en produccion **antes** del merge/auto-deploy, FF-merge de `paypal-staging` para conservar `139b8cb`, deploy con PayPal deshabilitado, envs/webhook live y smoke.
 4. H-5 viaja con el mismo deploy que T-38 porque depende del esquema. H-6, H-7, H-8 y H-9 no agregan pasos de migracion, pero comparten la rama y el gate. H-6 se deploya con el mismo build que toca `src/**`; no cambia envs ni panel.
 5. Smoke post-T-38: health, `/pago/paypal/estado` con un pago en `REVISION`, webhook PayPal con firma invalida (401 y luego 429 si se prueba el limite), redirect con env valida, `/admin/pagos`, recibo MP/PayPal.
 
@@ -748,3 +750,5 @@ Contrato HTTP: tabla de §2.5.2. El camino de un `payment` valido no cambia: `ob
 10. **T-10 (gate T-38):** sin codigo, no autorizado. Depende de T-09 y de la autorizacion del dueno.
 
 T-02 y T-03 comparten `src/lib/paypal/utils.ts` y `src/__tests__/api/paypal-public.test.ts`; hacerlos secuenciales evita conflictos. T-04 toca solo el webhook PayPal y su modulo; T-06 toca solo el webhook MP y su test, por lo que pueden ir en paralelo entre si y con T-02/T-03.
+
+**Estado (2026-10-30):** T-01 a T-08 PASS (tester+reviewer y verificacion final); T-09 (smoke manual de staging) pendiente; T-10/T-38 pendiente y **NO autorizado**. La implementacion de H-5..H-9 esta cerrada y produccion no cambio.

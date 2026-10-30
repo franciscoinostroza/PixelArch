@@ -191,6 +191,53 @@ export function esEnlaceVigente(
   return resolverEstadoEnlace(estado, expiraEn, ahora) === "ACTIVO"
 }
 
+export type EstadoPublicoPaypal =
+  | "pendiente"
+  | "pagado"
+  | "revision"
+  | "vencido"
+  | "invalidado"
+  | "error"
+
+export interface EnlaceEstadoPublico extends ConceptoEnlacePaypal {
+  estado: EstadoEnlace
+  expiraEn: Date | string
+}
+
+/**
+ * Estado que puede mostrarse al comprador en `/pago/paypal/estado`.
+ *
+ * La base manda: el query string no participa de este mapeo. Un pago asociado
+ * en `REVISION` gana siempre sobre el estado del link (que igual queda PAGADO
+ * porque el capture ya se cobro), de modo que nunca se afirma "Pago
+ * acreditado" mientras el pago siga pendiente de revision. El resto reutiliza
+ * las reglas del link y del concepto, sin duplicarlas.
+ */
+export function resolverEstadoPublicoEnlace(
+  enlace: EnlaceEstadoPublico,
+  opciones: { pagoEnRevision?: boolean } = {}
+): EstadoPublicoPaypal {
+  if (opciones.pagoEnRevision === true) return "revision"
+
+  const estado = resolverEstadoEnlace(enlace.estado, enlace.expiraEn)
+
+  switch (estado) {
+    case "PAGADO":
+      return "pagado"
+    case "VENCIDO":
+      return "vencido"
+    case "INVALIDADO":
+      return "invalidado"
+    case "FALLIDO":
+      return "error"
+    case "ACTIVO":
+    case "CREANDO": {
+      const concepto = evaluarConceptoEnlace(enlace)
+      return concepto.pendiente ? "pendiente" : concepto.estado
+    }
+  }
+}
+
 function normalizarEstado(estado: string | null | undefined): string | null {
   if (typeof estado !== "string") return null
   const normalizado = estado.trim().toUpperCase()

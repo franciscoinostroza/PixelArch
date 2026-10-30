@@ -5,7 +5,10 @@ import { AlertTriangle, CheckCircle2, Clock3, XCircle } from "lucide-react"
 import type { EstadoEnlace } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { formatearMonto } from "@/lib/pagos"
-import { evaluarConceptoEnlace, resolverEstadoEnlace } from "@/lib/paypal/utils"
+import {
+  resolverEstadoPublicoEnlace,
+  type EstadoPublicoPaypal,
+} from "@/lib/paypal/utils"
 
 /**
  * Pagina publica de estado de un link PayPal (T-14, parte A).
@@ -26,9 +29,12 @@ export const metadata: Metadata = {
   referrer: "no-referrer",
 }
 
-type EstadoPublico = "pendiente" | "pagado" | "vencido" | "invalidado" | "error"
+type EstadoPublico = EstadoPublicoPaypal
 
-const ESTADOS_QUERY: readonly EstadoPublico[] = [
+/** `revision` nunca se acepta por query: solo lo determina la base. */
+type EstadoQuery = Exclude<EstadoPublico, "revision">
+
+const ESTADOS_QUERY: readonly EstadoQuery[] = [
   "pendiente",
   "pagado",
   "vencido",
@@ -48,6 +54,12 @@ const ESTADOS = {
     detalle: "Recibimos tu pago. No es necesario volver a pagar.",
     Icono: CheckCircle2,
     color: "text-emerald-400",
+  },
+  revision: {
+    titulo: "Pago en revision",
+    detalle: "Estamos revisando el pago. No es necesario volver a pagar.",
+    Icono: Clock3,
+    color: "text-amber-300",
   },
   vencido: {
     titulo: "Link vencido",
@@ -84,9 +96,10 @@ interface EnlacePublico {
   suscripcionId: string | null
   hito: { estado: string } | null
   suscripcion: { estado: string; plan: string } | null
+  pagos: { estadoPago: string }[]
 }
 
-function esEstadoPublico(valor: unknown): valor is EstadoPublico {
+function esEstadoQuery(valor: unknown): valor is EstadoQuery {
   return (
     typeof valor === "string" &&
     (ESTADOS_QUERY as readonly string[]).includes(valor)
@@ -94,25 +107,12 @@ function esEstadoPublico(valor: unknown): valor is EstadoPublico {
 }
 
 function estadoDeEnlace(enlace: EnlacePublico): EstadoPublico {
-  const estado = resolverEstadoEnlace(enlace.estado, enlace.expiraEn)
-
-  switch (estado) {
-    case "PAGADO":
-      return "pagado"
-    case "VENCIDO":
-      return "vencido"
-    case "INVALIDADO":
-      return "invalidado"
-    case "FALLIDO":
-      return "error"
-    case "ACTIVO":
-    case "CREANDO": {
-      // Misma regla que `[token]`: no alcanza con el estado del link. Un hito
-      // ya pagado o un soporte no elegible no deben mostrarse como pendientes.
-      const concepto = evaluarConceptoEnlace(enlace)
-      return concepto.pendiente ? "pendiente" : concepto.estado
-    }
-  }
+  // Misma regla que `[token]`: no alcanza con el estado del link. Un hito ya
+  // pagado o un soporte no elegible no deben mostrarse como pendientes; un
+  // pago en revision siempre gana sobre un link PAGADO.
+  return resolverEstadoPublicoEnlace(enlace, {
+    pagoEnRevision: enlace.pagos.length > 0,
+  })
 }
 
 function tokenValido(token: string): boolean {
@@ -128,7 +128,7 @@ export default async function EstadoPagoPaypalPage({
 
   const { token: tokenRaw, estado: estadoRaw } = await searchParams
   const token = typeof tokenRaw === "string" ? tokenRaw.trim() : ""
-  const estadoQuery = esEstadoPublico(estadoRaw) ? estadoRaw : null
+  const estadoQuery = esEstadoQuery(estadoRaw) ? estadoRaw : null
 
   let enlace: EnlacePublico | null = null
   let huboError = false
@@ -148,6 +148,11 @@ export default async function EstadoPagoPaypalPage({
           suscripcionId: true,
           hito: { select: { estado: true } },
           suscripcion: { select: { estado: true, plan: true } },
+          pagos: {
+            where: { estadoPago: "REVISION" },
+            select: { estadoPago: true },
+            take: 1,
+          },
         },
       })
     } catch {

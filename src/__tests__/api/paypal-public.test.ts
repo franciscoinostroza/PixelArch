@@ -31,6 +31,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({
   findUnique: vi.fn(),
   update: vi.fn(),
+  pagoCreate: vi.fn(),
   createOrder: vi.fn(),
   getOrder: vi.fn(),
   captureOrder: vi.fn(),
@@ -70,6 +71,9 @@ vi.mock("@/lib/prisma", () => ({
       findUnique: mocks.findUnique,
       update: mocks.update,
     },
+    // La pagina de estado es de solo lectura: si intentara crear un Pago, el
+    // test lo detecta.
+    pago: { create: mocks.pagoCreate },
   },
 }))
 
@@ -285,6 +289,7 @@ function enlace(overrides: Record<string, unknown> = {}) {
     idioma: "es",
     hito: { estado: "PENDIENTE" },
     suscripcion: null,
+    pagos: [],
     cliente: { nombre: "Cliente Demo", email: "cliente@example.com" },
     ...overrides,
   }
@@ -890,7 +895,7 @@ describe("GET /pago/paypal/retorno (parte B)", () => {
     expect(estadoDeRedirect(res)).toBe("pendiente")
   })
 
-  it("redirige a pendiente cuando la captura queda en REVISION", async () => {
+  it("AC-H5-4: redirige a pendiente cuando la captura queda en REVISION y la pagina muestra Pago en revision", async () => {
     const token = "token_ret_revision"
     const orderId = "ORDER-RET-REVISION"
 
@@ -916,6 +921,26 @@ describe("GET /pago/paypal/retorno (parte B)", () => {
 
     expect(estadoDeRedirect(res)).toBe("pendiente")
     expect(redirect(res).searchParams.get("token")).toBe(token)
+
+    // Al abrir la pagina inmediatamente despues, el link ya figura PAGADO por
+    // el capture, pero el pago asociado sigue en REVISION.
+    mocks.findUnique.mockResolvedValue(
+      enlace({
+        token,
+        externalId: orderId,
+        estado: "PAGADO",
+        pagos: [{ estadoPago: "REVISION" }],
+      })
+    )
+
+    render(
+      await EstadoPage({
+        searchParams: Promise.resolve({ token, estado: "pendiente" }),
+      })
+    )
+
+    expect(screen.getByText("Pago en revision")).toBeInTheDocument()
+    expect(screen.queryByText("Pago acreditado")).not.toBeInTheDocument()
   })
 
   it("redirige a pendiente cuando otro pago gano el cobro", async () => {
@@ -1653,7 +1678,7 @@ describe("pagina /pago/paypal/estado", () => {
     return EstadoPage({ searchParams: Promise.resolve(params) })
   }
 
-  it("muestra el estado pagado con concepto y monto USD sin PII", async () => {
+  it("AC-H5-3: un link PAGADO sin pagos sigue acreditado y muestra concepto/monto sin PII", async () => {
     mocks.findUnique.mockResolvedValue(
       enlace({ estado: "PAGADO", total: 10656, moneda: "usd" })
     )
@@ -1667,14 +1692,114 @@ describe("pagina /pago/paypal/estado", () => {
     expect(screen.queryByText("Cliente Demo")).not.toBeInTheDocument()
   })
 
-  it("muestra el estado pendiente de un link ACTIVO", async () => {
+  it("AC-H5-1: muestra Pago en revision si el link PAGADO tiene un pago en REVISION", async () => {
+    mocks.findUnique.mockResolvedValue(
+      enlace({
+        estado: "PAGADO",
+        total: 10656,
+        moneda: "usd",
+        pagos: [{ estadoPago: "REVISION" }],
+      })
+    )
+
+    render(await pagina({ token: "token_valido" }))
+
+    expect(screen.getByText("Pago en revision")).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "Estamos revisando el pago. No es necesario volver a pagar."
+      )
+    ).toBeInTheDocument()
+    expect(screen.queryByText("Pago acreditado")).not.toBeInTheDocument()
+    // Se conserva el concepto y el monto que ya mostraba la pagina.
+    expect(screen.getByText("Sitio ACME — Anticipo")).toBeInTheDocument()
+    expect(screen.getByText("US$106,56")).toBeInTheDocument()
+    // Sin estados internos, notas de revision, ids internos ni PII.
+    expect(screen.queryByText(/REVISION/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/revisionNota/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/revisionEstado/)).not.toBeInTheDocument()
+    expect(screen.queryByText("enlace_1")).not.toBeInTheDocument()
+    expect(screen.queryByText("hito_1")).not.toBeInTheDocument()
+    expect(screen.queryByText("cliente@example.com")).not.toBeInTheDocument()
+    expect(screen.queryByText("Cliente Demo")).not.toBeInTheDocument()
+  })
+
+  it("AC-H5-2: un link PAGADO con un pago SUCCEEDED sigue acreditado", async () => {
+    const datos = enlace({
+      estado: "PAGADO",
+      pagos: [{ estadoPago: "SUCCEEDED" }],
+    })
+    // El select de la pagina filtra `pagos` por estadoPago=REVISION, asi que un
+    // pago SUCCEEDED no vuelve en la consulta (aqui se emula el resultado).
+    mocks.findUnique.mockResolvedValueOnce({ ...datos, pagos: [] })
+
+    render(await pagina({ token: "token_valido" }))
+
+    expect(screen.getByText("Pago acreditado")).toBeInTheDocument()
+    expect(screen.queryByText("Pago en revision")).not.toBeInTheDocument()
+  })
+
+  it("AC-H5-7: al resolverse la revision, la proxima apertura muestra el estado resultante", async () => {
+    // Primera apertura: link PAGADO con el pago todavia en REVISION.
+    mocks.findUnique.mockResolvedValueOnce(
+      enlace({ estado: "PAGADO", pagos: [{ estadoPago: "REVISION" }] })
+    )
+
+    render(await pagina({ token: "token_valido" }))
+    expect(screen.getByText("Pago en revision")).toBeInTheDocument()
+
+    cleanup()
+
+    // La revision se resuelve y la siguiente apertura (sin cache) vuelve a la
+    // regla normal: el link PAGADO se muestra como acreditado.
+    mocks.findUnique.mockResolvedValueOnce(enlace({ estado: "PAGADO" }))
+
+    render(await pagina({ token: "token_valido" }))
+    expect(screen.getByText("Pago acreditado")).toBeInTheDocument()
+    expect(screen.queryByText("Pago en revision")).not.toBeInTheDocument()
+    expect(mocks.findUnique).toHaveBeenCalledTimes(2)
+    expect(unstable_noStore).toHaveBeenCalledTimes(2)
+  })
+
+  it("AC-H5-5: ?estado=pagado no asciende un pago en revision", async () => {
+    mocks.findUnique.mockResolvedValue(
+      enlace({ estado: "PAGADO", pagos: [{ estadoPago: "REVISION" }] })
+    )
+
+    render(await pagina({ token: "token_valido", estado: "pagado" }))
+
+    expect(screen.getByText("Pago en revision")).toBeInTheDocument()
+    expect(screen.queryByText("Pago acreditado")).not.toBeInTheDocument()
+  })
+
+  it("AC-H5-5: ?estado=error conserva prioridad sobre un pago en revision", async () => {
+    mocks.findUnique.mockResolvedValue(
+      enlace({ estado: "PAGADO", pagos: [{ estadoPago: "REVISION" }] })
+    )
+
+    render(await pagina({ token: "token_valido", estado: "error" }))
+
+    expect(screen.getByText("No pudimos procesar el pago")).toBeInTheDocument()
+    expect(screen.queryByText("Pago en revision")).not.toBeInTheDocument()
+  })
+
+  it("AC-H5-5: ?estado=revision no inventa la revision (solo la base la determina)", async () => {
+    mocks.findUnique.mockResolvedValue(enlace({ estado: "ACTIVO" }))
+
+    render(await pagina({ token: "token_valido", estado: "revision" }))
+
+    expect(screen.getByText("Pago pendiente")).toBeInTheDocument()
+    expect(screen.queryByText("Pago en revision")).not.toBeInTheDocument()
+  })
+
+  it("AC-H5-8: muestra el estado pendiente de un link ACTIVO", async () => {
     render(await pagina({ token: "token_valido" }))
 
     expect(screen.getByText("Pago pendiente")).toBeInTheDocument()
     expect(screen.getByText("US$106,56")).toBeInTheDocument()
   })
 
-  it("muestra vencido de forma perezosa", async () => {
+  it("AC-H5-8: muestra vencido de forma perezosa", async () => {
     mocks.findUnique.mockResolvedValue(
       enlace({ expiraEn: new Date(Date.now() - 1_000) })
     )
@@ -1684,7 +1809,7 @@ describe("pagina /pago/paypal/estado", () => {
     expect(screen.getByText("Link vencido")).toBeInTheDocument()
   })
 
-  it("muestra invalidado para un token inexistente y no muestra montos", async () => {
+  it("AC-H5-8: muestra invalidado para un token inexistente y no muestra montos", async () => {
     mocks.findUnique.mockResolvedValue(null)
 
     render(await pagina({ token: "token_inexistente", estado: "invalidado" }))
@@ -1693,15 +1818,18 @@ describe("pagina /pago/paypal/estado", () => {
     expect(screen.queryByText(/US\$/)).not.toBeInTheDocument()
   })
 
-  it("muestra un error legible cuando el link se resolvio con error", async () => {
+  it("AC-H5-8: muestra un error legible cuando el link se resolvio con error", async () => {
     render(await pagina({ token: "token_valido", estado: "error" }))
 
     expect(screen.getByText("No pudimos procesar el pago")).toBeInTheDocument()
   })
 
-  it("no consulta datos del cliente y solo selecciona campos publicos", async () => {
+  it("AC-H5-6: hace una sola consulta, solo lee y no crea pagos", async () => {
     await pagina({ token: "token_valido" })
 
+    expect(mocks.findUnique).toHaveBeenCalledTimes(1)
+    expect(mocks.update).not.toHaveBeenCalled()
+    expect(mocks.pagoCreate).not.toHaveBeenCalled()
     const consulta = mocks.findUnique.mock.calls[0][0]
     expect(consulta.select).toEqual({
       pasarela: true,
@@ -1714,9 +1842,18 @@ describe("pagina /pago/paypal/estado", () => {
       suscripcionId: true,
       hito: { select: { estado: true } },
       suscripcion: { select: { estado: true, plan: true } },
+      pagos: {
+        where: { estadoPago: "REVISION" },
+        select: { estadoPago: true },
+        take: 1,
+      },
     })
     expect(consulta.select).not.toHaveProperty("cliente")
     expect(consulta.select).not.toHaveProperty("notaInterna")
+    expect(consulta.select).not.toHaveProperty("revisionNota")
+    expect(consulta.select).not.toHaveProperty("revisionEstado")
+    expect(consulta.select).not.toHaveProperty("id")
+    expect(consulta.select).not.toHaveProperty("clienteId")
   })
 
   it("muestra pagado si el hito ya esta pagado aunque el link siga ACTIVO (AC-8)", async () => {
@@ -1756,7 +1893,7 @@ describe("pagina /pago/paypal/estado", () => {
     expect(screen.getByText("Sitio ACME — Anticipo")).toBeInTheDocument()
   })
 
-  it("expone Referrer-Policy no-referrer porque el token viaja en el query", async () => {
+  it("AC-H5-8: expone Referrer-Policy no-referrer porque el token viaja en el query", async () => {
     expect(pageMetadata.referrer).toBe("no-referrer")
   })
 
@@ -1806,7 +1943,7 @@ describe("pagina /pago/paypal/estado", () => {
     expect(screen.getByText("No pudimos procesar el pago")).toBeInTheDocument()
   })
 
-  it("declara noindex, modo dinamico y no-store", async () => {
+  it("AC-H5-8: declara noindex, modo dinamico y no-store", async () => {
     expect(pageMetadata.robots).toMatchObject({ index: false })
     expect(pageDynamic).toBe("force-dynamic")
 

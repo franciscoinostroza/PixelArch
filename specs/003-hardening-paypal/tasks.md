@@ -45,7 +45,7 @@ H-6 es una investigacion: su "test" es el checklist documental del expediente, n
 
 ## Fase 2: Estado publico
 
-- [ ] **T-03 (AC-H5-1 a AC-H5-8) "Pago en revision" en la pagina publica**
+- [x] **T-03 (AC-H5-1 a AC-H5-8) "Pago en revision" en la pagina publica**
   - En `src/lib/paypal/utils.ts` agregar:
     - `EstadoPublicoPaypal` (`pendiente | pagado | revision | vencido | invalidado | error`);
     - `EnlaceEstadoPublico` (extiende `ConceptoEnlacePaypal` con `estado` y `expiraEn`);
@@ -221,3 +221,4 @@ H-6 es una investigacion: su "test" es el checklist documental del expediente, n
 - Marcar `[x]` solo despues de tester + reviewer. Si un AC cambia, actualizar spec/plan/tasks en el mismo cambio.
 - H-6 no se marca `[x]` hasta tener el expediente y la decision (o el cierre como "abierto con datos faltantes").
 - **No mergear a `main` ni deployar a produccion antes de T-38.** T-38 no esta autorizado en esta sesion.
+- PASS tester+reviewer: 122 tests, tsc 0; revisionEstado=RECHAZADO sigue mostrando "Pago en revision" (coherente con el plan); T-02 pendiente por construirLocationEstado/retorno.

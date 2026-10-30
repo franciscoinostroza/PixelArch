@@ -12,6 +12,8 @@ import {
   mapearEstadoPagoPaypal,
   resolverBaseUrlPublica,
   resolverEstadoEnlace,
+  resolverEstadoPublicoEnlace,
+  type EnlaceEstadoPublico,
   validarMonedaUsd,
   validarMontoUsd,
   validarMontoUsdCents,
@@ -185,6 +187,120 @@ describe("elegibilidad del concepto de un link publico (T-14)", () => {
         suscripcion: null,
       })
     ).toEqual({ pendiente: false, estado: "invalidado" })
+  })
+})
+
+describe("estado publico de un link PayPal (H-5)", () => {
+  const futuro = new Date("2026-11-18T12:00:00.000Z")
+  const pasado = new Date("2026-10-01T12:00:00.000Z")
+
+  function enlaceBase(
+    overrides: Partial<EnlaceEstadoPublico> = {}
+  ): EnlaceEstadoPublico {
+    return {
+      estado: "ACTIVO",
+      expiraEn: futuro,
+      hitoId: "hito_1",
+      suscripcionId: null,
+      hito: { estado: "PENDIENTE" },
+      suscripcion: null,
+      ...overrides,
+    }
+  }
+
+  it("pagoEnRevision gana sobre PAGADO y sobre cualquier estado del link", () => {
+    for (const estado of [
+      "PAGADO",
+      "ACTIVO",
+      "VENCIDO",
+      "INVALIDADO",
+      "FALLIDO",
+      "CREANDO",
+    ] as const) {
+      expect(
+        resolverEstadoPublicoEnlace(enlaceBase({ estado }), {
+          pagoEnRevision: true,
+        })
+      ).toBe("revision")
+    }
+  })
+
+  it("sin revision mapea el link y el concepto como hoy", () => {
+    expect(resolverEstadoPublicoEnlace(enlaceBase({ estado: "PAGADO" }))).toBe(
+      "pagado"
+    )
+    expect(resolverEstadoPublicoEnlace(enlaceBase())).toBe("pendiente")
+    expect(
+      resolverEstadoPublicoEnlace(
+        enlaceBase({ estado: "ACTIVO", hito: { estado: "PAGADO" } })
+      )
+    ).toBe("pagado")
+
+    for (const estado of ["ACTIVE", "PAST_DUE"]) {
+      expect(
+        resolverEstadoPublicoEnlace(
+          enlaceBase({
+            hitoId: null,
+            hito: null,
+            suscripcionId: "susc_1",
+            suscripcion: { estado, plan: "SOPORTE" },
+          })
+        )
+      ).toBe("pendiente")
+    }
+
+    expect(
+      resolverEstadoPublicoEnlace(
+        enlaceBase({
+          hitoId: null,
+          hito: null,
+          suscripcionId: "susc_1",
+          suscripcion: { estado: "PAUSED", plan: "SOPORTE" },
+        })
+      )
+    ).toBe("invalidado")
+    expect(
+      resolverEstadoPublicoEnlace(
+        enlaceBase({ hitoId: null, hito: null, suscripcionId: null })
+      )
+    ).toBe("invalidado")
+
+    expect(
+      resolverEstadoPublicoEnlace(enlaceBase({ expiraEn: pasado }))
+    ).toBe("vencido")
+    expect(
+      resolverEstadoPublicoEnlace(enlaceBase({ estado: "VENCIDO" }))
+    ).toBe("vencido")
+    expect(
+      resolverEstadoPublicoEnlace(enlaceBase({ estado: "INVALIDADO" }))
+    ).toBe("invalidado")
+    expect(
+      resolverEstadoPublicoEnlace(enlaceBase({ estado: "FALLIDO" }))
+    ).toBe("error")
+    expect(
+      resolverEstadoPublicoEnlace(enlaceBase({ estado: "CREANDO" }))
+    ).toBe("pendiente")
+    expect(
+      resolverEstadoPublicoEnlace(
+        enlaceBase({
+          estado: "CREANDO",
+          hitoId: null,
+          hito: null,
+          suscripcionId: null,
+        })
+      )
+    ).toBe("invalidado")
+  })
+
+  it("pagoEnRevision ausente o false no altera el mapeo", () => {
+    expect(
+      resolverEstadoPublicoEnlace(enlaceBase({ estado: "PAGADO" }), {
+        pagoEnRevision: false,
+      })
+    ).toBe("pagado")
+    expect(resolverEstadoPublicoEnlace(enlaceBase({ estado: "PAGADO" }))).toBe(
+      "pagado"
+    )
   })
 })
 

@@ -87,6 +87,13 @@ vi.mock("@/lib/paypal/process", async (importOriginal) => {
 import { POST } from "@/app/api/webhooks/paypal/route"
 import { PaypalError } from "@/lib/paypal/client"
 import { registrarEventoPasarela } from "@/lib/paypal/events"
+import {
+  WEBHOOK_CUERPO_MAX_BYTES,
+  WEBHOOK_FALLOS_MAX,
+  WEBHOOK_SOLICITUDES_MAX,
+  limitadorWebhookPaypal,
+  reiniciarLimitadorWebhookPaypal,
+} from "@/lib/paypal/webhook-limit"
 
 const BASE_URL = "https://pixelarch.dev/api/webhooks/paypal"
 const PII_EMAIL = "pagador@example.com"
@@ -312,6 +319,7 @@ function logs(): string {
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.eventos.length = 0
+  reiniciarLimitadorWebhookPaypal()
   configurarEnv()
 
   mocks.eventoCreate.mockImplementation(async (args: { data: Fila }) =>
@@ -437,6 +445,274 @@ describe("POST /api/webhooks/paypal - configuracion y firma", () => {
     expect(res.status).toBe(503)
     expect(mocks.procesarCapturaPaypal).not.toHaveBeenCalled()
     expect(mocks.eventoCreate).not.toHaveBeenCalled()
+  })
+})
+
+describe("POST /api/webhooks/paypal - limite y hardening (H-7)", () => {
+  const IP_A = "203.0.113.10"
+  const IP_B = "203.0.113.11"
+
+  it("responde 429 al superar 300 solicitudes sin verificar ni escribir", async () => {
+    for (let i = 0; i < WEBHOOK_SOLICITUDES_MAX; i++) {
+      expect(limitadorWebhookPaypal.permitir(IP_A).permitido).toBe(true)
+    }
+
+    const res = await POST(
+      request(eventoCaptura(), { headers: { "x-forwarded-for": IP_A } })
+    )
+
+    expect(res.status).toBe(429)
+    expect(res.headers.get("Cache-Control")).toContain("no-store")
+    expect(Number(res.headers.get("Retry-After"))).toBeGreaterThan(0)
+    expect(await res.json()).toEqual({ error: "Demasiadas solicitudes" })
+    expect(mocks.verifyWebhookSignature).not.toHaveBeenCalled()
+    expect(mocks.procesarCapturaPaypal).not.toHaveBeenCalled()
+    expect(mocks.eventoCreate).not.toHaveBeenCalled()
+    expect(mocks.enlaceUpdate).not.toHaveBeenCalled()
+    expect(logs()).not.toContain(IP_A)
+  })
+
+  it("responde 429 al agotar el presupuesto de fallos sin verificar ni escribir", async () => {
+    for (let i = 0; i < WEBHOOK_FALLOS_MAX; i++) {
+      limitadorWebhookPaypal.registrarFallo(IP_A)
+    }
+
+    const res = await POST(
+      request(eventoCaptura(), { headers: { "x-forwarded-for": IP_A } })
+    )
+
+    expect(res.status).toBe(429)
+    expect(res.headers.get("Retry-After")).toBe("600")
+    expect(mocks.verifyWebhookSignature).not.toHaveBeenCalled()
+    expect(mocks.eventoCreate).not.toHaveBeenCalled()
+    expect(mocks.enlaceUpdate).not.toHaveBeenCalled()
+  })
+
+  it("un origen bloqueado no afecta a otro origen valido", async () => {
+    for (let i = 0; i < WEBHOOK_FALLOS_MAX; i++) {
+      limitadorWebhookPaypal.registrarFallo(IP_A)
+    }
+
+    const res = await POST(
+      request(eventoCaptura(), { headers: { "x-forwarded-for": IP_B } })
+    )
+
+    expect(res.status).toBe(200)
+    expect(mocks.verifyWebhookSignature).toHaveBeenCalledTimes(1)
+    expect(mocks.procesarCapturaPaypal).toHaveBeenCalledTimes(1)
+  })
+
+  it("un 503 por timeout no consume el presupuesto de fallos", async () => {
+    mocks.verifyWebhookSignature.mockRejectedValueOnce(
+      new PaypalError({
+        code: "TIMEOUT",
+        message: "PayPal no respondio a tiempo al verificar el webhook.",
+      })
+    )
+
+    const primera = await POST(
+      request(eventoCaptura({ id: "WH-TIMEOUT-1" }), {
+        headers: { "x-forwarded-for": IP_A },
+      })
+    )
+    expect(primera.status).toBe(503)
+
+    const segunda = await POST(
+      request(eventoCaptura({ id: "WH-TIMEOUT-2" }), {
+        headers: { "x-forwarded-for": IP_A },
+      })
+    )
+    expect(segunda.status).toBe(200)
+    expect(mocks.procesarCapturaPaypal).toHaveBeenCalledTimes(1)
+  })
+
+  it("responde 413 por Content-Length excesivo sin leer, verificar ni escribir", async () => {
+    const res = await POST(
+      request(eventoCaptura(), {
+        headers: {
+          "x-forwarded-for": IP_A,
+          "content-length": String(WEBHOOK_CUERPO_MAX_BYTES + 1),
+        },
+      })
+    )
+
+    expect(res.status).toBe(413)
+    expect(await res.json()).toEqual({ error: "Solicitud demasiado grande" })
+    expect(mocks.verifyWebhookSignature).not.toHaveBeenCalled()
+    expect(mocks.eventoCreate).not.toHaveBeenCalled()
+    expect(mocks.enlaceUpdate).not.toHaveBeenCalled()
+  })
+
+  it("responde 413 por cuerpo UTF-8 excesivo sin parsear, verificar ni escribir", async () => {
+    const res = await POST(
+      request(null, {
+        body: "x".repeat(WEBHOOK_CUERPO_MAX_BYTES + 1),
+        headers: { "x-forwarded-for": IP_A, "content-length": null },
+      })
+    )
+
+    expect(res.status).toBe(413)
+    expect(mocks.verifyWebhookSignature).not.toHaveBeenCalled()
+    expect(mocks.eventoCreate).not.toHaveBeenCalled()
+    expect(mocks.enlaceUpdate).not.toHaveBeenCalled()
+  })
+
+  it("los logs de rechazo no incluyen la IP completa", async () => {
+    const res = await POST(
+      request(eventoCaptura(), {
+        omitirHeader: "PAYPAL-TRANSMISSION-SIG",
+        headers: { "x-forwarded-for": IP_A },
+      })
+    )
+
+    expect(res.status).toBe(401)
+    expect(logs()).not.toContain(IP_A)
+  })
+
+  it("un 413 no consume el presupuesto de fallos del origen", async () => {
+    for (let i = 0; i < WEBHOOK_FALLOS_MAX + 5; i++) {
+      const res = await POST(
+        request(eventoCaptura(), {
+          headers: {
+            "x-forwarded-for": IP_A,
+            "content-length": String(WEBHOOK_CUERPO_MAX_BYTES + 1),
+          },
+        })
+      )
+      expect(res.status, String(i)).toBe(413)
+    }
+
+    // Si el 413 hubiera contado fallos, este intento recibiria 429.
+    const sinHeaders = await POST(
+      request(eventoCaptura(), {
+        omitirHeader: "PAYPAL-TRANSMISSION-SIG",
+        headers: { "x-forwarded-for": IP_A },
+      })
+    )
+
+    expect(sinHeaders.status).toBe(401)
+  })
+
+  it("un 500 de procesamiento no consume el presupuesto de fallos", async () => {
+    mocks.procesarCapturaPaypal.mockRejectedValue(new Error("db caida"))
+
+    for (let i = 0; i < WEBHOOK_FALLOS_MAX; i++) {
+      const res = await POST(
+        request(eventoCaptura({ id: `WH-500-${i}` }), {
+          headers: { "x-forwarded-for": IP_A },
+        })
+      )
+      expect(res.status, String(i)).toBe(500)
+    }
+
+    // La verificacion fue exitosa en los 20 intentos: no hay fallos acumulados.
+    mocks.verifyWebhookSignature.mockResolvedValue({
+      verificado: false,
+      estado: "FAILURE",
+      motivo: "FIRMA_INVALIDA",
+    })
+    const invalida = await POST(
+      request(eventoCaptura({ id: "WH-500-FINAL" }), {
+        headers: { "x-forwarded-for": IP_A },
+      })
+    )
+
+    expect(invalida.status).toBe(401)
+  })
+
+  it("un evento verificado limpia el presupuesto de fallos del origen", async () => {
+    for (let i = 0; i < WEBHOOK_FALLOS_MAX - 1; i++) {
+      limitadorWebhookPaypal.registrarFallo(IP_A)
+    }
+
+    const valido = await POST(
+      request(eventoCaptura({ id: "WH-LIMPIA-1" }), {
+        headers: { "x-forwarded-for": IP_A },
+      })
+    )
+    expect(valido.status).toBe(200)
+    expect(mocks.procesarCapturaPaypal).toHaveBeenCalledTimes(1)
+
+    mocks.verifyWebhookSignature.mockResolvedValue({
+      verificado: false,
+      estado: "FAILURE",
+      motivo: "FIRMA_INVALIDA",
+    })
+
+    const primero = await POST(
+      request(eventoCaptura({ id: "WH-LIMPIA-2" }), {
+        headers: { "x-forwarded-for": IP_A },
+      })
+    )
+    const segundo = await POST(
+      request(eventoCaptura({ id: "WH-LIMPIA-3" }), {
+        headers: { "x-forwarded-for": IP_A },
+      })
+    )
+
+    // Sin el reset, el primer fallo llegaria a 20 y el segundo responderia 429.
+    expect(primero.status).toBe(401)
+    expect(segundo.status).toBe(401)
+  })
+
+  it("al reiniciarse la ventana de fallos, la verificacion vuelve a intentarse", async () => {
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"))
+      reiniciarLimitadorWebhookPaypal()
+
+      for (let i = 0; i < WEBHOOK_FALLOS_MAX; i++) {
+        limitadorWebhookPaypal.registrarFallo(IP_A)
+      }
+
+      const bloqueada = await POST(
+        request(eventoCaptura({ id: "WH-VENTANA-1" }), {
+          headers: { "x-forwarded-for": IP_A },
+        })
+      )
+      expect(bloqueada.status).toBe(429)
+
+      vi.setSystemTime(new Date("2026-01-01T00:10:01.000Z"))
+      mocks.verifyWebhookSignature.mockResolvedValue({
+        verificado: false,
+        estado: "FAILURE",
+        motivo: "FIRMA_INVALIDA",
+      })
+
+      const reintento = await POST(
+        request(eventoCaptura({ id: "WH-VENTANA-2" }), {
+          headers: { "x-forwarded-for": IP_A },
+        })
+      )
+      expect(reintento.status).toBe(401)
+      expect(mocks.verifyWebhookSignature).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("los eventos y logs no guardan firma, certificado ni secreto", async () => {
+    mocks.verifyWebhookSignature.mockResolvedValue({
+      verificado: false,
+      estado: "FAILURE",
+      motivo: "FIRMA_INVALIDA",
+    })
+
+    const res = await POST(
+      request(eventoCaptura(), { headers: { "x-forwarded-for": IP_A } })
+    )
+
+    expect(res.status).toBe(401)
+    const persistido = JSON.stringify(mocks.eventoCreate.mock.calls)
+    for (const texto of [
+      "firma-valida",
+      "cert.pem",
+      "PAYPAL-TRANSMISSION-SIG",
+      "client-secret-de-prueba",
+    ]) {
+      expect(persistido).not.toContain(texto)
+      expect(logs()).not.toContain(texto)
+    }
   })
 })
 

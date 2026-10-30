@@ -79,6 +79,7 @@ vi.mock("@/lib/paypal/process", async (importOriginal) => {
 import { POST } from "@/app/api/webhooks/paypal/route"
 import { PaypalError } from "@/lib/paypal/client"
 import { registrarEventoPasarela } from "@/lib/paypal/events"
+import { reiniciarLimitadorWebhookPaypal } from "@/lib/paypal/webhook-limit"
 
 const BASE_URL = "https://pixelarch.dev/api/webhooks/paypal"
 
@@ -289,6 +290,7 @@ function dataEvento(indice = 0): Fila {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  reiniciarLimitadorWebhookPaypal()
   mocks.eventos.length = 0
   mocks.estado.pagos.clear()
   mocks.estado.creditos.clear()

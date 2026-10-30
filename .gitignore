@@ -44,3 +44,6 @@ next-env.d.ts
 
 # previews locales
 preview/
+
+# railway (estado local de la CLI)
+.railway/

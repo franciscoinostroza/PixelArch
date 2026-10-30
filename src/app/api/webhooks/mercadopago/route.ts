@@ -4,6 +4,12 @@ import { WebhookSignatureValidator, InvalidWebhookSignatureError } from "mercado
 import type { EstadoEnlace, Pasarela, Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { logger } from "@/lib/logger"
+import {
+  rateLimit,
+  rateLimitDetalle,
+  rateLimitEstado,
+  resetRateLimit,
+} from "@/lib/rate-limit"
 import { obtenerPagoMp, type PagoMp } from "@/lib/mercadopago"
 import {
   MOTIVO_INVALIDACION_OTRO_PAGO,
@@ -30,6 +36,37 @@ const MOTIVO_DUPLICADO = "DUPLICADO"
 const MOTIVO_ENLACE_INVALIDADO = "ENLACE_INVALIDADO"
 const MOTIVO_ENLACE_PAGADO = "ENLACE_PAGADO"
 const MOTIVO_HITO_PAGADO = "HITO_PAGADO"
+
+// Limites en memoria (best-effort, sin envs): cortan el abuso trivial y el
+// ruido de firmas invalidas sin bloquear un pago valido de Mercado Pago.
+const WEBHOOK_SOLICITUDES_MAX = 300
+const WEBHOOK_SOLICITUDES_VENTANA_MS = 60_000
+const WEBHOOK_FIRMAS_MAX = 20
+const WEBHOOK_FIRMAS_VENTANA_MS = 10 * 60_000
+
+function ipDe(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for")
+  if (forwarded) {
+    const primera = forwarded.split(",")[0]?.trim()
+    if (primera) return primera
+  }
+
+  const real = req.headers.get("x-real-ip")?.trim()
+  return real || "desconocida"
+}
+
+function respuesta429(retryAfterSegundos: number): NextResponse {
+  return NextResponse.json(
+    { error: "Demasiadas solicitudes" },
+    {
+      status: 429,
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+        "Retry-After": String(retryAfterSegundos),
+      },
+    }
+  )
+}
 
 /**
  * T-18 (AC-13, AC-20): el webhook MP resuelve el `EnlacePago` que origino la
@@ -700,6 +737,17 @@ async function procesarSoporte(params: {
 
 export async function POST(req: Request) {
   try {
+    const ip = ipDe(req)
+    const limite = rateLimitDetalle(
+      `webhook-mp:ip:${ip}`,
+      WEBHOOK_SOLICITUDES_MAX,
+      WEBHOOK_SOLICITUDES_VENTANA_MS
+    )
+    if (!limite.permitido) {
+      logger.debug("Webhook MP limitado por solicitudes")
+      return respuesta429(limite.retryAfterSegundos)
+    }
+
     const url = new URL(req.url)
     const secret = process.env.MP_WEBHOOK_SECRET
 
@@ -712,6 +760,13 @@ export async function POST(req: Request) {
 
     const dataId = url.searchParams.get("data.id") || body?.data?.id || ""
 
+    // Mercado Pago tambien envia notificaciones que no son pagos (por ejemplo
+    // topics de plan o de merchant order). Se descartan antes de la firma: no
+    // hay nada que cobrar y no se escribe ni se consulta la pasarela.
+    if (body?.type !== "payment" || !dataId) {
+      return NextResponse.json({ ok: true, ignored: true })
+    }
+
     if (!secret) {
       // En produccion no se procesa un webhook sin firma: sin el secreto no se
       // puede verificar el origen y un tercero podria simular un pago.
@@ -721,6 +776,16 @@ export async function POST(req: Request) {
       }
       logger.warn("MP_WEBHOOK_SECRET no configurada: webhook sin validacion de firma")
     } else {
+      const estadoFirma = rateLimitEstado(
+        `webhook-mp:firma:${ip}`,
+        WEBHOOK_FIRMAS_MAX,
+        WEBHOOK_FIRMAS_VENTANA_MS
+      )
+      if (estadoFirma.excedido) {
+        logger.debug("Webhook MP limitado por firmas invalidas")
+        return respuesta429(estadoFirma.retryAfterSegundos)
+      }
+
       try {
         WebhookSignatureValidator.validate({
           xSignature: req.headers.get("x-signature") || "",
@@ -730,15 +795,22 @@ export async function POST(req: Request) {
         })
       } catch (e) {
         if (e instanceof InvalidWebhookSignatureError) {
-          logger.warn("Webhook MP con firma invalida", { dataId })
+          // El contador de firmas invalidas es independiente del de solicitudes
+          // y solo penaliza intentos no autenticados. Log en debug para no
+          // inundar produccion y sin `dataId` ni la firma.
+          rateLimit(
+            `webhook-mp:firma:${ip}`,
+            WEBHOOK_FIRMAS_MAX,
+            WEBHOOK_FIRMAS_VENTANA_MS
+          )
+          logger.debug("Webhook MP con firma invalida")
           return NextResponse.json({ error: "Firma invalida" }, { status: 401 })
         }
         throw e
       }
-    }
 
-    if (body.type !== "payment" || !dataId) {
-      return NextResponse.json({ ok: true, ignored: true })
+      // Una firma valida limpia el presupuesto de fallos de ese origen.
+      resetRateLimit(`webhook-mp:firma:${ip}`)
     }
 
     const pagoMp = await obtenerPagoMp(dataId)

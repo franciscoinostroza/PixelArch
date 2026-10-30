@@ -342,6 +342,9 @@ const mocks = vi.hoisted(() => {
     eventoFindUnique,
     requireAdmin: vi.fn(),
     rateLimit: vi.fn(),
+    rateLimitDetalle: vi.fn(),
+    rateLimitEstado: vi.fn(),
+    resetRateLimit: vi.fn(),
     crearLinkDePago: vi.fn(),
     obtenerPagoMp: vi.fn(),
     getDolar: vi.fn(),
@@ -359,7 +362,12 @@ vi.mock("@/lib/auth", () => ({
   requireStaff: vi.fn(),
 }))
 
-vi.mock("@/lib/rate-limit", () => ({ rateLimit: mocks.rateLimit }))
+vi.mock("@/lib/rate-limit", () => ({
+  rateLimit: mocks.rateLimit,
+  rateLimitDetalle: mocks.rateLimitDetalle,
+  rateLimitEstado: mocks.rateLimitEstado,
+  resetRateLimit: mocks.resetRateLimit,
+}))
 
 vi.mock("@/lib/logger", () => ({
   logger: {
@@ -602,6 +610,15 @@ beforeEach(() => {
 
   mocks.requireAdmin.mockResolvedValue(ADMIN)
   mocks.rateLimit.mockReturnValue(true)
+  mocks.rateLimitDetalle.mockReturnValue({
+    permitido: true,
+    restantes: 1,
+    retryAfterSegundos: 0,
+  })
+  mocks.rateLimitEstado.mockReturnValue({
+    excedido: false,
+    retryAfterSegundos: 0,
+  })
   mocks.crearLinkDePago.mockResolvedValue({
     url: MP_URL,
     preferenceId: MP_PREFERENCE,

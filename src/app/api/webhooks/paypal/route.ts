@@ -1,17 +1,21 @@
 /**
- * POST /api/webhooks/paypal (T-29, plan.md §4.4 y §5.2).
+ * POST /api/webhooks/paypal (T-29, plan.md §4.4 y §5.2; H-7).
  *
  * - Verifica la firma server-to-server contra PayPal con
  *   `PAYPAL_WEBHOOK_ID`; nunca confia en el body ni en los headers por si
  *   solos. Sin configuracion responde 503; headers faltantes, cuerpo invalido o
  *   firma invalida/alterada responden 401 y dejan un evento tecnico sin PII.
+ * - H-7: limite de solicitudes por origen y presupuesto de fallos antes de la
+ *   verificacion costosa. El 429 no escribe `EventoPasarela`; el 413 no lee ni
+ *   parsea. El exito limpia el presupuesto de fallos del origen.
  * - Timeout de 4 s por llamada (verificacion y orden/captura). Si la
  *   verificacion no esta disponible responde 503 para que PayPal reintente.
  * - Dispatch idempotente por `EventoPasarela.eventoId`; los eventos
  *   desconocidos, duplicados y ya resueltos responden 200. Un error de
  *   procesamiento responde 500 para que PayPal reintente.
- * - No persiste ni loguea el payload crudo ni datos del pagador. El registro
- *   tecnico solo contiene ids, tipo, monto, moneda, resultado y motivo.
+ * - No persiste ni loguea el payload crudo, la IP, la firma ni datos del
+ *   pagador. El registro tecnico solo contiene ids, tipo, monto, moneda,
+ *   resultado y motivo.
  */
 
 import { NextResponse } from "next/server"
@@ -25,6 +29,10 @@ import {
   verifyWebhookSignature,
 } from "@/lib/paypal/client"
 import { esPaypalProcessError } from "@/lib/paypal/process"
+import {
+  cuerpoExcedeLimite,
+  limitadorWebhookPaypal,
+} from "@/lib/paypal/webhook-limit"
 import {
   procesarEventoPaypal,
   registrarFirmaInvalida,
@@ -40,12 +48,27 @@ function esRegistro(valor: unknown): valor is Record<string, unknown> {
 
 function json(
   body: Record<string, unknown>,
-  status = 200
+  status = 200,
+  extraHeaders: Record<string, string> = {}
 ): NextResponse {
   return NextResponse.json(body, {
     status,
-    headers: { "Cache-Control": "no-store, max-age=0" },
+    headers: {
+      "Cache-Control": "no-store, max-age=0",
+      ...extraHeaders,
+    },
   })
+}
+
+function ipDe(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for")
+  if (forwarded) {
+    const primera = forwarded.split(",")[0]?.trim()
+    if (primera) return primera
+  }
+
+  const real = req.headers.get("x-real-ip")?.trim()
+  return real || "desconocida"
 }
 
 function codigoDeError(error: unknown): string {
@@ -60,15 +83,6 @@ function respuestaSegunResultado(resultado: ResultadoWebhookPaypal): NextRespons
   return json({ ok: true })
 }
 
-async function leerEvento(req: Request): Promise<unknown> {
-  try {
-    const crudo = await req.text()
-    return JSON.parse(crudo) as unknown
-  } catch {
-    return null
-  }
-}
-
 export async function POST(req: Request) {
   const config = paypalConfig()
   if (!config.disponible || !config.webhookId) {
@@ -76,16 +90,63 @@ export async function POST(req: Request) {
     return json({ error: "Webhook no configurado" }, 503)
   }
 
+  const ip = ipDe(req)
+  const limite = limitadorWebhookPaypal.permitir(ip)
+  if (!limite.permitido) {
+    logger.warn("Webhook PayPal limitado", { motivo: limite.motivo })
+    return json({ error: "Demasiadas solicitudes" }, 429, {
+      "Retry-After": String(limite.retryAfterSegundos),
+    })
+  }
+
+  if (cuerpoExcedeLimite(req.headers.get("content-length"), null)) {
+    logger.debug("Webhook PayPal con cuerpo excesivo")
+    return json({ error: "Solicitud demasiado grande" }, 413)
+  }
+
   const headers = leerHeadersTransmision(req.headers)
-  const evento = await leerEvento(req)
 
   if (!headers) {
     await registrarFirmaInvalida({
       headers: null,
-      evento,
+      evento: null,
       motivo: "HEADERS_INCOMPLETOS",
     })
+    limitadorWebhookPaypal.registrarFallo(ip)
     logger.warn("Webhook PayPal sin headers de transmision")
+    return json({ error: "Firma invalida" }, 401)
+  }
+
+  let crudo: string
+  try {
+    crudo = await req.text()
+  } catch {
+    await registrarFirmaInvalida({
+      headers,
+      evento: null,
+      motivo: "CUERPO_INVALIDO",
+    })
+    limitadorWebhookPaypal.registrarFallo(ip)
+    logger.warn("Webhook PayPal con cuerpo invalido")
+    return json({ error: "Firma invalida" }, 401)
+  }
+
+  if (cuerpoExcedeLimite(null, crudo)) {
+    logger.debug("Webhook PayPal con cuerpo excesivo")
+    return json({ error: "Solicitud demasiado grande" }, 413)
+  }
+
+  let evento: unknown
+  try {
+    evento = JSON.parse(crudo) as unknown
+  } catch {
+    await registrarFirmaInvalida({
+      headers,
+      evento: null,
+      motivo: "CUERPO_INVALIDO",
+    })
+    limitadorWebhookPaypal.registrarFallo(ip)
+    logger.warn("Webhook PayPal con cuerpo invalido")
     return json({ error: "Firma invalida" }, 401)
   }
 
@@ -93,9 +154,10 @@ export async function POST(req: Request) {
     await registrarFirmaInvalida({
       headers,
       evento,
-      motivo: evento === null ? "CUERPO_INVALIDO" : "EVENTO_INVALIDO",
+      motivo: "EVENTO_INVALIDO",
     })
-    logger.warn("Webhook PayPal con cuerpo invalido")
+    limitadorWebhookPaypal.registrarFallo(ip)
+    logger.warn("Webhook PayPal con evento invalido")
     return json({ error: "Firma invalida" }, 401)
   }
 
@@ -121,6 +183,7 @@ export async function POST(req: Request) {
         evento,
         motivo: "EVENTO_INVALIDO",
       })
+      limitadorWebhookPaypal.registrarFallo(ip)
       logger.warn("Webhook PayPal con evento invalido")
       return json({ error: "Firma invalida" }, 401)
     }
@@ -142,11 +205,14 @@ export async function POST(req: Request) {
           ? "HEADERS_INCOMPLETOS"
           : "FIRMA_INVALIDA",
     })
+    limitadorWebhookPaypal.registrarFallo(ip)
     logger.warn("Webhook PayPal con firma invalida", {
       estado: verificacion.estado,
     })
     return json({ error: "Firma invalida" }, 401)
   }
+
+  limitadorWebhookPaypal.registrarExito(ip)
 
   try {
     const resultado = await procesarEventoPaypal(evento)

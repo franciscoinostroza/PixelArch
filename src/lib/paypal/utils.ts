@@ -133,6 +133,45 @@ export function resolverBaseUrlPublica(
   }
 }
 
+const RUTA_ESTADO_PAYPAL = "/pago/paypal/estado"
+
+export interface LocationEstadoPublico {
+  location: string
+  absoluta: boolean
+}
+
+/**
+ * `Location` para volver a `/pago/paypal/estado` despues de un retorno,
+ * cancelacion o error del link publico.
+ *
+ * Si hay base publica valida se devuelve una URL absoluta normalizada (misma
+ * semantica que `new URL("/pago/paypal/estado", base)`). Si no la hay —env
+ * invalida o request con origin interno— se devuelve una ruta relativa fija:
+ * detras del proxy de Railway `req.url` puede ser `http://0.0.0.0:8080`,
+ * inaccesible para el comprador, y una URL relativa la resuelve el navegador
+ * contra el origen publico real.
+ *
+ * No acepta host, esquema ni path del usuario y no loguea el valor de la env.
+ * El token se codifica con `URLSearchParams` (no hay open redirect).
+ */
+export function construirLocationEstado(
+  configurada: string | null | undefined,
+  requestUrl: string,
+  token: string,
+  estado: string
+): LocationEstadoPublico {
+  const base = resolverBaseUrlPublica(configurada, requestUrl)
+  const query = new URLSearchParams({ token, estado }).toString()
+
+  if (!base) {
+    return { location: `${RUTA_ESTADO_PAYPAL}?${query}`, absoluta: false }
+  }
+
+  const url = new URL(RUTA_ESTADO_PAYPAL, base)
+  url.search = query
+  return { location: url.toString(), absoluta: true }
+}
+
 /** Token opaco, sin PII ni ids internos: 24 bytes -> 32 caracteres base64url. */
 export function generarTokenEnlace(): string {
   return randomBytes(PAYPAL_TOKEN_BYTES).toString("base64url")

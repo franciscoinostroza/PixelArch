@@ -22,7 +22,7 @@ H-6 es una investigacion: su "test" es el checklist documental del expediente, n
   - **Deps:** ninguna.
   - **Nota:** H-9 no dispara build (docs-only por watchPatterns). No se agrega test de repo; la evidencia es `git check-ignore` + `git status`.
 
-- [ ] **T-02 (AC-H8-1 a AC-H8-9) Redireccion segura con base publica invalida**
+- [x] **T-02 (AC-H8-1 a AC-H8-9) Redireccion segura con base publica invalida**
   - En `src/lib/paypal/utils.ts` agregar:
     - `LocationEstadoPublico` (`location: string`, `absoluta: boolean`);
     - `construirLocationEstado(configurada, requestUrl, token, estado)`:
@@ -222,3 +222,4 @@ H-6 es una investigacion: su "test" es el checklist documental del expediente, n
 - H-6 no se marca `[x]` hasta tener el expediente y la decision (o el cierre como "abierto con datos faltantes").
 - **No mergear a `main` ni deployar a produccion antes de T-38.** T-38 no esta autorizado en esta sesion.
 - PASS tester+reviewer: 122 tests, tsc 0; revisionEstado=RECHAZADO sigue mostrando "Pago en revision" (coherente con el plan); T-02 pendiente por construirLocationEstado/retorno.
+- PASS tester+reviewer (T-02/H-8): 190 tests, tsc 0; Location relativo seguro, sin 0.0.0.0 ni open redirect; admin/paypal/link falla cerrado.

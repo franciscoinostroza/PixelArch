@@ -3,6 +3,7 @@ import {
   PAYPAL_LINK_TTL_MS,
   PaypalValidationError,
   calcularExpiracionEnlace,
+  construirLocationEstado,
   esEnlaceVigente,
   esMonedaUsd,
   estaVencido,
@@ -326,6 +327,7 @@ describe("base canonica de returnUrl/cancelUrl (T-14)", () => {
       "http://pixelarch.dev",
       "https://user:pass@pixelarch.dev",
       "https://pixelarch.dev?x=1",
+      "https://pixelarch.dev#frag",
       "javascript:alert(1)",
       "no-es-url",
     ]) {
@@ -347,6 +349,114 @@ describe("base canonica de returnUrl/cancelUrl (T-14)", () => {
       resolverBaseUrlPublica(undefined, "http://pixelarch.dev/pago")
     ).toBeNull()
     expect(resolverBaseUrlPublica(undefined, "no-es-url")).toBeNull()
+  })
+})
+
+describe("redireccion segura a /pago/paypal/estado (H-8)", () => {
+  const RUTA = "/pago/paypal/estado"
+  const REQUEST_PUBLICA = "https://pixelarch.dev/pago/paypal/token_1"
+  const REQUEST_INTERNA = "http://0.0.0.0:8080/pago/paypal/token_1"
+
+  it("AC-H8-7: con base valida devuelve Location absoluto normalizado", () => {
+    expect(
+      construirLocationEstado(
+        "https://staging.pixelarch.dev/",
+        REQUEST_INTERNA,
+        "token_1",
+        "pagado"
+      )
+    ).toEqual({
+      location: `https://staging.pixelarch.dev${RUTA}?token=token_1&estado=pagado`,
+      absoluta: true,
+    })
+  })
+
+  it("AC-H8-1/AC-H8-2: una env invalida devuelve Location relativo sin host interno", () => {
+    for (const env of [
+      "no-es-url",
+      "http://pixelarch.dev",
+      "https://user:pass@pixelarch.dev",
+      "https://pixelarch.dev?x=1",
+      "https://pixelarch.dev#frag",
+    ]) {
+      const resultado = construirLocationEstado(env, REQUEST_INTERNA, "token_1", "error")
+
+      expect(resultado.absoluta, env).toBe(false)
+      expect(resultado.location, env).toBe(
+        `${RUTA}?token=token_1&estado=error`
+      )
+      expect(resultado.location).not.toContain("0.0.0.0")
+      expect(resultado.location).not.toContain("//")
+
+      // AC-H8-1: una env invalida tampoco cae al origin publico de la request.
+      expect(
+        construirLocationEstado(env, REQUEST_PUBLICA, "token_1", "error").absoluta,
+        env
+      ).toBe(false)
+    }
+  })
+
+  it("AC-H8-8: sin env usa el origin publico y cae a relativo si es interno", () => {
+    expect(
+      construirLocationEstado(undefined, REQUEST_PUBLICA, "token_1", "pendiente")
+    ).toEqual({
+      location: `https://pixelarch.dev${RUTA}?token=token_1&estado=pendiente`,
+      absoluta: true,
+    })
+
+    for (const configurada of [undefined, null, ""] as const) {
+      expect(
+        construirLocationEstado(configurada, REQUEST_INTERNA, "token_1", "pendiente")
+      ).toEqual({
+        location: `${RUTA}?token=token_1&estado=pendiente`,
+        absoluta: false,
+      })
+    }
+  })
+
+  it("AC-H8-9: mantiene la ruta fija y codifica el token sin abrir otro parametro", () => {
+    const token = "tok&estado=pagado#extra"
+    const { location, absoluta } = construirLocationEstado(
+      undefined,
+      REQUEST_INTERNA,
+      token,
+      "error"
+    )
+
+    expect(absoluta).toBe(false)
+    expect(location.startsWith(`${RUTA}?`)).toBe(true)
+    expect(location).not.toContain("0.0.0.0")
+    expect(location).not.toContain("&estado=pagado")
+
+    const params = new URLSearchParams(location.split("?")[1])
+    expect(params.get("token")).toBe(token)
+    expect(params.get("estado")).toBe("error")
+  })
+
+  it("AC-H8-9: un token con host, esquema o path no cambia el destino del redirect", () => {
+    for (const token of [
+      "//evil.example/pago",
+      "https://evil.example/pago",
+      "../../admin",
+    ]) {
+      const { location, absoluta } = construirLocationEstado(
+        undefined,
+        REQUEST_INTERNA,
+        token,
+        "error"
+      )
+
+      expect(absoluta, token).toBe(false)
+      expect(location.startsWith(`${RUTA}?`), token).toBe(true)
+
+      // Aunque el token parezca una URL, el navegador resuelve el Location
+      // contra el origen publico real: el destino sigue siendo la ruta fija.
+      const resuelta = new URL(location, "https://pixelarch.dev")
+      expect(resuelta.origin, token).toBe("https://pixelarch.dev")
+      expect(resuelta.pathname, token).toBe(RUTA)
+      expect(resuelta.searchParams.get("token"), token).toBe(token)
+      expect(resuelta.searchParams.get("estado"), token).toBe("error")
+    }
   })
 })
 

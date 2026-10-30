@@ -768,3 +768,43 @@ describe("POST /api/admin/paypal/link: errores de base (500 generico)", () => {
     expectErrorGenerico(res, await json(res))
   })
 })
+
+describe("POST /api/admin/paypal/link: base publica invalida (H-8)", () => {
+  it.each([
+    "no-es-url",
+    "http://pixelarch.dev",
+    "https://user:pass@pixelarch.dev",
+  ])(
+    "AC-H8-6: responde 400 con NEXT_PUBLIC_URL invalida (%s) sin crear enlace ni orden",
+    async (env) => {
+      const previo = process.env.NEXT_PUBLIC_URL
+      process.env.NEXT_PUBLIC_URL = env
+
+      try {
+        const res = await POST(
+          request(
+            { hitoId: "hito_1" },
+            "https://0.0.0.0:8080/api/admin/paypal/link"
+          )
+        )
+        const payload = await json(res)
+
+        expect(res.status).toBe(400)
+        expect(payload).toEqual({ error: "Solicitud invalida" })
+        expect(mocks.requireStaff).toHaveBeenCalledTimes(1)
+        expect(mocks.crearEnlacePaypal).not.toHaveBeenCalled()
+        expect(mocks.createOrder).not.toHaveBeenCalled()
+        // Falla cerrado: no se consulta el concepto ni se escribe nada.
+        expect(mocks.hitoFindUnique).not.toHaveBeenCalled()
+        expect(mocks.pagoFindFirst).not.toHaveBeenCalled()
+        expectSinEscrituras()
+      } finally {
+        if (previo === undefined) {
+          delete process.env.NEXT_PUBLIC_URL
+        } else {
+          process.env.NEXT_PUBLIC_URL = previo
+        }
+      }
+    }
+  )
+})

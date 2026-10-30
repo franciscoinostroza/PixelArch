@@ -298,7 +298,9 @@ function enlace(overrides: Record<string, unknown> = {}) {
 function redirect(res: Response): URL {
   const location = res.headers.get("location")
   expect(location).toBeTruthy()
-  return new URL(location as string)
+  // H-8: cuando no hay base publica valida el `Location` es relativo. La base
+  // ficticia solo resuelve esos casos; con un `Location` absoluto no cambia.
+  return new URL(location as string, BASE_URL)
 }
 
 function estadoDeRedirect(res: Response): string | null {
@@ -1670,6 +1672,200 @@ describe("redirect a estado detras del proxy (base publica)", () => {
 
     expectLocationPublico(res)
     expect(estadoDeRedirect(res)).toBe("pendiente")
+  })
+
+  /** Fija (o borra) NEXT_PUBLIC_URL y restaura el valor previo al terminar. */
+  async function conEnvPublica<T>(
+    valor: string | undefined,
+    fn: () => Promise<T>
+  ): Promise<T> {
+    const previo = process.env.NEXT_PUBLIC_URL
+
+    if (valor === undefined) {
+      delete process.env.NEXT_PUBLIC_URL
+    } else {
+      process.env.NEXT_PUBLIC_URL = valor
+    }
+
+    try {
+      return await fn()
+    } finally {
+      if (previo === undefined) {
+        delete process.env.NEXT_PUBLIC_URL
+      } else {
+        process.env.NEXT_PUBLIC_URL = previo
+      }
+    }
+  }
+
+  /**
+   * AC-H8-2: sin base publica valida el `Location` es relativo, apunta a la
+   * ruta fija de estado y nunca incluye el host interno ni un esquema.
+   */
+  function expectLocationRelativo(res: Response): URL {
+    const location = res.headers.get("location") ?? ""
+
+    expect(location.startsWith("/pago/paypal/estado?")).toBe(true)
+    expect(location).not.toContain("0.0.0.0")
+    expect(location).not.toContain("http")
+    expect(res.headers.get("cache-control")).toContain("no-store")
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer")
+    expect(res.headers.get("x-robots-tag")).toContain("noindex")
+
+    return redirect(res)
+  }
+
+  it.each([
+    "no-es-url",
+    "http://pixelarch.dev",
+    "https://user:pass@pixelarch.dev",
+  ])(
+    "AC-H8-2: con NEXT_PUBLIC_URL invalida (%s) /pago/paypal/[token] redirige relativo",
+    async (env) => {
+      mocks.findUnique.mockResolvedValue(null)
+
+      const res = await conEnvPublica(env, () =>
+        GET(
+          requestInterno(
+            "/pago/paypal/token_env_invalida",
+            {},
+            "198.51.100.81"
+          ),
+          contexto("token_env_invalida")
+        )
+      )
+
+      const location = expectLocationRelativo(res)
+      expect(location.searchParams.get("token")).toBe("token_env_invalida")
+      expect(location.searchParams.get("estado")).toBe("invalidado")
+    }
+  )
+
+  it("AC-H8-3: con env invalida no llama a createOrder y redirige relativo a error", async () => {
+    mocks.findUnique.mockResolvedValue(
+      enlace({ checkoutUrl: null, orderExpiraEn: null })
+    )
+
+    const res = await conEnvPublica("no-es-url", () =>
+      GET(
+        requestInterno("/pago/paypal/token_sin_orden", {}, "198.51.100.82"),
+        contexto("token_sin_orden")
+      )
+    )
+
+    const location = expectLocationRelativo(res)
+    expect(location.searchParams.get("estado")).toBe("error")
+    expect(mocks.createOrder).not.toHaveBeenCalled()
+  })
+
+  it("AC-H8-4: el retorno procesa la captura y redirige relativo con env invalida", async () => {
+    const token = "token_ret_env_invalida"
+    const orderId = "ORDER-RET-ENV-INVALIDA"
+
+    mocks.findUnique.mockResolvedValue(enlace({ token, externalId: orderId }))
+    mocks.getOrder.mockResolvedValue(ordenCapturada(orderId, token))
+
+    const res = await conEnvPublica("https://user:pass@pixelarch.dev", () =>
+      GETRetorno(
+        requestInterno(
+          "/pago/paypal/retorno",
+          { enlace: token, token: orderId },
+          "198.51.100.83"
+        )
+      )
+    )
+
+    const location = expectLocationRelativo(res)
+    expect(location.searchParams.get("token")).toBe(token)
+    expect(location.searchParams.get("estado")).toBe("pagado")
+    expect(mocks.procesarCapturaPaypal).toHaveBeenCalledTimes(1)
+  })
+
+  it("AC-H8-5: cancelado registra el evento y redirige relativo con env invalida", async () => {
+    const token = "token_cancel_env_invalida"
+    const orderId = "ORDER-CANCEL-ENV-INVALIDA"
+
+    mocks.findUnique.mockResolvedValue(enlace({ token, externalId: orderId }))
+
+    const res = await conEnvPublica("no-es-url", () =>
+      GETCancelado(
+        requestInterno(
+          "/pago/paypal/cancelado",
+          { enlace: token, token: orderId },
+          "198.51.100.84"
+        )
+      )
+    )
+
+    const location = expectLocationRelativo(res)
+    expect(location.searchParams.get("token")).toBe(token)
+    expect(location.searchParams.get("estado")).toBe("pendiente")
+    expect(mocks.registrarEventoPasarela).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tipo: "PAYPAL.CANCELADO",
+        enlacePagoId: "enlace_1",
+      })
+    )
+  })
+
+  it("AC-H8-9: no expone el valor invalido de NEXT_PUBLIC_URL en logs ni en el Location", async () => {
+    const envInvalida = "https://usuario:clave-secreta@pixelarch.dev"
+    mocks.findUnique.mockResolvedValue(
+      enlace({ checkoutUrl: null, orderExpiraEn: null })
+    )
+
+    const res = await conEnvPublica(envInvalida, () =>
+      GET(
+        requestInterno("/pago/paypal/token_log_env", {}, "198.51.100.87"),
+        contexto("token_log_env")
+      )
+    )
+
+    const location = expectLocationRelativo(res)
+    expect(location.searchParams.get("estado")).toBe("error")
+    expect(mocks.createOrder).not.toHaveBeenCalled()
+    // Se ejercita el camino que loguea el fallo de base publica.
+    expect(mocks.loggerError).toHaveBeenCalled()
+
+    const salida = JSON.stringify([
+      res.headers.get("location"),
+      mocks.loggerDebug.mock.calls,
+      mocks.loggerInfo.mock.calls,
+      mocks.loggerWarn.mock.calls,
+      mocks.loggerError.mock.calls,
+    ])
+    expect(salida).not.toContain("usuario")
+    expect(salida).not.toContain("clave-secreta")
+    expect(salida).not.toContain(envInvalida)
+  })
+
+  it("AC-H8-8: sin env y origin interno redirige relativo", async () => {
+    mocks.findUnique.mockResolvedValue(null)
+
+    const res = await conEnvPublica(undefined, () =>
+      GET(
+        requestInterno("/pago/paypal/token_sin_env", {}, "198.51.100.85"),
+        contexto("token_sin_env")
+      )
+    )
+
+    expectLocationRelativo(res)
+    expect(estadoDeRedirect(res)).toBe("invalidado")
+  })
+
+  it("AC-H8-8: sin env y origin publico sigue usando el Location absoluto", async () => {
+    mocks.findUnique.mockResolvedValue(null)
+
+    const res = await conEnvPublica(undefined, () =>
+      GET(
+        request("token_origin_publico", "198.51.100.86"),
+        contexto("token_origin_publico")
+      )
+    )
+
+    expect(res.headers.get("location")).toBe(
+      `${BASE_URL}/pago/paypal/estado?token=token_origin_publico&estado=invalidado`
+    )
   })
 })
 

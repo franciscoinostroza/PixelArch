@@ -17,7 +17,7 @@ import { prisma } from "@/lib/prisma"
 import { rateLimit } from "@/lib/rate-limit"
 import { logger } from "@/lib/logger"
 import { registrarEventoPasarela } from "@/lib/paypal/events"
-import { resolverBaseUrlPublica } from "@/lib/paypal/utils"
+import { construirLocationEstado } from "@/lib/paypal/utils"
 
 export const dynamic = "force-dynamic"
 
@@ -77,26 +77,23 @@ function respuestaDemasiadasSolicitudes(): NextResponse {
   })
 }
 
-function urlEstado(req: Request, token: string, estado: EstadoPublico): URL {
-  // Detras del proxy de Railway `req.url` puede ser el origen interno
-  // (0.0.0.0:8080). La base publica configurada manda; `req.url` queda solo
-  // como fallback cuando no hay base valida.
-  const base =
-    resolverBaseUrlPublica(process.env.NEXT_PUBLIC_URL, req.url) ?? req.url
-  const url = new URL("/pago/paypal/estado", base)
-  url.searchParams.set("token", token)
-  url.searchParams.set("estado", estado)
-  return url
-}
-
 function redirigirEstado(
   req: Request,
   token: string,
   estado: EstadoPublico
 ): NextResponse {
-  return NextResponse.redirect(urlEstado(req, token, estado), {
+  // Si no hay base publica valida, `Location` es relativo: `NextResponse.redirect`
+  // no acepta URLs relativas, por eso se arma la respuesta a mano.
+  const { location } = construirLocationEstado(
+    process.env.NEXT_PUBLIC_URL,
+    req.url,
+    token,
+    estado
+  )
+
+  return new NextResponse(null, {
     status: 302,
-    headers: HEADERS_SEGURIDAD,
+    headers: { ...HEADERS_SEGURIDAD, Location: location },
   })
 }
 

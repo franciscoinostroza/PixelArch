@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { PagoMp } from "@/lib/mercadopago"
 
 /**
@@ -603,6 +603,11 @@ async function json(res: Response): Promise<Record<string, unknown>> {
   return (await res.json()) as Record<string, unknown>
 }
 
+afterEach(() => {
+  // Los tests que fijan la fecha con fake timers no deben contaminar al resto.
+  vi.useRealTimers()
+})
+
 beforeEach(() => {
   vi.clearAllMocks()
   resetStore()
@@ -1080,6 +1085,12 @@ describe("POST /api/webhooks/mercadopago: pago MP con trazabilidad (AC-13, AC-20
   })
 
   it("acredita los meses del soporte y registra Pago.meses", async () => {
+    // Test date-sensitive: `vencimientoConMeses` parte de `PROXIMO_PAGO` solo
+    // mientras sea futuro. Fijamos el reloj antes del vencimiento para que el
+    // resultado sea 2027-02-01 sin depender del dia en que se corra la suite.
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-10-20T12:00:00.000Z"))
+
     crearSuscripcion()
     crearEnlace({
       id: "enlace_soporte",

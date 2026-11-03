@@ -1,7 +1,7 @@
 # Tareas 003: Hardening posterior a T-37/002 (H-5, H-6, H-7, H-8, H-9)
 
 **Spec:** ./spec.md · **Plan:** ./plan.md · **Evidencia H-6:** ./h6-mp-firmas.md
-**Rama:** `paypal-staging` · **Gate:** no merge a `main` ni deploy a produccion antes de T-38. T-38 no esta autorizado.
+**Rama:** `paypal-staging` · **Gate T-38:** ejecutado 2026-11-03 (rollout a produccion PASS con observacion; sin pago real de smoke). T-09 (smoke manual de staging) sigue `[ ]`.
 **Restricciones:** no se toca `prisma/schema.prisma`, envs, `Dockerfile`, `package.json` ni `railway.toml`.
 No se rota `MP_WEBHOOK_SECRET`, no se desactiva la firma de MP y no se toca el panel de Mercado Pago.
 H-6 incluye codigo acotado (hardening del webhook MP) ademas del expediente documental.
@@ -160,7 +160,7 @@ H-6 se verifica con el checklist del expediente (evidencia) y con tests de ruta 
 ## Fase 5: Cierre
 
 - [x] **T-07 (transversal) Documentacion y trazabilidad**
-  - **Estado:** PASS (2026-10-30) — `AGENTS.md`/`MEMORY.md` actualizados con H-5..H-9, conteos y backlog restante; T-38 sigue pendiente/no autorizado.
+  - **Estado:** PASS (2026-10-30) — `AGENTS.md`/`MEMORY.md` actualizados con H-5..H-9, conteos y backlog restante; en esa fecha T-38 seguia pendiente/no autorizado (ver T-10).
   - Actualizar `AGENTS.md` y `MEMORY.md`:
     - H-5/H-7/H-8/H-9 cerrados o en curso segun corresponda;
     - H-6 con su estado (evidencia + hardening) y el enlace al expediente;
@@ -187,16 +187,19 @@ H-6 se verifica con el checklist del expediente (evidencia) y con tests de ruta 
     - enviar al webhook MP un topic ajeno (`type: "plan"`) y confirmar `200` ignorado sin firma ni pago; opcionalmente, un POST con firma invalida de prueba y confirmar `401`/`429` sin crear `Pago`;
     - verificar `git check-ignore` de `.railway/`;
     - H-8 se valida con los tests de la suite (no cambiar `NEXT_PUBLIC_URL` de staging).
-  - **No mergear a `main` ni deployar a produccion antes de T-38.**
+  - **T-38 ya se ejecuto (2026-11-03):** este smoke es solo de staging y no cambia produccion.
   - **Hecho cuando:** checklist de staging completo y sin cambios de envs/schema.
   - **Deps:** T-08.
 
-- [ ] **T-10 (sin AC de producto; gate operativo) T-38 (no autorizado)**
+- [x] **T-10 (sin AC de producto; gate operativo) T-38 (ejecutado 2026-11-03)**
+  - **Estado:** PASS con observacion — deploy de produccion `f1185f76`, commit `de64b50`, health OK; `db push` + backfill (`UPDATE 0`, sin filas a migrar); PayPal Live cargado (33 variables); webhook `https://pixelarch.dev/api/webhooks/paypal` responde `401` sin firma; admin y Mercado Pago operativos.
+  - **Observacion (G7):** no se ejecuto un pago real de smoke por decision del dueno; no hubo cobro live de punta a punta. Riesgo residual: la validacion live de firma, captura y recibo queda para el primer pago real; monitorearlo con prioridad.
+  - **Rollback definido (no ejecutado):** quitar las envs PayPal, deshabilitar el webhook Live y redeployar; sin borrar datos ni revertir el esquema (aditivo).
+  - **Pendiente documental:** `de64b50` difiere de `139b8cb`; no se reporta revalidacion de suite/typecheck/build sobre ese SHA ni backup/restore (G3). `[NECESITA ACLARACION]` si hubo cambios de codigo.
+  - **Desvio de dependencias:** T-09 (smoke manual de staging) sigue `[ ]` y no bloqueo el rollout; queda como deuda de validacion manual.
   - No es un commit. Solo se ejecuta con autorizacion explicita del dueno.
-  - Orden obligatorio: `db push` + backfill en produccion **antes** del merge a `main`/auto-deploy; FF-merge de `paypal-staging` para conservar `139b8cb`; deploy con PayPal deshabilitado; envs/webhook live; smoke (health, admin, link MP, link PayPal de bajo monto si se aprueba, recibo MP, recibo PayPal, pagina de estado en revision); monitoreo.
-  - Rollback: quitar envs PayPal y revertir el deploy.
-  - **Hecho cuando:** T-38 autorizado y ejecutado en ese orden; hasta entonces queda `[ ]`.
-  - **Deps:** T-09 + autorizacion del dueno.
+  - **Hecho cuando:** T-38 autorizado y ejecutado; cumplido con la observacion anterior.
+  - **Deps:** T-09 + autorizacion del dueno (T-09 queda pendiente, ver desvio).
 
 ## Cobertura AC -> tarea y test
 
@@ -255,12 +258,13 @@ H-6 se verifica con el checklist del expediente (evidencia) y con tests de ruta 
 - No usar `npm test` en watch; no tocar la base real; mockear Prisma, PayPal, MP y navegacion.
 - Marcar `[x]` solo despues de tester + reviewer. Si un AC cambia, actualizar spec/plan/tasks en el mismo cambio.
 - T-05 y T-06 se marcan `[x]` solo con el checklist del expediente y los tests de ruta aprobados por tester/reviewer.
-- **No mergear a `main` ni deployar a produccion antes de T-38.** T-38 no esta autorizado en esta sesion.
+- **T-38 ejecutado (2026-11-03):** rollout a produccion PASS con observacion; sin pago real de smoke por decision del dueno. T-09 (smoke manual de staging) sigue pendiente.
 - PASS tester+reviewer (T-03/H-5): 122 tests, tsc 0; revisionEstado=RECHAZADO sigue mostrando "Pago en revision" (coherente con el plan); en ese momento T-02 seguia pendiente por construirLocationEstado/retorno.
 - PASS tester+reviewer (T-02/H-8): 190 tests, tsc 0; Location relativo seguro, sin 0.0.0.0 ni open redirect; admin/paypal/link falla cerrado.
 - PASS tester+reviewer (T-04/H-7): 429/413/401 tempranos sin verificar ni escribir, 503 no consume presupuesto, eventos verificados 200/500 intactos y logs sin IP/PII. No bloqueante: `429` PayPal en `warn` (evaluar `debug`) y helper de IP compartido con MP.
 - PASS tester+reviewer (T-05/H-6 evidencia): checklist completo (URL/endpoint, secreto sin valor, warnings 08:35/08:51 sin pago, A/B, decision) y sin PII ni secretos. No bloqueante: completar el identificador de cuenta/aplicacion MP en la matriz.
 - PASS tester+reviewer (T-06/H-6 hardening MP): topic ajeno/sin `data.id` ignorados antes de la firma, 429 sin validar/consultar/escribir, `401` con `debug` sin PII, reset en firma valida y pago valido intacto. No bloqueante: umbrales reales de MP no ejercitados a nivel ruta (rate limit mockeado), precedencia `no-payment` sin secreto y helper de IP compartido.
 - PASS tester+reviewer (T-01/H-9): `.railway/` ignorado, `git ls-files .railway` vacio y diff solo de repo/docs.
-- PASS docs+verificacion (T-07/T-08, 2026-10-30): suite **1644/1644 tests en 85 archivos** (0 fallos), `tsc --noEmit` 0 errores, `npm run lint` 18 errores/18 warnings (baseline preexistente) y `next build` PASS. T-09 (smoke de staging) queda `[ ]` porque no se ejecuto en esta sesion; T-10/T-38 sigue `[ ]` y no autorizado.
+- PASS docs+verificacion (T-07/T-08, 2026-10-30): suite **1644/1644 tests en 85 archivos** (0 fallos), `tsc --noEmit` 0 errores, `npm run lint` 18 errores/18 warnings (baseline preexistente) y `next build` PASS. T-09 (smoke de staging) queda `[ ]` porque no se ejecuto en esa sesion.
+- PASS con observacion (T-10/T-38, 2026-11-03): deploy `f1185f76` en `de64b50`, health OK, `db push` + backfill (`UPDATE 0`), PayPal Live (33 variables), webhook `401` sin firma y admin/MP operativos; **sin pago real de smoke por decision del dueno**. Rollback definido sin borrar datos. `de64b50` difiere de `139b8cb` y no se reporta revalidacion sobre ese SHA.
 - **Pendiente del planner/coordinator:** reflejar en `spec.md` y `plan.md` el PASS tester+reviewer de H-6/H-7. El implementer no tiene permiso de edicion sobre `specs/**` salvo `tasks.md`; el alcance no cambia.

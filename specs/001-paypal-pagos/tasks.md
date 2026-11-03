@@ -68,9 +68,13 @@ Reglas:
 
 ## Fase 7: Deploy
 
-- [x] T-37 (AC-16, AC-29) Deploy sandbox: crear/verificar el entorno **Railway staging con Postgres separado**, aplicar `prisma db push`/backfill en esa BD, cargar envs sandbox, configurar el webhook sandbox contra la URL publica estable de staging, validar la tarifa real y ejecutar el checklist completo; verificar que produccion no se toca · `prisma/schema.prisma`, `specs/001-paypal-pagos/sandbox.md` · T-03, T-36. PASS con observaciones; evidencia en review.md; T-38 no autorizado en esta sesión.
-- [ ] T-38 (AC-29) Rollout produccion: solo despues de aprobar el checklist en staging; migracion/backfill en produccion antes del deploy, deploy con PayPal deshabilitado, cargar envs y webhook de produccion, smoke test (health, admin, link MP, link PayPal de bajo monto si el dueno lo aprueba), monitorear logs/Sentry y confirmar MP intacto; rollback = quitar envs PayPal · `railway.toml`, `.env.example`, `specs/001-paypal-pagos/sandbox.md` · T-37.
+- [x] T-37 (AC-16, AC-29) Deploy sandbox: crear/verificar el entorno **Railway staging con Postgres separado**, aplicar `prisma db push`/backfill en esa BD, cargar envs sandbox, configurar el webhook sandbox contra la URL publica estable de staging, validar la tarifa real y ejecutar el checklist completo; verificar que produccion no se toca · `prisma/schema.prisma`, `specs/001-paypal-pagos/sandbox.md` · T-03, T-36. PASS con observaciones; evidencia en review.md; T-38 no autorizado en la sesión de T-37 (se ejecutó después, ver T-38).
+- [x] T-38 (AC-29) Rollout produccion: solo despues de aprobar el checklist en staging; migracion/backfill en produccion antes del deploy, deploy con PayPal deshabilitado, cargar envs y webhook de produccion, smoke test (health, admin, link MP, link PayPal de bajo monto si el dueno lo aprueba), monitorear logs/Sentry y confirmar MP intacto; rollback = quitar envs PayPal · `railway.toml`, `.env.example`, `specs/001-paypal-pagos/sandbox.md` · T-37.
   - Runbook: `./t-38-production.md`
+  - **PASS con observacion (cierre 2026-11-03):** deploy de produccion `f1185f76`, commit `de64b50`, `/api/health` OK; `db push` + backfill aplicados en produccion (`UPDATE 0`, sin filas a migrar); PayPal Live cargado (33 variables); webhook `https://pixelarch.dev/api/webhooks/paypal` responde `401` sin firma; admin y Mercado Pago operativos.
+  - **Observacion (G7):** no se ejecuto un pago real de smoke por decision del dueno; no hubo cobro live de punta a punta. Riesgo residual: la validacion live de firma, captura y recibo queda para el primer pago real; monitorear ese primer cobro con prioridad.
+  - **Rollback definido (no ejecutado):** quitar las envs PayPal, deshabilitar el webhook Live y redeployar; sin borrar datos ni revertir el esquema (aditivo).
+  - **Pendiente documental:** no se reporta evidencia de backup/restore (G3), freeze (G2) ni revalidacion de suite/typecheck/build sobre `de64b50`; el commit difiere de `139b8cb`. Ver `review.md` §10 y §11.
 
 ---
 

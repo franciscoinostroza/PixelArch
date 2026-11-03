@@ -1,7 +1,7 @@
 # Tareas 002: Recibo interno imprimible de Mercado Pago
 
 **Spec:** ./spec.md · **Plan:** ./plan.md
-**Rama:** `paypal-staging` · **Gate:** no merge/deploy a produccion antes de T-38.
+**Rama:** `paypal-staging` · **Gate T-38:** ejecutado 2026-11-03 (rollout a produccion PASS con observacion; sin pago real de smoke).
 
 Formato: `- [ ] T-XX (AC-x) descripcion · archivos · dependencias`.
 Una tarea = un cambio revisable (~1 commit). El implementer hace una por ciclo; tester y reviewer validan antes de marcar `[x]`.
@@ -117,7 +117,7 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Review T-06:** TZ Buenos Aires/medianoche UTC, fixture AC-9 con comisión >0, monto null a nivel página, guard AR.
   - PASS 2026-10-29: 1582/1582 tests, tsc 0, lint baseline, build OK.
 
-- [ ] **T-09 (AC-19, AC-21, AC-22) Gate de staging y T-38 (sin codigo, no es commit)**
+- [x] **T-09 (AC-19, AC-21, AC-22) Gate de staging y T-38 (sin codigo, no es commit)**
   - En staging (`paypal-staging`, esquema ya aplicado): abrir un recibo MP historico/seed con `externalId`, un pago MP confirmado de staging, un recibo PayPal, verificar links en `/admin/pagos` y detalle, rol asistente y una impresion A4.
   - Confirmar que `/admin/cobros` no muestra "Ver recibo".
   - **No mergear a `main` ni deployar a produccion antes de T-38** (`db push` + backfill en produccion, FF-merge y envs/webhook live).
@@ -127,7 +127,8 @@ No se toca `prisma/schema.prisma`, `Dockerfile`, `package.json`, envs ni `railwa
   - **Review T-02:** click real sobre un link MP, un PayPal actual y un PayPal legacy `MANUAL`+`metodo=PAYPAL`; confirmar `/admin/cobros` sin "Ver recibo".
   - **Review T-03:** verificar A4 físico y precedencia de @page (globals 2cm vs admin 12mm); imprimir referencia de 128 chars.
   - **Review T-04:** @page ya anotado; verificar A4 físico y margen.
-  - Estado 2026-10-29: smoke staging PASS (recibo MP en /admin/pagos y detalle, recibo PayPal, /admin/cobros sin link, asistente, A4, sin PII). T-09 sigue [ ] y bloqueado SOLO por autorización de T-38; no merge/deploy a producción.
+  - Estado 2026-10-29: smoke staging PASS (recibo MP en /admin/pagos y detalle, recibo PayPal, /admin/cobros sin link, asistente, A4, sin PII).
+  - **Cierre 2026-11-03:** gate T-38 ejecutado en produccion — deploy `f1185f76`, commit `de64b50`, health OK, `db push` + backfill (`UPDATE 0`), PayPal Live (33 variables), webhook `401` sin firma y admin/MP operativos. **No se ejecuto un pago real de smoke por decision del dueno**: la validacion end-to-end de un recibo MP con un cobro live queda como riesgo residual; el recibo sigue cubierto por la suite y por el smoke de staging. T-09 se cierra `[x]` con esa observacion.
 
 ## Cobertura AC -> tarea y test
 

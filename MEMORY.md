@@ -4,7 +4,7 @@
 > **MEMORY.md** = como trabajar en el (workflow, comandos, gotchas, lecciones).
 > Actualizar al final de cada sesion con lo aprendido.
 
-**Ultima actualizacion:** 2026-10-30
+**Ultima actualizacion:** 2026-11-03
 
 ---
 
@@ -82,7 +82,7 @@ npm install / npm uninstall                            # npm si funciona
 - **Evidencia y PII:** el registro manual acepta evidencia textual/URL (capture/order id, comprobante o nota), sin archivos ni storage. No se persisten email/nombre/direccion del pagador; el recibo usa los datos del cliente del CRM. Logs/Sentry solo ids, monto, moneda y estado; PII redactada.
 - **Link publico:** `/pago/paypal/*` es publico, `no-store`, `no-referrer` y `noindex`; `/pago` y `/pago/(.*)` estan en `ROUTES.public` y los webhooks quedan fuera del matcher. El guest checkout depende de PayPal (`NO_PREFERENCE`).
 - **Sin cambios de Dockerfile:** no hay `NEXT_PUBLIC_PAYPAL_*`; las envs PayPal son server-only y se inyectan en runtime. Solo haria falta `ARG`/`ENV` si algun dia se usa el JS SDK del lado cliente.
-- **Estado de la BD / deploy:** staging ya tiene aplicado `db push` + backfill (`Postgres-gdmt`, separado de produccion) y quedo **validado en T-37** (PASS con observaciones, commit `139b8cb`, deploy `4c765526`; evidencia en `specs/001-paypal-pagos/review.md`). El hardening H-5..H-9 (spec 003) quedo **PASS tester+reviewer** en `paypal-staging`, sin schema/envs; T-09 (smoke de staging) pendiente. **Produccion no cambio**: sigue en `cdafe04` (`main` sin PayPal), sin migracion ni deploy. T-38 **no autorizado**: el orden obligatorio es `db push` + backfill en produccion **antes** del merge a `main`/auto-deploy (H-2), luego deploy con PayPal deshabilitado, envs/webhook live y smoke. FF-merge de `paypal-staging` para conservar `139b8cb`. Sin envs PayPal queda deshabilitado y MP sigue operativo.
+- **Estado de la BD / deploy:** staging quedo validado en T-37 (commit `139b8cb`, deploy `4c765526`; evidencia en `specs/001-paypal-pagos/review.md`). **Produccion tiene PayPal Live desde T-38 (2026-11-03):** `db push` + backfill aplicados (`UPDATE 0`, sin filas a migrar), deploy `f1185f76` en el commit `de64b50`, health OK, 33 variables y webhook `https://pixelarch.dev/api/webhooks/paypal` (`401` sin firma); admin y Mercado Pago operativos. **Sin pago real de smoke por decision del dueno:** el primer cobro real es la primera validacion live (firma, captura, hito, recibo, sin duplicado); monitorearlo con prioridad. Hardening H-5..H-9 PASS tester+reviewer; T-09 (smoke de staging) queda como deuda documental y no bloquea produccion. Rollback: quitar envs PayPal + deshabilitar webhook Live + redeploy, sin borrar datos ni revertir el esquema aditivo.
 - **Tests/verificacion:** `node node_modules\vitest\vitest.mjs run` (suite 1644/1644 en 85 archivos al 30 oct 2026, sin red; guard en `src/__tests__/setup.ts`), `node node_modules\typescript\bin\tsc --noEmit`, `npm run lint` (18 errores/18 warnings preexistentes) y `node node_modules\next\dist\bin\next build` cuando se pida. No hay llamadas reales a PayPal/MP en CI; el sandbox es manual en Railway staging. El flake ocasional de `registrar-pago-paypal` no aparecio en la corrida de cierre.
 
 ## Gotchas recibo MP (Oct 2026)
@@ -94,12 +94,13 @@ npm install / npm uninstall                            # npm si funciona
 - **A4:** `@page { size: A4; margin: 12mm }` vive en `admin.css` y aplica a ambos recibos; el boton "Imprimir recibo" y "Volver a pagos" usan `print:hidden`. La fecha se formatea con `Intl.DateTimeFormat("es-AR", { timeZone: "UTC" })` para que servidor/cliente/impresiones coincidan.
 - **Sin red, email ni mutaciones:** la pagina hace una sola `findUnique` con `select` minimo (sin notas, evidencia, revision, origen, `registradoPor` ni `mpLink`), no llama a la API de MP, no ejecuta `sendPaymentReceipt` y no actualiza pago/hito/soporte/enlace. Solo muestra cliente del CRM; nunca PII del pagador, tarjeta ni cuenta MP.
 - **Desvios menores:** `ReciboPago` acepta `reciboIdClassName` para que PayPal conserve su clase historica y MP use el default con `break-words`; el concepto MP se trunca por code points (200) en la pagina en lugar de rechazarse; el helper de concepto se comparte con PayPal (trim del enlace). El guard de tests bloquea `*.mercadopago.com` y `*.paypal.com` solo en `fetch`; no cubre `mercadopago.com.ar` ni otros clientes HTTP.
-- **Gate T-38:** no mergear a `main` ni deployar a produccion antes del `db push` + backfill de T-38. La feature no agrega schema/migracion/envs; viaja en el mismo deploy y el rollback es revertir el commit.
+- **Gate T-38 (cerrado 2026-11-03):** produccion ya tiene el esquema/backfill y PayPal Live (deploy `f1185f76` en `de64b50`). No hubo pago real de smoke; la validacion end-to-end queda para el primer cobro real. Rollback: quitar envs PayPal + deshabilitar webhook Live + redeploy, sin borrar datos.
 
-## Backlog abierto (2026-10-30)
+## Backlog abierto (2026-11-03)
 
-- **T-38 (no autorizado):** PayPal + recibo MP + hardening a produccion. `db push` + backfill **antes** del merge a `main`; FF-merge de `paypal-staging` para conservar `139b8cb`; envs/webhook live y smoke. Produccion sigue en `cdafe04`.
-- **T-09 (spec 003):** smoke manual de staging — link en `REVISION`, webhook PayPal con firma invalida (`401`/`429`), topic ajeno a MP (`200` ignorado) y `git check-ignore` de `.railway/`.
+- **Primer cobro real PayPal (post-T-38):** monitorear con prioridad la firma del webhook (`200`), un solo `Pago`, hito `PAGADO`, recibo y ausencia de duplicados. T-38 no ejecuto pago real de smoke por decision del dueno.
+- **T-09 (spec 003, deuda documental):** smoke manual de staging — link en `REVISION`, webhook PayPal con firma invalida (`401`/`429`), topic ajeno a MP (`200` ignorado) y `git check-ignore` de `.railway/`. No bloquea produccion.
+- **Evidencia documental T-38:** backup/restore (G3), freeze (G2) y revalidacion de suite/typecheck/lint/build sobre `de64b50` no reportados; el commit difiere de `139b8cb`.
 - No bloqueante: completar el identificador de cuenta/aplicacion MP en el expediente H-6; unificar el helper de IP (PayPal/MP) y evaluar `debug` para el `429` de PayPal; R-9: otros consumidores de `NEXT_PUBLIC_URL` con `env || default`.
 
 ## Entorno
@@ -111,10 +112,18 @@ npm install / npm uninstall                            # npm si funciona
 - WhatsApp: `5491132464045`; mensajes en `src/lib/contact.ts`.
 - El **Sentry MCP no esta en opencode**; el plugin `@sentry/agent-plugin` quedo instalado para **Claude Code** (skills sentry-*).
 
+## Sesion 3 nov 2026 — Cierre T-38 (rollout a produccion)
+
+- **T-38 PASS con observacion:** deploy `f1185f76` en el commit `de64b50`, `/api/health` OK; `db push` + backfill aplicados (`UPDATE 0`, sin filas a migrar); PayPal Live cargado (33 variables); webhook `https://pixelarch.dev/api/webhooks/paypal` responde `401` sin firma; admin y Mercado Pago operativos.
+- **Sin pago real de smoke** por decision del dueno: no hubo cobro live de punta a punta. La validacion live de firma, captura, hito y recibo queda para el primer cobro real; monitorearlo con prioridad.
+- **Rollback definido (no ejecutado):** quitar envs PayPal + deshabilitar webhook Live + redeploy, sin borrar datos ni revertir el esquema aditivo.
+- **T-09 (spec 003)** sigue pendiente como deuda documental y no bloquea produccion. Tests vigentes **1644/1644 en 85 archivos** (ultima corrida reportada, 30 oct 2026), sin cambios de codigo en este cierre; `de64b50` difiere de `139b8cb` y no se reporta revalidacion sobre ese SHA.
+- Docs actualizados: `AGENTS.md`, `MEMORY.md` y `specs/001-paypal-pagos/review.md`, `specs/001-paypal-pagos/tasks.md`, `specs/002-recibo-mp/tasks.md`, `specs/003-hardening-paypal/tasks.md`; commit docs-only (no dispara deploy).
+
 ## Sesion 30 oct 2026 — Cierre spec 003 (hardening PayPal/MP)
 
 - H-5..H-9 implementados en `paypal-staging` y **PASS tester+reviewer**: "Pago en revision" (H-5), expediente + hardening del webhook MP (H-6), limites y rechazos tempranos del webhook PayPal (H-7), `Location` relativo y fallo cerrado (H-8), `.railway/` ignorado (H-9). **Sin cambios de schema, envs, `Dockerfile`, `package.json` ni `railway.toml`.**
-- T-07 (docs) y T-08 (verificacion) cerradas: suite **1644/1644 en 85 archivos**, `tsc --noEmit` 0 errores, `npm run lint` 18 errores/18 warnings preexistentes y `next build` PASS. T-09 (smoke de staging) queda pendiente; **T-38 sigue no autorizado**.
+- T-07 (docs) y T-08 (verificacion) cerradas: suite **1644/1644 en 85 archivos**, `tsc --noEmit` 0 errores, `npm run lint` 18 errores/18 warnings preexistentes y `next build` PASS. T-09 (smoke de staging) queda pendiente; en esa fecha **T-38 seguia no autorizado** (se ejecuto el 3 nov 2026, ver sesion de cierre).
 - `spec.md`/`plan.md` aun dicen "pendiente de tester/reviewer" para H-6/H-7: el implementer no puede editar `specs/**` salvo `tasks.md`; el planner/coordinator debe reflejar el PASS (el alcance no cambia).
 
 ## Sesion 29 oct 2026 — Recibo MP (T-01..T-07)

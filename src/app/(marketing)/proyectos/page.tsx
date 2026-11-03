@@ -3,7 +3,7 @@ import { whatsappUrl } from "@/lib/contact"
 
 export const metadata: Metadata = {
   title: "Proyectos — PixelArch",
-  description: "Resultados, no promesas: cómo construimos pixelarch.dev con Next.js, PostgreSQL e infraestructura monitoreada. Proyectos internos y método de trabajo.",
+  description: "Resultados, no promesas: cómo construimos pixelarch.dev con Next.js, PostgreSQL e infraestructura monitoreada. Proyectos trabajados, proyectos internos y método de trabajo.",
   alternates: { canonical: "/proyectos" },
 }
 
@@ -32,6 +32,16 @@ const PROYECTOS = [
     titulo: "Sistema de suscripciones",
     meta: "Cobros y facturación · 2026",
     desc: "Cobros recurrentes, historial de pagos, cortes automáticos por mora, emails transaccionales y portal de autogestión.",
+  },
+]
+
+const PROYECTOS_TRABAJADOS = [
+  {
+    icono: "📖",
+    titulo: "Contextualizando",
+    meta: "Sitio personal · 2026",
+    desc: "Sitio de Fran & Abi para compartir su historia, vocación y bitácora de viajes, con acompañamiento y donaciones en ARS/USD.",
+    url: "https://contextualizando.pixelarch.dev",
   },
 ]
 
@@ -92,6 +102,22 @@ export default function ProyectosPage() {
               <span key={t}>{t}</span>
             ))}
           </div>
+        </div>
+
+        <h2 className="proyectos-sub">Proyectos trabajados</h2>
+        <div className="proyectos-grid">
+          {PROYECTOS_TRABAJADOS.map((p) => (
+            <article key={p.titulo} className="proyecto-card">
+              <span className="proyecto-line" aria-hidden="true" />
+              <div className="proyecto-icon" aria-hidden="true">{p.icono}</div>
+              <span className="proyecto-meta">{p.meta}</span>
+              <h3>{p.titulo}</h3>
+              <p>{p.desc}</p>
+              <a href={p.url} target="_blank" rel="noopener noreferrer" className="proyecto-link">
+                Ver sitio <span aria-hidden="true">→</span>
+              </a>
+            </article>
+          ))}
         </div>
 
         <h2 className="proyectos-sub">Proyectos internos</h2>
@@ -246,6 +272,20 @@ export default function ProyectosPage() {
         }
         .proyecto-card h3 { font-size: 1.05rem; margin-bottom: 10px }
         .proyecto-card p { color: var(--color-text-dim); font-size: 0.87rem; line-height: 1.7 }
+        .proyecto-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          margin-top: 16px;
+          font-family: var(--font-mono);
+          font-size: 0.7rem;
+          letter-spacing: 0.06em;
+          color: var(--color-cyan);
+          text-decoration: none;
+          transition: color 0.25s, gap 0.25s;
+        }
+        .proyecto-link:hover { color: #67e8f9; gap: 10px }
+        .proyecto-link:focus-visible { outline: 2px solid var(--color-cyan); outline-offset: 4px; border-radius: 4px }
 
         .proyectos-cta {
           margin-top: 52px;

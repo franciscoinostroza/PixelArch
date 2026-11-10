@@ -27,7 +27,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Cierre: tester (`node node_modules\vitest\vitest.mjs run src/__tests__/middleware-propuestas.test.ts src/__tests__/middleware-auth.test.ts`) · reviewer (seguridad de rutas, regresión de `/propuesta`) · 1 commit.
   - PASS tester+reviewer: 120 tests, tsc 0; /propuesta exacta pública, /propuestas admin, baja/opt-out públicos, APIs 401/403, headers; sin regresión /admin//pago.
 
-- [ ] **T-02 (AC-1, AC-2, AC-3, AC-5, AC-6; RF-1, RF-2, RF-4, RF-8) — Guard Clerk-only y shell del portal.**
+- [x] **T-02 (AC-1, AC-2, AC-3, AC-5, AC-6; RF-1, RF-2, RF-4, RF-8) — Guard Clerk-only y shell del portal.**
   - Crear `resolverAdminPropuestas()` sin importar Prisma ni consultar `Cliente`; devuelve `SIN_SESION`/`NO_ADMIN` (con `esAsistente` para el redirect) o admin.
   - Crear `src/app/(propuestas)/layout.tsx` con redirect a `/gate/admin?next=/propuestas` (sin sesión) o `/admin/cobros` (asistente), y shell propio sin navegación de CRM.
   - Crear `portal-shell.tsx`, `portal-sidebar.tsx` (con `aria-current`), `estado-vacio.tsx` y dashboard vacío en `src/app/(propuestas)/propuestas/page.tsx`; metadata `robots: { index: false, follow: false }` en las páginas internas; fechas de UI con `Intl.DateTimeFormat("es-AR")` sobre datos UTC.
@@ -36,6 +36,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-01.
   - Tests: anónimo → gate; asistente → `/admin/cobros`; admin → shell; Clerk lanza/falla → gate o redirect sin datos; el helper no importa Prisma; no se renderiza nav de CRM; headers de página; esquema faltante → estado operativo.
   - Cierre: tester (`propuestas-auth.test.ts`, `propuestas-auth.test.tsx`) · reviewer (aislamiento CRM, auth, accesibilidad del shell) · 1 commit.
+  - PASS tester+reviewer: guard Clerk-only, shell/sidebar sin CRM, dashboard fail-closed, no emails; spec-coverage 001 excluye tests 004.
 
 - [ ] **T-03 (AC-6, AC-43; RF-62) — Esquema Prisma aditivo y tests de aislamiento.**
   - Agregar enums y modelos `CampanaProspeccion`, `Prospecto`, `PlantillaPropuesta`, `EnvioPropuesta`, `SupresionProspecto`, `ConsumoProveedor` del plan §4.1.

@@ -13,6 +13,11 @@ import { describe, expect, it } from "vitest"
  * Postgres separado (plan.md §7.7 y T-36..T-38).
  *
  * Este archivo se excluye del escaneo para que no se auto-cubra.
+ *
+ * Los tests de otras specs usan su propia numeracion AC (la 004 define
+ * AC-1..AC-45) y se excluyen de este escaneo: validarlos contra la 001 marcaria
+ * AC-33/AC-34 como inexistentes. La spec 004 tiene su propio meta-test de
+ * cobertura (T-23, `propuestas-cobertura.test.ts`).
  */
 
 const ROOT = process.cwd()
@@ -30,6 +35,21 @@ function leer(archivo: string): string {
   return readFileSync(archivo, "utf8")
 }
 
+/**
+ * Un archivo pertenece a la spec 004 si es el middleware del portal, un test
+ * `propuestas-*`, la baja publica (`api/opt-out.test.ts`) o vive bajo
+ * `api/propuestas/`. Esos AC no se validan aca.
+ */
+function esDeOtraSpec(archivo: string): boolean {
+  const nombre = path.basename(archivo)
+  if (/^middleware-propuestas\.test\.tsx?$/.test(nombre)) return true
+  if (/^propuestas-.*\.test\.tsx?$/.test(nombre)) return true
+
+  const relativo = path.relative(TESTS, archivo)
+  if (/(?:^|[\\/])api[\\/]opt-out\.test\.tsx?$/.test(relativo)) return true
+  return /(?:^|[\\/])api[\\/]propuestas[\\/]/.test(relativo)
+}
+
 function archivosDeTest(directorio: string): string[] {
   const archivos: string[] = []
 
@@ -44,6 +64,7 @@ function archivosDeTest(directorio: string): string[] {
 
     if (!/\.test\.tsx?$/.test(entrada.name)) continue
     if (path.resolve(completo) === path.resolve(ESTE_ARCHIVO)) continue
+    if (esDeOtraSpec(completo)) continue
     archivos.push(completo)
   }
 
@@ -232,6 +253,17 @@ describe("cobertura de AC de la spec (AC-21)", () => {
     expect(archivos.map((archivo) => path.resolve(archivo))).not.toContain(
       path.resolve(ESTE_ARCHIVO)
     )
+  })
+
+  it("excluye los tests de la spec 004 del escaneo de la 001", () => {
+    const relativos = archivos.map((archivo) =>
+      path.relative(TESTS, archivo).split(path.sep).join("/")
+    )
+
+    expect(relativos).not.toContain("middleware-propuestas.test.ts")
+    expect(relativos).not.toContain("lib/propuestas-auth.test.ts")
+    expect(relativos).not.toContain("app/propuestas-auth.test.tsx")
+    expect(relativos).not.toContain("app/propuestas-pages.test.tsx")
   })
 
   it("ignora comentarios y describe al contar ACs (solo it/test)", () => {

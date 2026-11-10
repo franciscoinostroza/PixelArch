@@ -346,3 +346,266 @@ model UptimeCheck {
   @@index([servicio, creadoEn])
   @@index([creadoEn])
 }
+
+// ---------------------------------------------------------------------------
+// Portal de propuestas y prospeccion asistida (spec 004, plan §4.1)
+//
+// Cambio aditivo: tablas, enums e indices nuevos. No se altera ningun modelo
+// del CRM y no hay FKs ni relaciones a Cliente, Pago, Suscripcion, EnlacePago,
+// Proyecto ni Hito (AC-6, AC-43).
+// ---------------------------------------------------------------------------
+
+enum EstadoCampanaProspeccion {
+  BORRADOR
+  EN_CURSO
+  COMPLETADA
+  PARCIAL
+  CANCELADA
+  FALLIDA
+}
+
+enum EstadoProspecto {
+  NUEVO
+  SIN_ENRIQUECER
+  ENRIQUECIDO
+  PUNTUADO
+  BORRADOR
+  APROBADO
+  ENVIADO
+  RESPONDIO
+  DESCARTADO
+  SUPRIMIDO
+}
+
+enum EstadoEnvioPropuesta {
+  BORRADOR
+  APROBADO
+  ENVIANDO
+  ENVIADO
+  FALLIDO
+  REBOTADO
+  QUEJA
+  RESPONDIDO
+  CANCELADO
+}
+
+enum AmbitoSupresion {
+  EMAIL
+  DOMINIO
+}
+
+enum MotivoSupresion {
+  OPT_OUT
+  REBOTE_DURO
+  QUEJA
+  MANUAL
+  SOLICITUD_ARCO
+}
+
+enum OrigenSupresion {
+  ENLACE
+  MANUAL
+  ARCO
+}
+
+enum FuenteDatoProspecto {
+  PLACES
+  WEB_NEGOCIO
+  CARGA_MANUAL
+}
+
+enum ProveedorConsumo {
+  GOOGLE_PLACES
+  WEB_FETCH
+  AUDITORIA
+  REDACTOR
+  RESEND
+}
+
+model CampanaProspeccion {
+  id                String                   @id @default(cuid())
+  nombre            String
+  consulta          String
+  zona              String?
+  rubro             String?
+  filtros           Json?
+  estado            EstadoCampanaProspeccion @default(BORRADOR)
+  limiteCorrida     Int                      @default(20)
+  plantillaId       String?
+  creadaPor         String
+  creadaPorNombre   String?
+  idempotencyKey    String?                  @unique
+  ultimoError       String?
+  iniciadaEn        DateTime?
+  finalizadaEn      DateTime?
+  creadoEn          DateTime                 @default(now())
+  actualizadoEn     DateTime                 @updatedAt
+
+  plantilla  PlantillaPropuesta? @relation(fields: [plantillaId], references: [id], onDelete: SetNull)
+  prospectos Prospecto[]
+  envios     EnvioPropuesta[]
+  consumos   ConsumoProveedor[]
+
+  @@index([estado, creadoEn])
+  @@index([creadaPor])
+}
+
+model Prospecto {
+  id                   String              @id @default(cuid())
+  nombreNegocio        String
+  sitioWeb             String?
+  dominioNormalizado   String?
+  ciudad               String?
+  rubro                String?
+  placeId              String?             @unique
+  email                String?             @unique
+  telefono             String?
+  contactoNombre       String?
+  contactoCargo        String?
+  emailFuenteUrl       String?
+  emailFechaFuente     DateTime?
+  fuenteTipo           FuenteDatoProspecto?
+  fuenteUrl            String?
+  fechaFuente          DateTime?
+  estado               EstadoProspecto    @default(NUEVO)
+  score                Int?
+  scoreDetalle         Json?
+  auditoriaResumen     Json?
+  auditoriaEstado      String?
+  auditoriaFecha       DateTime?
+  posibleDuplicadoDeId String?
+  motivoSinEnriquecer  String?
+  baseLegal            String?
+  notaLegal            String?
+  notas                String?
+  arcoHistorial        Json?
+  historial            Json?
+  actualizadoPor       String?
+  ultimaInteraccionEn  DateTime            @default(now())
+  ultimoEnvioEn        DateTime?
+  creadoEn             DateTime            @default(now())
+  actualizadoEn        DateTime            @updatedAt
+  campanaOrigenId      String
+
+  campanaOrigen CampanaProspeccion @relation(fields: [campanaOrigenId], references: [id], onDelete: Cascade)
+  envios        EnvioPropuesta[]
+  consumos      ConsumoProveedor[]
+
+  @@index([estado, actualizadoEn])
+  @@index([campanaOrigenId, estado])
+  @@index([dominioNormalizado])
+  @@index([posibleDuplicadoDeId])
+  @@index([ultimaInteraccionEn])
+}
+
+model PlantillaPropuesta {
+  id                  String   @id @default(cuid())
+  nombre              String
+  idioma              String   @default("es")
+  asunto              String
+  cuerpo              String
+  variablesPermitidas Json
+  version             Int      @default(1)
+  activa              Boolean  @default(true)
+  creadaPor           String
+  creadaPorNombre     String?
+  creadoEn            DateTime @default(now())
+  actualizadoEn       DateTime @updatedAt
+
+  campanas CampanaProspeccion[]
+  envios   EnvioPropuesta[]
+
+  @@unique([nombre, version])
+  @@index([activa])
+}
+
+model EnvioPropuesta {
+  id                  String               @id @default(cuid())
+  prospectoId         String
+  campanaId           String
+  plantillaId         String?
+  plantillaVersion    Int?
+  secuencia           Int
+  version             Int                  @default(1)
+  destinatario        String
+  fromEmail           String?
+  fromNombre          String?
+  replyTo             String?
+  asunto              String
+  cuerpoHtml          String
+  cuerpoTexto         String
+  hashContenido       String
+  tokenBaja           String?
+  estado              EstadoEnvioPropuesta @default(BORRADOR)
+  aprobadoAsunto      String?
+  aprobadoCuerpoHtml  String?
+  aprobadoCuerpoTexto String?
+  aprobadoHash        String?
+  aprobadoPor         String?
+  aprobadoPorNombre   String?
+  aprobadoEn          DateTime?
+  enviadoPor          String?
+  enviadoPorNombre    String?
+  enviadoEn           DateTime?
+  proveedorMessageId  String?              @unique
+  idempotencyKey      String?              @unique
+  error               String?
+  intentos            Int                  @default(0)
+  motivoCancelacion   String?
+  creadoEn            DateTime             @default(now())
+  actualizadoEn       DateTime             @updatedAt
+
+  prospecto Prospecto           @relation(fields: [prospectoId], references: [id], onDelete: Cascade)
+  campana   CampanaProspeccion  @relation(fields: [campanaId], references: [id], onDelete: Cascade)
+  plantilla PlantillaPropuesta? @relation(fields: [plantillaId], references: [id], onDelete: SetNull)
+
+  @@unique([prospectoId, secuencia, version])
+  @@index([estado, creadoEn])
+  @@index([prospectoId, secuencia])
+  @@index([campanaId, estado])
+}
+
+model SupresionProspecto {
+  id                 String          @id @default(cuid())
+  ambito             AmbitoSupresion
+  clave              String          @unique
+  emailHash          String?
+  emailEnmascarado   String?
+  dominioNegocio     String?
+  motivo             MotivoSupresion
+  origen             OrigenSupresion
+  activa             Boolean         @default(true)
+  notas              String?
+  historial          Json?
+  creadaPor          String?
+  creadaPorNombre    String?
+  creadaEn           DateTime        @default(now())
+  revocadaPor        String?
+  revocadaEn         DateTime?
+  motivoRevocacion   String?
+
+  @@index([ambito, activa])
+  @@index([emailHash])
+  @@index([dominioNegocio])
+}
+
+model ConsumoProveedor {
+  id             String           @id @default(cuid())
+  clave          String           @unique
+  campanaId      String
+  prospectoId    String?
+  proveedor      ProveedorConsumo
+  fecha          DateTime         @db.Date
+  llamadas       Int              @default(0)
+  unidades       Int              @default(0)
+  costoCentavos  Int              @default(0)
+  creadoEn       DateTime         @default(now())
+  actualizadoEn  DateTime         @updatedAt
+
+  campana   CampanaProspeccion @relation(fields: [campanaId], references: [id], onDelete: Cascade)
+  prospecto Prospecto?         @relation(fields: [prospectoId], references: [id], onDelete: SetNull)
+
+  @@index([campanaId, proveedor, fecha])
+  @@index([prospectoId])
+  @@index([proveedor, fecha])
+}

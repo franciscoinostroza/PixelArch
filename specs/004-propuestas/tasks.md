@@ -38,7 +38,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Cierre: tester (`propuestas-auth.test.ts`, `propuestas-auth.test.tsx`) · reviewer (aislamiento CRM, auth, accesibilidad del shell) · 1 commit.
   - PASS tester+reviewer: guard Clerk-only, shell/sidebar sin CRM, dashboard fail-closed, no emails; spec-coverage 001 excluye tests 004.
 
-- [ ] **T-03 (AC-6, AC-43; RF-62) — Esquema Prisma aditivo y tests de aislamiento.**
+- [x] **T-03 (AC-6, AC-43; RF-62) — Esquema Prisma aditivo y tests de aislamiento.**
   - Agregar enums y modelos `CampanaProspeccion`, `Prospecto`, `PlantillaPropuesta`, `EnvioPropuesta`, `SupresionProspecto`, `ConsumoProveedor` del plan §4.1.
   - Índices/unique: `placeId`, `email`, `idempotencyKey`, `proveedorMessageId`, `(prospectoId, secuencia, version)`, `clave` de supresión, `(campanaId, proveedor, fecha)`.
   - Sin FKs ni relaciones a `Cliente`, `Pago`, `Suscripcion`, `EnlacePago`, `Proyecto`, `Hito`.
@@ -46,6 +46,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: — (puede ir en paralelo con T-01/T-02).
   - Tests: modelos/enums presentes; sin relaciones al CRM; unique/índices; sin `scheduledAt`; el test estático no encuentra `prisma.cliente/pago/...` en el portal.
   - Cierre: tester (`propuestas-schema.test.ts`, `propuestas-aislamiento.test.ts`) · reviewer (esquema aditivo, datos, sin backfill) · 1 commit.
+  - PASS tester+reviewer: schema aditivo 6 modelos/8 enums, sin FK al CRM; generate/validate OK; db push pendiente en T-26/T-27.
 
 - [ ] **T-04 (AC-42; RF-8, RF-46, RF-63) — Configuración, errores y `.env.example`.**
   - `configPropuestas()`: lectura en cada llamada, defaults del plan §4.7, cupos positivos, `estadoEnvio()` con motivos, `null` por pieza faltante; nunca lanza.

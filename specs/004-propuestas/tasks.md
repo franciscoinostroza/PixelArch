@@ -48,7 +48,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Cierre: tester (`propuestas-schema.test.ts`, `propuestas-aislamiento.test.ts`) · reviewer (esquema aditivo, datos, sin backfill) · 1 commit.
   - PASS tester+reviewer: schema aditivo 6 modelos/8 enums, sin FK al CRM; generate/validate OK; db push pendiente en T-26/T-27.
 
-- [ ] **T-04 (AC-42; RF-8, RF-46, RF-63) — Configuración, errores y `.env.example`.**
+- [x] **T-04 (AC-42; RF-8, RF-46, RF-63) — Configuración, errores y `.env.example`.**
   - `configPropuestas()`: lectura en cada llamada, defaults del plan §4.7, cupos positivos, `estadoEnvio()` con motivos, `null` por pieza faltante; nunca lanza.
   - `errores.ts`: códigos, `esErrorTablaFaltante`, `sanitizarError`; `origen.ts`: `origenPermitido(req, urlPublica)`.
   - Actualizar `.env.example` con todas las variables server-only y los valores `propuestas@pixelarch.dev` / `hola@pixelarch.dev`.
@@ -56,6 +56,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-03.
   - Tests: sin envs → piezas deshabilitadas y motivos; defaults 20/20/100/20/20/2/3/12; from/reply/URL/secreto/texto/base legal requeridos para aprobar y enviar; origen same-origin acepta, cross-site rechaza; `esErrorTablaFaltante` con `P2021`.
   - Cierre: tester (`propuestas-config.test.ts`) · reviewer (fail-closed, secretos, sin `NEXT_PUBLIC_*`) · 1 commit.
+  - PASS tester+reviewer: config fail-closed, defaults, sanitización, origen same-origin, envs server-only y gate false.
 
 ---
 

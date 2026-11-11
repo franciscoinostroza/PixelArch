@@ -62,7 +62,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
 
 ## Fase 1: Dominio puro
 
-- [ ] **T-05 (AC-14, AC-19; RF-14, RF-19, RF-22) — Normalización, dedupe y extracción de datos públicos.**
+- [x] **T-05 (AC-14, AC-19; RF-14, RF-19, RF-22) — Normalización, dedupe y extracción de datos públicos.**
   - `normalizarEmail` (lowercase/trim, sin adivinar), `normalizarDominio`, `dominioRegistrable` con sufijos comunes (`com.ar`, `com.br`, `co.uk`, etc.), `esProveedorPublico`, `esHostNoProspectable` (redes sociales, marketplaces, agregadores, link-in-bio).
   - `evaluarDedupe`: `placeId` exacto → reutilizar; email exacto → reutilizar; dominio de negocio distinto `placeId` → nuevo + `posibleDuplicadoDeId`; nunca dedupe por proveedor público.
   - `extraerEmailPublicado` (mailto primero, luego texto; rechaza ruido), `extraerTelefonoPublicado` (solo `tel:`), `limpiarNombreNegocio` (title/og:site_name, fallback host).
@@ -70,6 +70,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-04.
   - Tests: emails válidos/inválidos; dominios multi-parte; `com.ar`/`co.uk` solos → null (nunca un sufijo público como dominio); Gmail/Hotmail/Outlook/Yahoo/iCloud rechazados como dominio de negocio; Facebook/Instagram/LinkedIn/TikTok/Linktree rechazados como sitio; dedupe por cada señal; sucursal; público; no fusión automática; extracción sin patrón inventado.
   - Cierre: tester (`propuestas-normalizar.test.ts`, `propuestas-dedupe.test.ts`) · reviewer (privacidad, precisión de dedupe) · 1 commit.
+  - PASS tester+reviewer: normalización, PSL curada, proveedores públicos, hosts no prospectables, extracción email/tel y dedupe; 46 tests, tsc 0.
 
 - [ ] **T-06 (AC-15, AC-16, AC-17, AC-18, AC-33, AC-34, AC-35, AC-36; RF-23..28, RF-51, RF-52) — Supresión por hash, token de baja y contactabilidad.**
   - `hashEmail` HMAC-SHA256 con `PROPUESTAS_SECRETO`; `claveSupresionEmail`/`claveSupresionDominio`; `emailEnmascarado`.

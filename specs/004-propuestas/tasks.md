@@ -72,7 +72,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Cierre: tester (`propuestas-normalizar.test.ts`, `propuestas-dedupe.test.ts`) · reviewer (privacidad, precisión de dedupe) · 1 commit.
   - PASS tester+reviewer: normalización, PSL curada, proveedores públicos, hosts no prospectables, extracción email/tel y dedupe; 46 tests, tsc 0.
 
-- [ ] **T-06 (AC-15, AC-16, AC-17, AC-18, AC-33, AC-34, AC-35, AC-36; RF-23..28, RF-51, RF-52) — Supresión por hash, token de baja y contactabilidad.**
+- [x] **T-06 (AC-15, AC-16, AC-17, AC-18, AC-33, AC-34, AC-35, AC-36; RF-23..28, RF-51, RF-52) — Supresión por hash, token de baja y contactabilidad.**
   - `hashEmail` HMAC-SHA256 con `PROPUESTAS_SECRETO`; `claveSupresionEmail`/`claveSupresionDominio`; `emailEnmascarado`.
   - `evaluarContactabilidad` para email y dominio; dominio público nunca suprime.
   - `crearTokenBaja`/`verificarTokenBaja` con formato `v1.<prospectoId>.<emailHash>.<hmac>`, `timingSafeEqual`; sin PII y sin persistencia obligatoria.
@@ -80,6 +80,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-05.
   - Tests: hash estable/distinto con otro secreto; no queda email en claro; token válido, tamper, formato inválido; idempotencia de clave; dominio público o sufijo público (`com.ar`) rechazado; email suprimido bloquea; supresión sobrevive a borrar prospecto (fixture).
   - Cierre: tester (`propuestas-supresion.test.ts`) · reviewer (criptografía, PII, cumplimiento) · 1 commit.
+  - PASS tester+reviewer: HMAC/claves, supresión email/dominio, token de baja, públicos/multiinquilino, sin PII/red/Prisma; 86 tests, tsc 0.
 
 - [ ] **T-07 (AC-21, AC-24, AC-27, AC-31; RF-33, RF-38, RF-42..45) — Score, transiciones y permisos.**
   - `calcularScore` v1 con los 5 componentes del plan §4.4, clamp 0-100, desglose y motivos; sin fechas/azar.

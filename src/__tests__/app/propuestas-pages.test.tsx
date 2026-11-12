@@ -104,10 +104,12 @@ import {
   BorradorEditor,
   GenerarBorrador,
 } from "@/components/propuestas/borrador-editor"
+import { AprobacionPanel } from "@/components/propuestas/aprobacion-panel"
 import {
   CODIGO_ESQUEMA_NO_APLICADO,
   esErrorTablaFaltante,
 } from "@/lib/propuestas/errores"
+import { hashContenidoEnvio } from "@/lib/propuestas/envios"
 import {
   formatearFechaHoraPortal,
   formatearFechaPortal,
@@ -143,6 +145,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
 })
 
 describe("dashboard vacio del portal (AC-3, AC-5)", () => {
@@ -2756,6 +2759,19 @@ describe("panel de borrador en la ficha del prospecto (T-16, AC-22, AC-24)", () 
         secuencia: true,
         asunto: true,
         cuerpoTexto: true,
+        cuerpoHtml: true,
+        hashContenido: true,
+        destinatario: true,
+        fromEmail: true,
+        fromNombre: true,
+        replyTo: true,
+        plantillaId: true,
+        plantillaVersion: true,
+        aprobadoAsunto: true,
+        aprobadoCuerpoHtml: true,
+        aprobadoCuerpoTexto: true,
+        aprobadoPorNombre: true,
+        aprobadoEn: true,
       },
     })
   })
@@ -2965,6 +2981,440 @@ describe("GenerarBorrador (T-16, AC-22, AC-23)", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       /se necesita un prospecto puntuado/i,
     )
+  })
+})
+
+describe("AprobacionPanel (T-17, AC-25, AC-27; RF-40..RF-42, RF-44)", () => {
+  const PROPS = {
+    envioId: "env_1",
+    estado: "BORRADOR",
+    version: 1,
+    secuencia: 1,
+    plantillaVersion: 1,
+    destinatario: "ventas@alfa.com.ar",
+    fromEmail: "propuestas@pixelarch.dev",
+    fromNombre: "PixelArch",
+    replyTo: "hola@pixelarch.dev",
+    asunto: "Una idea para Consultora Alfa",
+    cuerpoTexto: "Hola Ana,\n\nTe escribo.",
+    cuerpoHtml: "<p>Hola Ana,</p>",
+    aprobadoAsunto: null as string | null,
+    aprobadoCuerpoTexto: null as string | null,
+    aprobadoCuerpoHtml: null as string | null,
+    aprobadoPorNombre: null as string | null,
+    aprobadoEnTexto: null as string | null,
+    bloqueos: [] as string[],
+    fuentes: {
+      sitioWeb: "https://alfa.com.ar/",
+      fuenteUrl: "https://alfa.com.ar/contacto",
+      emailFuenteUrl: "https://alfa.com.ar/contacto",
+    },
+    score: 88,
+    auditoriaEstado: "OK",
+  }
+
+  it("avisa que aprobar no envía y exige confirmación explícita", () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<AprobacionPanel {...PROPS} />)
+
+    const aviso = screen.getByRole("note", { name: /aprobar no envía/i })
+    expect(aviso).toHaveTextContent(/no llama a resend/i)
+    expect(aviso).toHaveTextContent(/envío real es otra acción separada/i)
+
+    expect(screen.getByText("ventas@alfa.com.ar")).toBeInTheDocument()
+    expect(
+      screen.getByText("PixelArch <propuestas@pixelarch.dev>"),
+    ).toBeInTheDocument()
+    expect(screen.getByText("hola@pixelarch.dev")).toBeInTheDocument()
+    expect(screen.getByText("Una idea para Consultora Alfa")).toBeInTheDocument()
+    expect(screen.getByText("88/100")).toBeInTheDocument()
+    expect(screen.getByText("OK")).toBeInTheDocument()
+    expect(screen.getByText("v1 · secuencia 1")).toBeInTheDocument()
+
+    const boton = screen.getByRole("button", { name: "Aprobar" })
+    expect(boton).toBeDisabled()
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: /confirmo que revisé el destinatario/i,
+      }),
+    )
+    expect(
+      screen.getByRole("button", { name: "Aprobar" }),
+    ).toBeEnabled()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("con bloqueos de aprobación no habilita el botón (sin importar el gate)", () => {
+    render(
+      <AprobacionPanel
+        {...PROPS}
+        bloqueos={[
+          "Falta PROPUESTAS_SECRETO o no es valido.",
+          "Falta PROPUESTAS_TEXTO_LEGAL aprobado.",
+        ]}
+      />,
+    )
+
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: /confirmo que revisé el destinatario/i,
+      }),
+    )
+
+    expect(screen.getByRole("button", { name: "Aprobar" })).toBeDisabled()
+    const bloqueo = screen.getByRole("note", {
+      name: /motivos por los que no se puede aprobar/i,
+    })
+    expect(bloqueo).toHaveTextContent(/PROPUESTAS_SECRETO/)
+    expect(bloqueo).toHaveTextContent(/PROPUESTAS_TEXTO_LEGAL/)
+  })
+
+  it("no bloquea por PROPUESTAS_ENVIO_HABILITADO ni RESEND_API_KEY", () => {
+    // El componente solo recibe bloqueos de aprobación; el gate y Resend son
+    // requisitos del envío (T-18) y no deben impedir aprobar el snapshot.
+    render(<AprobacionPanel {...PROPS} bloqueos={[]} />)
+
+    expect(
+      screen.queryByRole("note", {
+        name: /motivos por los que no se puede aprobar/i,
+      }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: /confirmo que revisé el destinatario/i,
+      }),
+    )
+    expect(screen.getByRole("button", { name: "Aprobar" })).toBeEnabled()
+  })
+
+  it("bloquea si falta la fuente pública de los datos", () => {
+    render(
+      <AprobacionPanel
+        {...PROPS}
+        fuentes={{ sitioWeb: null, fuenteUrl: null, emailFuenteUrl: null }}
+      />,
+    )
+
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: /confirmo que revisé el destinatario/i,
+      }),
+    )
+
+    expect(screen.getByRole("button", { name: "Aprobar" })).toBeDisabled()
+    expect(
+      screen.getByRole("note", {
+        name: /motivos por los que no se puede aprobar/i,
+      }),
+    ).toHaveTextContent(/falta la fuente pública/i)
+  })
+
+  it("solo un BORRADOR muestra el botón y el checkbox", () => {
+    for (const estado of ["ENVIANDO", "ENVIADO", "CANCELADO"]) {
+      const { unmount } = render(
+        <AprobacionPanel {...PROPS} estado={estado} />,
+      )
+      expect(
+        screen.queryByRole("button", { name: "Aprobar" }),
+      ).not.toBeInTheDocument()
+      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument()
+      expect(screen.getByRole("status")).toHaveTextContent(
+        /solo un borrador puede aprobarse/i,
+      )
+      unmount()
+    }
+  })
+
+  it("en APROBADO muestra el snapshot inmutable y no ofrece aprobar de nuevo", () => {
+    render(
+      <AprobacionPanel
+        {...PROPS}
+        estado="APROBADO"
+        aprobadoAsunto="[publicidad] Asunto aprobado"
+        aprobadoCuerpoTexto="Cuerpo aprobado en el snapshot"
+        aprobadoCuerpoHtml="<html>HTML aprobado</html>"
+        aprobadoPorNombre="Ana Pérez"
+        aprobadoEnTexto="12 de nov de 2026, 15:00"
+      />,
+    )
+
+    expect(
+      screen.queryByRole("button", { name: "Aprobar" }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument()
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /snapshot aprobado e inmutable por Ana Pérez el 12 de nov de 2026, 15:00/i,
+    )
+    expect(screen.getByText("[publicidad] Asunto aprobado")).toBeInTheDocument()
+    expect(
+      screen.queryByText("Una idea para Consultora Alfa"),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText("Cuerpo aprobado en el snapshot")).toBeInTheDocument()
+    expect(screen.getByText("HTML del snapshot")).toBeInTheDocument()
+    expect(screen.getByText(/no se envía nada automáticamente/i)).toBeInTheDocument()
+  })
+
+  it("aprueba con { confirmado: true }, muestra el resultado y refresca", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        estado: "APROBADO",
+        aprobadoEn: "2026-11-12T18:00:00.000Z",
+      }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<AprobacionPanel {...PROPS} />)
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: /confirmo que revisé el destinatario/i,
+      }),
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+
+    const resultado = await screen.findByRole("status")
+    expect(resultado).toHaveTextContent(/Aprobación registrada el/i)
+    expect(resultado).toHaveTextContent(/No se envió ningún email/i)
+    expect(resultado).toHaveTextContent(/acción separada/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/envios/env_1/aprobar")
+    expect(url).not.toContain("@")
+    expect(url).not.toContain("/enviar")
+    expect(init.method).toBe("POST")
+    expect(JSON.parse(String(init.body))).toEqual({ confirmado: true })
+    expect(
+      screen.getByRole("checkbox", {
+        name: /confirmo que revisé el destinatario/i,
+      }),
+    ).not.toBeChecked()
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("muestra un error accesible del servidor sin PII", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({
+        codigo: "REVALIDACION",
+        motivos: [
+          "El contenido del borrador cambio desde que se genero o esta incompleto.",
+        ],
+      }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<AprobacionPanel {...PROPS} />)
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: /confirmo que revisé el destinatario/i,
+      }),
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(
+      /la aprobación ya no coincide con el contenido actual/i,
+    )
+    expect(alerta).toHaveTextContent(/El contenido del borrador cambio/i)
+    expect(alerta).not.toHaveTextContent("ventas@alfa.com.ar")
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("mapea los códigos de permiso sin filtrar datos", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({ codigo: "PROHIBIDO" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<AprobacionPanel {...PROPS} />)
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: /confirmo que revisé el destinatario/i,
+      }),
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/no tenés permisos para aprobar/i)
+    expect(alerta).not.toHaveTextContent("Hola Ana")
+  })
+
+  it("no hace fetch si falta confirmar", () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<AprobacionPanel {...PROPS} />)
+    fireEvent.click(screen.getByRole("button", { name: "Aprobar" }))
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+describe("ficha del prospecto: aprobación (T-17, AC-25, AC-27)", () => {
+  const ENV_APROBACION = {
+    NEXT_PUBLIC_URL: "https://pixelarch.dev",
+    PROPUESTAS_SECRETO: "secreto-de-pruebas-propuestas-1234567890",
+    PROPUESTAS_TEXTO_LEGAL: "Texto legal de prueba aprobado.",
+    PROPUESTAS_BASE_LEGAL: "Base legal de prueba aprobada.",
+    PROPUESTAS_FROM_EMAIL: "propuestas@pixelarch.dev",
+    PROPUESTAS_REPLY_TO: "hola@pixelarch.dev",
+    PROPUESTAS_FROM_NOMBRE: "PixelArch",
+    PROPUESTAS_ENVIO_HABILITADO: "false",
+  }
+
+  function stubEntornoAprobacion(): void {
+    for (const [clave, valor] of Object.entries(ENV_APROBACION)) {
+      vi.stubEnv(clave, valor)
+    }
+    vi.stubEnv("RESEND_API_KEY", "")
+  }
+
+  function envioAbiertoFixture(overrides: Record<string, unknown> = {}) {
+    const asunto = "Una idea para Consultora Alfa"
+    const cuerpoTexto = "Hola Ana,\n\nTe escribo."
+    const cuerpoHtml = "<p>Hola Ana,</p><p>Te escribo.</p>"
+    const secuencia = 1
+
+    return {
+      id: "env_1",
+      estado: "BORRADOR",
+      version: 1,
+      secuencia,
+      asunto,
+      cuerpoTexto,
+      cuerpoHtml,
+      hashContenido: hashContenidoEnvio({
+        asunto,
+        cuerpoTexto,
+        cuerpoHtml,
+        destinatario: "ventas@alfa.com.ar",
+        plantillaId: "pl_1",
+        plantillaVersion: 1,
+        secuencia,
+      }),
+      destinatario: "ventas@alfa.com.ar",
+      fromEmail: "propuestas@pixelarch.dev",
+      fromNombre: "PixelArch",
+      replyTo: "hola@pixelarch.dev",
+      plantillaId: "pl_1",
+      plantillaVersion: 1,
+      aprobadoAsunto: null,
+      aprobadoCuerpoHtml: null,
+      aprobadoCuerpoTexto: null,
+      aprobadoPorNombre: null,
+      aprobadoEn: null,
+      ...overrides,
+    }
+  }
+
+  it("muestra el panel con aviso y confirma sin bloquearse por el gate ni Resend", async () => {
+    stubEntornoAprobacion()
+    mocks.prospectoFindUnique.mockResolvedValue(prospectoDetalleFixture())
+    mocks.envioFindFirst.mockResolvedValue(envioAbiertoFixture())
+
+    await renderProspecto()
+
+    const panel = screen.getByRole("region", {
+      name: /aprobación de la propuesta/i,
+    })
+    expect(
+      within(panel).getByRole("note", { name: /aprobar no envía/i }),
+    ).toHaveTextContent(/no llama a resend/i)
+    expect(within(panel).getByText("ventas@alfa.com.ar")).toBeInTheDocument()
+    expect(
+      within(panel).getByText("PixelArch <propuestas@pixelarch.dev>"),
+    ).toBeInTheDocument()
+    expect(
+      within(panel).getByRole("button", { name: "Aprobar" }),
+    ).toBeDisabled()
+
+    fireEvent.click(
+      within(panel).getByRole("checkbox", {
+        name: /confirmo que revisé el destinatario/i,
+      }),
+    )
+    expect(
+      within(panel).getByRole("button", { name: "Aprobar" }),
+    ).toBeEnabled()
+    expect(
+      within(panel).queryByRole("note", {
+        name: /motivos por los que no se puede aprobar/i,
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("bloquea la aprobación si falta configuración del snapshot", async () => {
+    vi.stubEnv("NEXT_PUBLIC_URL", "https://pixelarch.dev")
+    vi.stubEnv("PROPUESTAS_SECRETO", "")
+    vi.stubEnv("PROPUESTAS_TEXTO_LEGAL", "")
+    vi.stubEnv("PROPUESTAS_BASE_LEGAL", "")
+    vi.stubEnv("PROPUESTAS_FROM_EMAIL", "")
+    vi.stubEnv("PROPUESTAS_REPLY_TO", "")
+    mocks.prospectoFindUnique.mockResolvedValue(prospectoDetalleFixture())
+    mocks.envioFindFirst.mockResolvedValue(envioAbiertoFixture())
+
+    await renderProspecto()
+
+    const panel = screen.getByRole("region", {
+      name: /aprobación de la propuesta/i,
+    })
+    fireEvent.click(
+      within(panel).getByRole("checkbox", {
+        name: /confirmo que revisé el destinatario/i,
+      }),
+    )
+
+    expect(
+      within(panel).getByRole("button", { name: "Aprobar" }),
+    ).toBeDisabled()
+    const bloqueos = within(panel).getByRole("note", {
+      name: /motivos por los que no se puede aprobar/i,
+    })
+    expect(bloqueos).toHaveTextContent(/PROPUESTAS_SECRETO/i)
+    expect(bloqueos).toHaveTextContent(/PROPUESTAS_TEXTO_LEGAL/i)
+    expect(bloqueos).toHaveTextContent(/PROPUESTAS_BASE_LEGAL/i)
+  })
+
+  it("en APROBADO muestra el snapshot guardado y no ofrece aprobar", async () => {
+    stubEntornoAprobacion()
+    mocks.prospectoFindUnique.mockResolvedValue(prospectoDetalleFixture())
+    mocks.envioFindFirst.mockResolvedValue(
+      envioAbiertoFixture({
+        estado: "APROBADO",
+        version: 2,
+        aprobadoAsunto: "[publicidad] Asunto aprobado",
+        aprobadoCuerpoTexto: "Cuerpo aprobado en el snapshot",
+        aprobadoCuerpoHtml: "<html>HTML aprobado</html>",
+        aprobadoPorNombre: "Ana Pérez",
+        aprobadoEn: new Date("2026-11-12T18:00:00.000Z"),
+      }),
+    )
+
+    await renderProspecto()
+
+    const panel = screen.getByRole("region", {
+      name: /aprobación de la propuesta/i,
+    })
+    expect(
+      within(panel).queryByRole("button", { name: "Aprobar" }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(panel).queryByRole("checkbox"),
+    ).not.toBeInTheDocument()
+    expect(within(panel).getByRole("status")).toHaveTextContent(
+      /snapshot aprobado e inmutable por Ana Pérez/i,
+    )
+    expect(
+      within(panel).getByText("[publicidad] Asunto aprobado"),
+    ).toBeInTheDocument()
   })
 })
 

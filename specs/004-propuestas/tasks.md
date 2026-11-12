@@ -192,13 +192,14 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Cierre: tester (`propuestas-plantillas.test.ts`, `envios.test.ts`) · reviewer (XSS, versionado, grounding) · 1 commit.
   - PASS tester+reviewer: 210 tests verdes (55 API + 51 plantillas + 104 páginas), tsc 0 errores; reviewer PASS. Deuda menor: el grounding no descarta una auditoría FALLIDA/vencida (no usar findings viejos); no completar ciudad/rubro desde la campaña como dato verificado; un follow-up tras ENVIADO no tiene camino operativo (T-07/T-15/T-18); el cupo REDACTOR/borradores no se aplica (T-21/T-25); la bandeja limita 200 filas antes de ordenar; el editor conserva estado sin normalizar tras guardar; el mensaje NO_CONFIGURADO confunde LLM con secreto faltante; versionado de plantillas sin control optimista; detalles de UI (variables `[]`, label); faltan tests de 500/ENVIANDO/concurrencia.
 
-- [ ] **T-17 (AC-25, AC-27; RF-40..RF-42, RF-44) — Aprobación con snapshot (sin envío).**
+- [x] **T-17 (AC-25, AC-27; RF-40..RF-42, RF-44) — Aprobación con snapshot (sin envío).**
   - `POST /api/propuestas/envios/[id]/aprobar`: solo BORRADOR; revalida email, supresión, plantilla y hash del borrador; exige from/reply-to configurados y texto/base legal presentes; re-renderiza el email final con footer legal, token de baja y headers; guarda `aprobado*`, `aprobadoHash`, `aprobadoPor/En`, `tokenBaja`; estado APROBADO; prospecto APROBADO; actualiza `ultimaInteraccionEn`.
   - UI de aprobación: destinatario, from/reply-to, asunto, HTML/texto, fuentes, score, auditoría y versión; aviso "Aprobar no envía"; confirmación explícita.
   - Archivos: `src/app/api/propuestas/envios/[id]/aprobar/route.ts`; `src/components/propuestas/aprobacion-panel.tsx`; test `envios.test.ts` (ampliar).
   - Depende: T-16.
   - Tests: snapshot final con footer legal/token y aprobador; `aprobadoHash` cubre el snapshot; Resend no llamado; sin email/suprimido → 409; borrador mutado/hash distinto → 409; otro envío APROBADO/ENVIANDO en la misma secuencia → 409; sin secreto/URL, from/reply o texto/base legal → 409; asistente 403.
   - Cierre: tester (`envios.test.ts`) · reviewer (inmutabilidad, auth, Resend no llamado) · 1 commit.
+  - PASS tester+reviewer: 202 tests verdes (85 API + 117 páginas) + 68 de plantillas/envíos, tsc 0 errores; reviewer PASS. Deuda menor: la UI muestra from/reply-to del borrador pero la ruta aprueba con la config actual (alinear); el chequeo de otro APROBADO/ENVIANDO ocurre fuera de la transacción; la supresión se consulta fuera de la transacción; los headers no se persisten y T-18 debe reconstruirlos idénticamente y comparar; duplicación de `motivosConfiguracionAprobacion`; origen devuelve 409 en vez de 403 con URL inválida; branch `NO_CONFIGURADO` inalcanzable; copy interno «T-18»; falta test UI de hash mutado y de secuencia máxima.
 
 - [ ] **T-18 (AC-26, AC-28, AC-29, AC-30, AC-31; RF-43..RF-50) — Envío con Resend, idempotencia y resultado.**
   - `src/lib/propuestas/resend.ts`: wrapper server-only, `Idempotency-Key`, headers `List-Unsubscribe`/`-Post`, from/reply-to, sin scheduling/adjuntos/tracking; errores sanitizados.

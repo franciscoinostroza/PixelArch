@@ -17,11 +17,16 @@ import {
 import {
   EnvioInvalidoError,
   MOTIVO_CANCELACION_EDICION,
+  construirSnapshotAprobado,
   datosPlantillaDesdeProspecto,
   hashContenidoEnvio,
+  hashSnapshotAprobado,
   siguienteVersionEnvio,
   validarContenidoEnvio,
+  verificarHashContenido,
+  type EntradaHashAprobado,
   type EntradaHashEnvio,
+  type EntradaSnapshotAprobado,
 } from "@/lib/propuestas/envios"
 
 /**
@@ -574,6 +579,296 @@ describe("envios: hash determinista del contenido (T-16, AC-22)", () => {
         hashContenidoEnvio(null as unknown as EntradaHashEnvio),
       ),
     ).toBe("HASH")
+  })
+})
+
+describe("envios: verificacion del hash del borrador (T-17, AC-27; RF-44)", () => {
+  it("acepta el hash recomputado del mismo contenido", () => {
+    expect(verificarHashContenido(HASH_BASE, hashContenidoEnvio(HASH_BASE))).toBe(
+      true,
+    )
+    expect(
+      verificarHashContenido(
+        HASH_BASE,
+        hashContenidoEnvio(HASH_BASE).toUpperCase(),
+      ),
+    ).toBe(true)
+    expect(
+      verificarHashContenido(HASH_BASE, `  ${hashContenidoEnvio(HASH_BASE)}  `),
+    ).toBe(true)
+  })
+
+  it("falla cerrado si el contenido muto, falta el hash o es invalido", () => {
+    const guardado = hashContenidoEnvio(HASH_BASE)
+
+    expect(
+      verificarHashContenido({ ...HASH_BASE, asunto: "Asunto mutado" }, guardado),
+    ).toBe(false)
+    expect(
+      verificarHashContenido({ ...HASH_BASE, cuerpoTexto: "Cuerpo mutado" }, guardado),
+    ).toBe(false)
+    expect(verificarHashContenido(HASH_BASE, null)).toBe(false)
+    expect(verificarHashContenido(HASH_BASE, undefined)).toBe(false)
+    expect(verificarHashContenido(HASH_BASE, "   ")).toBe(false)
+    expect(
+      verificarHashContenido(
+        { ...HASH_BASE, secuencia: 0 },
+        "cualquier-hash",
+      ),
+    ).toBe(false)
+  })
+})
+
+const TOKEN_BAJA =
+  `v1.pros_1.${"a".repeat(64)}.${"b".repeat(43)}`
+
+const SNAPSHOT_HASH_BASE: EntradaHashAprobado = {
+  asunto: "[publicidad] Una idea para Consultora Ejemplo",
+  cuerpoHtml: "<p>Hola Ana,</p><p>Te escribo.</p>",
+  cuerpoTexto: "Hola Ana,\n\nTe escribo.",
+  destinatario: "ana@consultora-ejemplo.com",
+  fromEmail: "propuestas@pixelarch.dev",
+  fromNombre: "PixelArch",
+  replyTo: "hola@pixelarch.dev",
+  tokenBaja: TOKEN_BAJA,
+  headers: {
+    "List-Unsubscribe": `<https://pixelarch.dev/api/opt-out?token=${TOKEN_BAJA}>, <mailto:hola@pixelarch.dev?subject=Baja>`,
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+  },
+  plantillaId: "pl_1",
+  plantillaVersion: 2,
+  secuencia: 1,
+}
+
+describe("envios: hash del snapshot aprobado (T-17, AC-25; RF-41)", () => {
+  it("es determinista y cubre todo el snapshot", () => {
+    const base = hashSnapshotAprobado(SNAPSHOT_HASH_BASE)
+
+    expect(base).toMatch(/^[0-9a-f]{64}$/)
+    expect(hashSnapshotAprobado({ ...SNAPSHOT_HASH_BASE })).toBe(base)
+
+    const variantes: EntradaHashAprobado[] = [
+      { ...SNAPSHOT_HASH_BASE, asunto: "Otro asunto" },
+      { ...SNAPSHOT_HASH_BASE, cuerpoHtml: "<p>Otro HTML</p>" },
+      { ...SNAPSHOT_HASH_BASE, cuerpoTexto: "Otro texto" },
+      { ...SNAPSHOT_HASH_BASE, destinatario: "otra@consultora-ejemplo.com" },
+      { ...SNAPSHOT_HASH_BASE, fromEmail: "otro@pixelarch.dev" },
+      { ...SNAPSHOT_HASH_BASE, fromNombre: "Otro remitente" },
+      { ...SNAPSHOT_HASH_BASE, replyTo: "otro@pixelarch.dev" },
+      { ...SNAPSHOT_HASH_BASE, tokenBaja: `${TOKEN_BAJA}x` },
+      {
+        ...SNAPSHOT_HASH_BASE,
+        headers: {
+          ...SNAPSHOT_HASH_BASE.headers,
+          "List-Unsubscribe": "<https://pixelarch.dev/api/opt-out?token=otro>",
+        },
+      },
+      {
+        ...SNAPSHOT_HASH_BASE,
+        headers: {
+          ...SNAPSHOT_HASH_BASE.headers,
+          "List-Unsubscribe-Post": "List-Unsubscribe=Two-Click",
+        },
+      },
+      { ...SNAPSHOT_HASH_BASE, plantillaId: "pl_2" },
+      { ...SNAPSHOT_HASH_BASE, plantillaVersion: 3 },
+      { ...SNAPSHOT_HASH_BASE, secuencia: 2 },
+    ]
+
+    for (const variante of variantes) {
+      expect(hashSnapshotAprobado(variante)).not.toBe(base)
+    }
+  })
+
+  it("rechaza snapshot incompleto o invalido", () => {
+    expect(
+      errorDeEnvio(() =>
+        hashSnapshotAprobado({ ...SNAPSHOT_HASH_BASE, asunto: "  " }),
+      ),
+    ).toBe("ASUNTO")
+    expect(
+      errorDeEnvio(() =>
+        hashSnapshotAprobado({ ...SNAPSHOT_HASH_BASE, cuerpoHtml: "" }),
+      ),
+    ).toBe("CUERPO")
+    expect(
+      errorDeEnvio(() =>
+        hashSnapshotAprobado({ ...SNAPSHOT_HASH_BASE, cuerpoTexto: "" }),
+      ),
+    ).toBe("CUERPO")
+    expect(
+      errorDeEnvio(() =>
+        hashSnapshotAprobado({ ...SNAPSHOT_HASH_BASE, destinatario: "" }),
+      ),
+    ).toBe("DESTINATARIO")
+    expect(
+      errorDeEnvio(() =>
+        hashSnapshotAprobado({ ...SNAPSHOT_HASH_BASE, fromEmail: "" }),
+      ),
+    ).toBe("REMITENTE")
+    expect(
+      errorDeEnvio(() =>
+        hashSnapshotAprobado({ ...SNAPSHOT_HASH_BASE, fromNombre: "" }),
+      ),
+    ).toBe("REMITENTE")
+    expect(
+      errorDeEnvio(() =>
+        hashSnapshotAprobado({ ...SNAPSHOT_HASH_BASE, replyTo: "" }),
+      ),
+    ).toBe("REMITENTE")
+    expect(
+      errorDeEnvio(() =>
+        hashSnapshotAprobado({ ...SNAPSHOT_HASH_BASE, tokenBaja: "" }),
+      ),
+    ).toBe("TOKEN")
+    expect(
+      errorDeEnvio(() =>
+        hashSnapshotAprobado({
+          ...SNAPSHOT_HASH_BASE,
+          headers: {} as EntradaHashAprobado["headers"],
+        }),
+      ),
+    ).toBe("HEADERS")
+    expect(
+      errorDeEnvio(() =>
+        hashSnapshotAprobado({ ...SNAPSHOT_HASH_BASE, secuencia: 0 }),
+      ),
+    ).toBe("SECUENCIA")
+    expect(
+      errorDeEnvio(() =>
+        hashSnapshotAprobado(null as unknown as EntradaHashAprobado),
+      ),
+    ).toBe("HASH")
+  })
+})
+
+describe("envios: snapshot final con footer legal (T-17, AC-25, AC-32; RF-41, RF-47, RF-52)", () => {
+  const SNAPSHOT_INPUT: EntradaSnapshotAprobado = {
+    asunto: "Una idea para Consultora Ejemplo",
+    cuerpoTexto: "Hola Ana,\n\nVi el sitio y te propongo una mejora.",
+    destinatario: "ana@consultora-ejemplo.com",
+    fromEmail: "propuestas@pixelarch.dev",
+    fromNombre: "PixelArch",
+    replyTo: "hola@pixelarch.dev",
+    tokenBaja: TOKEN_BAJA,
+    plantillaId: "pl_1",
+    plantillaVersion: 2,
+    secuencia: 1,
+    sitioWeb: "https://consultora-ejemplo.com/",
+    fuenteUrl: "https://consultora-ejemplo.com/contacto",
+    textoLegal: "Texto legal aprobado para el email.",
+    urlPublica: "https://pixelarch.dev",
+    etiquetaPublicidad: true,
+    canalArco: "hola@pixelarch.dev",
+  }
+
+  it("materializa asunto, HTML, texto, token y headers de baja", () => {
+    const snapshot = construirSnapshotAprobado(SNAPSHOT_INPUT)
+
+    expect(snapshot.asunto).toBe(
+      "[publicidad] Una idea para Consultora Ejemplo",
+    )
+    expect(snapshot.tokenBaja).toBe(TOKEN_BAJA)
+    expect(snapshot.aprobadoHash).toMatch(/^[0-9a-f]{64}$/)
+
+    // HTML final: identificacion, finalidad, fuente publica, canal ARCO,
+    // transcripcion legal, etiqueta de publicidad y enlace visible.
+    expect(snapshot.cuerpoHtml).toContain("PixelArch")
+    expect(snapshot.cuerpoHtml).toContain(
+      "Propuesta de servicios de diseño y desarrollo web.",
+    )
+    expect(snapshot.cuerpoHtml).toContain(
+      "Fuente de los datos: <a href=\"https://consultora-ejemplo.com/\">",
+    )
+    expect(snapshot.cuerpoHtml).toContain(
+      "mailto:hola@pixelarch.dev",
+    )
+    expect(snapshot.cuerpoHtml).toContain("Texto legal aprobado para el email.")
+    expect(snapshot.cuerpoHtml).toContain(
+      "Este mensaje es publicidad directa no solicitada.",
+    )
+    expect(snapshot.cuerpoHtml).toContain("Darse de baja")
+    expect(snapshot.cuerpoHtml).toContain(
+      `https://pixelarch.dev/propuestas/baja/${TOKEN_BAJA}`,
+    )
+
+    // Texto plano equivalente.
+    expect(snapshot.cuerpoTexto).toContain("Hola Ana,")
+    expect(snapshot.cuerpoTexto).toContain(
+      "Fuente de los datos: https://consultora-ejemplo.com/",
+    )
+    expect(snapshot.cuerpoTexto).toContain(
+      "Derechos de acceso, rectificación y supresión: hola@pixelarch.dev",
+    )
+    expect(snapshot.cuerpoTexto).toContain(
+      "Texto legal aprobado para el email.",
+    )
+    expect(snapshot.cuerpoTexto).toContain(
+      `Darse de baja: https://pixelarch.dev/propuestas/baja/${TOKEN_BAJA}`,
+    )
+
+    // Headers RFC 8058: one-click al endpoint publico y mailto de ARCO.
+    expect(snapshot.headers).toEqual({
+      "List-Unsubscribe": `<https://pixelarch.dev/api/opt-out?token=${TOKEN_BAJA}>, <mailto:hola@pixelarch.dev?subject=Baja>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    })
+
+    // El hash publicado se puede recomputar desde el snapshot guardado.
+    expect(snapshot.aprobadoHash).toBe(
+      hashSnapshotAprobado({
+        asunto: snapshot.asunto,
+        cuerpoHtml: snapshot.cuerpoHtml,
+        cuerpoTexto: snapshot.cuerpoTexto,
+        destinatario: SNAPSHOT_INPUT.destinatario,
+        fromEmail: SNAPSHOT_INPUT.fromEmail,
+        fromNombre: SNAPSHOT_INPUT.fromNombre,
+        replyTo: SNAPSHOT_INPUT.replyTo,
+        tokenBaja: snapshot.tokenBaja,
+        headers: snapshot.headers,
+        plantillaId: SNAPSHOT_INPUT.plantillaId,
+        plantillaVersion: SNAPSHOT_INPUT.plantillaVersion,
+        secuencia: SNAPSHOT_INPUT.secuencia,
+      }),
+    )
+  })
+
+  it("usa la fuente del email cuando el sitio web falta y respeta la etiqueta", () => {
+    const snapshot = construirSnapshotAprobado({
+      ...SNAPSHOT_INPUT,
+      sitioWeb: null,
+      etiquetaPublicidad: false,
+    })
+
+    expect(snapshot.asunto).toBe("Una idea para Consultora Ejemplo")
+    expect(snapshot.cuerpoHtml).toContain(
+      "https://consultora-ejemplo.com/contacto",
+    )
+    expect(snapshot.cuerpoHtml).not.toContain(
+      "Este mensaje es publicidad directa no solicitada.",
+    )
+  })
+
+  it.each([
+    ["texto legal ausente", { textoLegal: null }, "AVISO"],
+    ["fuente ausente", { sitioWeb: null, fuenteUrl: null }, "AVISO"],
+    ["URL publica no https", { urlPublica: "http://pixelarch.dev" }, "URL"],
+    ["URL publica con path", { urlPublica: "https://pixelarch.dev/portal" }, "URL"],
+    ["token invalido", { tokenBaja: "token-invalido" }, "TOKEN"],
+    ["asunto vacio", { asunto: "   " }, "ASUNTO"],
+    ["cuerpo vacio", { cuerpoTexto: "   " }, "CUERPO"],
+    ["destinatario vacio", { destinatario: "  " }, "DESTINATARIO"],
+    ["from vacio", { fromEmail: "" }, "REMITENTE"],
+    ["reply-to vacio", { replyTo: "" }, "REMITENTE"],
+    ["secuencia invalida", { secuencia: 0 }, "SECUENCIA"],
+  ])("falla cerrado con %s", (_caso, override, codigo) => {
+    expect(
+      errorDeEnvio(() =>
+        construirSnapshotAprobado({
+          ...SNAPSHOT_INPUT,
+          ...(override as Partial<EntradaSnapshotAprobado>),
+        }),
+      ),
+    ).toBe(codigo)
   })
 })
 

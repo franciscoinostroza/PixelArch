@@ -3,6 +3,11 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import {
+  configPropuestas,
+  type ConfigPropuestas,
+} from "@/lib/propuestas/config"
+import { verificarHashContenido } from "@/lib/propuestas/envios"
+import {
   CODIGO_ESQUEMA_NO_APLICADO,
   esErrorTablaFaltante,
 } from "@/lib/propuestas/errores"
@@ -15,6 +20,7 @@ import {
   BorradorEditor,
   GenerarBorrador,
 } from "@/components/propuestas/borrador-editor"
+import { AprobacionPanel } from "@/components/propuestas/aprobacion-panel"
 import type { PlantillaOpcion } from "@/components/propuestas/campana-form"
 
 export const dynamic = "force-dynamic"
@@ -42,6 +48,12 @@ export const metadata: Metadata = {
  * T-16 (AC-22, AC-24): agrega el panel de borrador: boton "Generar borrador"
  * con las plantillas activas o el editor del envio BORRADOR/APROBADO abierto.
  * No se envia nada desde esta ficha.
+ *
+ * T-17 (AC-25, AC-27): agrega el panel de aprobacion cuando hay un envio
+ * BORRADOR/APROBADO: destinatario, from/reply-to, asunto, HTML/texto, fuentes,
+ * score, auditoria, version y estado, con aviso "Aprobar no envia" y una
+ * confirmacion explicita. En APROBADO se muestra el snapshot inmutable y se
+ * recuerda que el envio es otra accion (T-18).
  */
 
 const CLASE_SECCION = "rounded-xl border border-border bg-panel p-5"
@@ -231,6 +243,19 @@ interface EnvioAbierto {
   secuencia: number
   asunto: string
   cuerpoTexto: string
+  cuerpoHtml: string
+  hashContenido: string
+  destinatario: string
+  fromEmail: string | null
+  fromNombre: string | null
+  replyTo: string | null
+  plantillaId: string | null
+  plantillaVersion: number | null
+  aprobadoAsunto: string | null
+  aprobadoCuerpoHtml: string | null
+  aprobadoCuerpoTexto: string | null
+  aprobadoPorNombre: string | null
+  aprobadoEn: Date | null
 }
 
 function cargarEnvioAbierto(prospectoId: string): Promise<EnvioAbierto | null> {
@@ -247,8 +272,113 @@ function cargarEnvioAbierto(prospectoId: string): Promise<EnvioAbierto | null> {
       secuencia: true,
       asunto: true,
       cuerpoTexto: true,
+      cuerpoHtml: true,
+      hashContenido: true,
+      destinatario: true,
+      fromEmail: true,
+      fromNombre: true,
+      replyTo: true,
+      plantillaId: true,
+      plantillaVersion: true,
+      aprobadoAsunto: true,
+      aprobadoCuerpoHtml: true,
+      aprobadoCuerpoTexto: true,
+      aprobadoPorNombre: true,
+      aprobadoEn: true,
     },
   })
+}
+
+/**
+ * Motivos visibles para no habilitar la aprobacion en la UI. El servidor
+ * revalida todo; esto evita ofrecer un boton que va a fallar. No incluye PII.
+ */
+function motivosAprobacion(
+  envio: EnvioAbierto,
+  prospecto: {
+    sitioWeb: string | null
+    fuenteUrl: string | null
+    emailFuenteUrl: string | null
+  },
+): string[] {
+  const motivos: string[] = []
+
+  if (!textoDe(envio.destinatario)) {
+    motivos.push("Falta el destinatario del envío.")
+  }
+  if (!textoDe(envio.fromEmail)) {
+    motivos.push("Falta el remitente configurado (PROPUESTAS_FROM_EMAIL).")
+  }
+  if (!textoDe(envio.replyTo)) {
+    motivos.push("Falta el reply-to configurado (PROPUESTAS_REPLY_TO).")
+  }
+  if (!textoDe(envio.asunto)) {
+    motivos.push("Falta el asunto del email.")
+  }
+  if (!textoDe(envio.cuerpoTexto)) {
+    motivos.push("Falta el cuerpo del email.")
+  }
+  if (
+    !textoDe(prospecto.sitioWeb) &&
+    !textoDe(prospecto.fuenteUrl) &&
+    !textoDe(prospecto.emailFuenteUrl)
+  ) {
+    motivos.push(
+      "Falta la fuente pública de los datos para el aviso legal.",
+    )
+  }
+
+  const hashIntacto = verificarHashContenido(
+    {
+      asunto: textoDe(envio.asunto) ?? "",
+      cuerpoTexto: textoDe(envio.cuerpoTexto) ?? "",
+      cuerpoHtml: textoDe(envio.cuerpoHtml) ?? "",
+      destinatario: textoDe(envio.destinatario) ?? "",
+      plantillaId: envio.plantillaId ?? null,
+      plantillaVersion: envio.plantillaVersion ?? null,
+      secuencia: envio.secuencia,
+    },
+    textoDe(envio.hashContenido),
+  )
+
+  if (!hashIntacto) {
+    motivos.push(
+      "El contenido del borrador cambió desde que se generó: regeneralo o guardalo antes de aprobar.",
+    )
+  }
+
+  return motivos
+}
+
+/**
+ * Motivos de configuracion que bloquean la aprobacion. Aprobar no envia: el
+ * gate `PROPUESTAS_ENVIO_HABILITADO` y `RESEND_API_KEY` son requisitos del
+ * envio (T-18) y no se exigen aca. Espejo de la revalidacion de
+ * `/api/propuestas/envios/[id]/aprobar`.
+ */
+function motivosConfiguracionAprobacion(config: ConfigPropuestas): string[] {
+  const motivos: string[] = []
+
+  if (config.secreto === null) {
+    motivos.push("Falta PROPUESTAS_SECRETO o no es valido.")
+  }
+  if (config.urlPublica === null) {
+    motivos.push("Falta NEXT_PUBLIC_URL https absoluta.")
+  }
+  if (config.fromEmail === null) {
+    motivos.push("Falta PROPUESTAS_FROM_EMAIL o no es valido.")
+  }
+  if (config.replyTo === null) {
+    motivos.push("Falta PROPUESTAS_REPLY_TO o no es valido.")
+  }
+  if (config.textoLegal === null) {
+    motivos.push("Falta PROPUESTAS_TEXTO_LEGAL aprobado.")
+  }
+  if (config.baseLegal === null) {
+    motivos.push("Falta PROPUESTAS_BASE_LEGAL aprobado.")
+  }
+
+  return motivos
 }
 
 function Campo({
@@ -351,6 +481,18 @@ export default async function ProspectoDetallePage({
     emailFuenteUrl: prospecto.emailFuenteUrl,
     estado: prospecto.estado,
   }
+
+  // La aprobacion ya registrada no se bloquea por la configuracion actual de
+  // envio: el snapshot es inmutable y el envio (T-18) revalida por su cuenta.
+  // Aprobar en seco no depende del gate ni de Resend (T-18): solo exige las
+  // piezas con las que se re-renderiza el email final.
+  const bloqueosAprobacion =
+    envioAbierto && envioAbierto.estado === "BORRADOR"
+      ? [
+          ...motivosAprobacion(envioAbierto, prospecto),
+          ...motivosConfiguracionAprobacion(configPropuestas()),
+        ]
+      : []
 
   return (
     <div>
@@ -749,6 +891,39 @@ export default async function ProspectoDetallePage({
           />
         )}
       </section>
+
+      {envioAbierto && (
+        <div className="mb-8">
+          <AprobacionPanel
+            key={`aprobacion-${envioAbierto.id}`}
+            envioId={envioAbierto.id}
+            estado={envioAbierto.estado}
+            version={envioAbierto.version}
+            secuencia={envioAbierto.secuencia}
+            plantillaVersion={envioAbierto.plantillaVersion ?? null}
+            destinatario={textoDe(envioAbierto.destinatario) ?? ""}
+            fromEmail={textoDe(envioAbierto.fromEmail)}
+            fromNombre={textoDe(envioAbierto.fromNombre)}
+            replyTo={textoDe(envioAbierto.replyTo)}
+            asunto={textoDe(envioAbierto.asunto) ?? ""}
+            cuerpoTexto={textoDe(envioAbierto.cuerpoTexto) ?? ""}
+            cuerpoHtml={textoDe(envioAbierto.cuerpoHtml)}
+            aprobadoAsunto={textoDe(envioAbierto.aprobadoAsunto)}
+            aprobadoCuerpoTexto={textoDe(envioAbierto.aprobadoCuerpoTexto)}
+            aprobadoCuerpoHtml={textoDe(envioAbierto.aprobadoCuerpoHtml)}
+            aprobadoPorNombre={textoDe(envioAbierto.aprobadoPorNombre)}
+            aprobadoEnTexto={fechaHora(envioAbierto.aprobadoEn)}
+            bloqueos={bloqueosAprobacion}
+            fuentes={{
+              sitioWeb: sitioSeguro,
+              fuenteUrl: fuenteSegura,
+              emailFuenteUrl: emailFuenteSegura,
+            }}
+            score={prospecto.score}
+            auditoriaEstado={auditoriaEstado}
+          />
+        </div>
+      )}
 
       <section aria-label="Corrección del prospecto">
         <ProspectoFicha prospecto={editable} />

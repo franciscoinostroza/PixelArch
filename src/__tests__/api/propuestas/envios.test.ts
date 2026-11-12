@@ -2,7 +2,11 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { rateLimitDetalle, resetRateLimit } from "@/lib/rate-limit"
-import { hashContenidoEnvio } from "@/lib/propuestas/envios"
+import {
+  hashContenidoEnvio,
+  hashSnapshotAprobado,
+} from "@/lib/propuestas/envios"
+import { crearTokenBaja, hashEmail } from "@/lib/propuestas/supresion"
 
 /**
  * T-16 (AC-22, AC-23, AC-24; RF-34..RF-39): plantillas, borrador determinista
@@ -90,23 +94,33 @@ import { POST as crearPlantilla } from "@/app/api/propuestas/plantillas/route"
 import { PATCH as editarPlantilla } from "@/app/api/propuestas/plantillas/[id]/route"
 import { POST as crearBorrador } from "@/app/api/propuestas/prospectos/[id]/borrador/route"
 import { PATCH as editarEnvio } from "@/app/api/propuestas/envios/[id]/route"
+import { POST as aprobarEnvio } from "@/app/api/propuestas/envios/[id]/aprobar/route"
 
 const ORIGEN = "https://pixelarch.dev"
 const IP = "203.0.113.51"
 const SECRETO = "secreto-de-pruebas-propuestas-1234567890"
 const BASE_LEGAL = "Base legal de prueba aprobada para prospeccion B2B."
+const TEXTO_LEGAL = "Texto legal literal aprobado para el email de propuesta."
 const FROM_EMAIL = "propuestas@pixelarch.dev"
 const REPLY_TO = "hola@pixelarch.dev"
 const FROM_NOMBRE = "PixelArch"
+
+const ASUNTO_ENVIO = "Una idea para Consultora Alfa"
+const CUERPO_TEXTO_ENVIO = "Hola Ana,\n\nTe escribo."
+const CUERPO_HTML_ENVIO = "<p>Hola Ana,</p><p>Te escribo.</p>"
 
 const ENVS = [
   "NEXT_PUBLIC_URL",
   "PROPUESTAS_SECRETO",
   "PROPUESTAS_BASE_LEGAL",
+  "PROPUESTAS_TEXTO_LEGAL",
+  "PROPUESTAS_ENVIO_HABILITADO",
   "PROPUESTAS_MAX_ENVIOS_PROSPECTO",
   "PROPUESTAS_FROM_EMAIL",
   "PROPUESTAS_REPLY_TO",
   "PROPUESTAS_FROM_NOMBRE",
+  "PROPUESTAS_ETIQUETA_PUBLICIDAD",
+  "RESEND_API_KEY",
 ] as const
 
 type EntornoOriginal = Record<(typeof ENVS)[number], string | undefined>
@@ -278,6 +292,59 @@ function envioBd(overrides: Record<string, unknown> = {}): Record<string, unknow
   }
 }
 
+/**
+ * Envio BORRADOR completo y con `hashContenido` real para la aprobacion.
+ * Por defecto el hash se recomputa del contenido final; los tests de mutacion
+ * pasan un `hashContenido` explicito distinto.
+ */
+function envioAprobable(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  const contenido: Record<string, unknown> = {
+    id: "env_1",
+    prospectoId: "pros_1",
+    campanaId: "camp_1",
+    plantillaId: "pl_1",
+    plantillaVersion: 1,
+    secuencia: 1,
+    version: 1,
+    destinatario: "ventas@alfa.com.ar",
+    asunto: ASUNTO_ENVIO,
+    cuerpoTexto: CUERPO_TEXTO_ENVIO,
+    cuerpoHtml: CUERPO_HTML_ENVIO,
+    estado: "BORRADOR",
+    fromEmail: FROM_EMAIL,
+    fromNombre: FROM_NOMBRE,
+    replyTo: REPLY_TO,
+    ...overrides,
+  }
+
+  const hashContenido =
+    typeof overrides.hashContenido === "string"
+      ? overrides.hashContenido
+      : hashContenidoEnvio({
+          asunto: String(contenido.asunto),
+          cuerpoTexto: String(contenido.cuerpoTexto),
+          cuerpoHtml: String(contenido.cuerpoHtml),
+          destinatario: String(contenido.destinatario),
+          plantillaId: (contenido.plantillaId ?? null) as string | null,
+          plantillaVersion: (contenido.plantillaVersion ?? null) as
+            | number
+            | null,
+          secuencia: Number(contenido.secuencia),
+        })
+
+  return { ...contenido, hashContenido }
+}
+
+function tokenBajaDePrueba(email = "ventas@alfa.com.ar"): string {
+  return crearTokenBaja(
+    "pros_1",
+    hashEmail(email, SECRETO),
+    SECRETO,
+  )
+}
+
 function limpiarRateLimits(): void {
   for (const clave of [
     "propuestas:user_1",
@@ -296,20 +363,30 @@ beforeEach(() => {
     NEXT_PUBLIC_URL: process.env.NEXT_PUBLIC_URL,
     PROPUESTAS_SECRETO: process.env.PROPUESTAS_SECRETO,
     PROPUESTAS_BASE_LEGAL: process.env.PROPUESTAS_BASE_LEGAL,
+    PROPUESTAS_TEXTO_LEGAL: process.env.PROPUESTAS_TEXTO_LEGAL,
+    PROPUESTAS_ENVIO_HABILITADO: process.env.PROPUESTAS_ENVIO_HABILITADO,
     PROPUESTAS_MAX_ENVIOS_PROSPECTO:
       process.env.PROPUESTAS_MAX_ENVIOS_PROSPECTO,
     PROPUESTAS_FROM_EMAIL: process.env.PROPUESTAS_FROM_EMAIL,
     PROPUESTAS_REPLY_TO: process.env.PROPUESTAS_REPLY_TO,
     PROPUESTAS_FROM_NOMBRE: process.env.PROPUESTAS_FROM_NOMBRE,
+    PROPUESTAS_ETIQUETA_PUBLICIDAD:
+      process.env.PROPUESTAS_ETIQUETA_PUBLICIDAD,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
   }
 
   process.env.NEXT_PUBLIC_URL = ORIGEN
   process.env.PROPUESTAS_SECRETO = SECRETO
   process.env.PROPUESTAS_BASE_LEGAL = BASE_LEGAL
+  process.env.PROPUESTAS_TEXTO_LEGAL = TEXTO_LEGAL
+  // T-17: aprobar no envia. El gate y Resend son requisitos de T-18.
+  process.env.PROPUESTAS_ENVIO_HABILITADO = "false"
+  delete process.env.RESEND_API_KEY
   process.env.PROPUESTAS_MAX_ENVIOS_PROSPECTO = "2"
   process.env.PROPUESTAS_FROM_EMAIL = FROM_EMAIL
   process.env.PROPUESTAS_REPLY_TO = REPLY_TO
   process.env.PROPUESTAS_FROM_NOMBRE = FROM_NOMBRE
+  process.env.PROPUESTAS_ETIQUETA_PUBLICIDAD = "true"
 
   simularAdmin()
   mocks.clerkClient.mockResolvedValue({ users: { getUser: mocks.getUser } })
@@ -335,6 +412,7 @@ beforeEach(() => {
     secuencia: 1,
     version: 1,
   })
+  mocks.tx.envioPropuesta.updateMany.mockResolvedValue({ count: 1 })
   mocks.transaction.mockImplementation(
     (callback: (tx: typeof mocks.tx) => Promise<unknown>) => callback(mocks.tx),
   )
@@ -1397,5 +1475,517 @@ describe("PATCH /api/propuestas/envios/[id] (T-16, AC-24; RF-38)", () => {
     expect(res.status).toBe(409)
     expect((await jsonDe(res)).codigo).toBe("ESTADO")
     expect(mocks.tx.envioPropuesta.create).toHaveBeenCalledTimes(1)
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* POST /api/propuestas/envios/[id]/aprobar                            */
+/* ------------------------------------------------------------------ */
+
+const URL_APROBAR = `${URL_ENVIOS}/env_1/aprobar`
+
+function pedidoAprobacion(
+  body: unknown = { confirmado: true },
+  opciones: OpcionesPedido = {},
+): Request {
+  return pedido(URL_APROBAR, "POST", body, opciones)
+}
+
+function logsDeMocks(): string {
+  return JSON.stringify([
+    ...mocks.loggerInfo.mock.calls,
+    ...mocks.loggerWarn.mock.calls,
+    ...mocks.loggerError.mock.calls,
+  ])
+}
+
+describe("POST /api/propuestas/envios/[id]/aprobar (T-17, AC-25; RF-40..RF-42)", () => {
+  beforeEach(() => {
+    mocks.prospectoFindUnique.mockResolvedValue(
+      prospectoBd({ estado: "BORRADOR" }),
+    )
+    mocks.envioFindUnique.mockResolvedValue(envioAprobable())
+    mocks.envioFindMany.mockResolvedValue([])
+    mocks.supresionFindMany.mockResolvedValue([])
+    mocks.plantillaFindFirst.mockResolvedValue({ version: 1 })
+    mocks.tx.envioPropuesta.updateMany.mockResolvedValue({ count: 1 })
+    mocks.tx.prospecto.updateMany.mockResolvedValue({ count: 1 })
+  })
+
+  it("aprueba en seco: snapshot exacto, aprobador/fecha, token y hash (AC-25)", async () => {
+    const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+    expect(res.status).toBe(200)
+    esperarNoStore(res)
+    const cuerpo = await jsonDe(res)
+    expect(cuerpo.estado).toBe("APROBADO")
+    expect(typeof cuerpo.aprobadoEn).toBe("string")
+
+    const actualizacion = argumento(mocks.tx.envioPropuesta.updateMany)
+    expect(actualizacion.where).toEqual({ id: "env_1", estado: "BORRADOR" })
+    const data = (actualizacion.data ?? {}) as Record<string, unknown>
+
+    const tokenEsperado = tokenBajaDePrueba()
+    const headers = {
+      "List-Unsubscribe": `<${ORIGEN}/api/opt-out?token=${tokenEsperado}>, <mailto:${REPLY_TO}?subject=Baja>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    }
+
+    expect(data).toMatchObject({
+      estado: "APROBADO",
+      aprobadoAsunto: `[publicidad] ${ASUNTO_ENVIO}`,
+      aprobadoPor: "user_1",
+      aprobadoPorNombre: "Ana Pérez",
+      tokenBaja: tokenEsperado,
+      fromEmail: FROM_EMAIL,
+      fromNombre: FROM_NOMBRE,
+      replyTo: REPLY_TO,
+    })
+    expect(data.aprobadoEn).toBeInstanceOf(Date)
+    expect(String(data.tokenBaja)).toMatch(
+      /^v1\.pros_1\.[0-9a-f]{64}\.[A-Za-z0-9_-]{43}$/,
+    )
+
+    // Footer legal, fuente, canal ARCO y enlace visible de baja.
+    const texto = String(data.aprobadoCuerpoTexto)
+    expect(texto).toContain(CUERPO_TEXTO_ENVIO)
+    expect(texto).toContain("PixelArch")
+    expect(texto).toContain(
+      "Propuesta de servicios de diseño y desarrollo web.",
+    )
+    expect(texto).toContain("Fuente de los datos: https://alfa.com.ar/")
+    expect(texto).toContain(
+      `Derechos de acceso, rectificación y supresión: ${REPLY_TO}`,
+    )
+    expect(texto).toContain(TEXTO_LEGAL)
+    expect(texto).toContain(
+      "Este mensaje es publicidad directa no solicitada.",
+    )
+    expect(texto).toContain(
+      `Darse de baja: ${ORIGEN}/propuestas/baja/${tokenEsperado}`,
+    )
+
+    const html = String(data.aprobadoCuerpoHtml)
+    expect(html).toContain("<!doctype html>")
+    expect(html).toContain("Fuente de los datos:")
+    expect(html).toContain(`mailto:${REPLY_TO}`)
+    expect(html).toContain(TEXTO_LEGAL)
+    expect(html).toContain("Darse de baja")
+
+    // `aprobadoHash` cubre todo el snapshot, headers incluidos, y se puede
+    // recomputar desde los campos persistidos.
+    expect(data.aprobadoHash).toBe(
+      hashSnapshotAprobado({
+        asunto: String(data.aprobadoAsunto),
+        cuerpoHtml: String(data.aprobadoCuerpoHtml),
+        cuerpoTexto: String(data.aprobadoCuerpoTexto),
+        destinatario: "ventas@alfa.com.ar",
+        fromEmail: FROM_EMAIL,
+        fromNombre: FROM_NOMBRE,
+        replyTo: REPLY_TO,
+        tokenBaja: String(data.tokenBaja),
+        headers,
+        plantillaId: "pl_1",
+        plantillaVersion: 1,
+        secuencia: 1,
+      }),
+    )
+
+    // Prospecto APROBADO con la base legal guardada si faltaba.
+    const prospectoActualizado = argumento(mocks.tx.prospecto.updateMany)
+    expect(prospectoActualizado.where).toEqual({
+      id: "pros_1",
+      estado: "BORRADOR",
+    })
+    const datosProspecto = (prospectoActualizado.data ?? {}) as Record<
+      string,
+      unknown
+    >
+    expect(datosProspecto).toMatchObject({
+      estado: "APROBADO",
+      actualizadoPor: "user_1",
+      baseLegal: BASE_LEGAL,
+    })
+    expect(datosProspecto.ultimaInteraccionEn).toBeInstanceOf(Date)
+
+    // Aprobar no envia ni programa nada.
+    expect(mocks.transaction).toHaveBeenCalledTimes(1)
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+    expect(data).not.toHaveProperty("enviadoEn")
+    expect(data).not.toHaveProperty("proveedorMessageId")
+    expect(data).not.toHaveProperty("scheduledAt")
+
+    const logs = logsDeMocks()
+    expect(logs).not.toContain("ventas@alfa.com.ar")
+    expect(logs).not.toContain(ASUNTO_ENVIO)
+    expect(logs).not.toContain("Hola Ana")
+    expect(logs).not.toContain(tokenEsperado)
+    expect(logs).not.toContain(TEXTO_LEGAL)
+  })
+
+  it("aprueba con PROPUESTAS_ENVIO_HABILITADO=false y sin RESEND_API_KEY (AC-25)", async () => {
+    process.env.PROPUESTAS_ENVIO_HABILITADO = "false"
+    delete process.env.RESEND_API_KEY
+
+    const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+    expect(process.env.RESEND_API_KEY).toBeUndefined()
+    expect(res.status).toBe(200)
+    const data = datosDe(mocks.tx.envioPropuesta.updateMany)
+    expect(data.estado).toBe("APROBADO")
+    expect(String(data.aprobadoHash)).toMatch(/^[0-9a-f]{64}$/)
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+
+  it("conserva la base legal existente del prospecto", async () => {
+    mocks.prospectoFindUnique.mockResolvedValue(
+      prospectoBd({ estado: "BORRADOR", baseLegal: "Base legal previa." }),
+    )
+
+    const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+    expect(res.status).toBe(200)
+    const datosProspecto = (argumento(mocks.tx.prospecto.updateMany).data ??
+      {}) as Record<string, unknown>
+    expect(datosProspecto).not.toHaveProperty("baseLegal")
+  })
+
+  it("exige admin, origen same-origin y rate limit antes de tocar datos", async () => {
+    mocks.auth.mockResolvedValueOnce({ userId: null })
+    const anonimo = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+    expect(anonimo.status).toBe(401)
+    esperarNoStore(anonimo)
+    expect((await jsonDe(anonimo)).codigo).toBe("NO_AUTORIZADO")
+
+    simularAdmin("asistente")
+    const asistente = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+    expect(asistente.status).toBe(403)
+    expect((await jsonDe(asistente)).codigo).toBe("PROHIBIDO")
+
+    simularAdmin()
+    for (const opciones of [{ origin: null }, { origin: "https://evil.test" }]) {
+      const res = await aprobarEnvio(
+        pedidoAprobacion({ confirmado: true }, opciones),
+        contexto("env_1"),
+      )
+      expect(res.status, JSON.stringify(opciones)).toBe(403)
+      expect((await jsonDe(res)).codigo).toBe("ORIGEN_INVALIDO")
+    }
+
+    for (let i = 0; i < 30; i += 1) {
+      rateLimitDetalle("propuestas:user_1", 30, 60_000)
+    }
+    const porAdmin = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+    expect(porAdmin.status).toBe(429)
+    expect((await jsonDe(porAdmin)).codigo).toBe("RATE_LIMIT")
+    expect(Number(porAdmin.headers.get("retry-after"))).toBeGreaterThanOrEqual(1)
+
+    resetRateLimit("propuestas:user_1")
+    resetRateLimit(`propuestas:ip:${IP}`)
+    for (let i = 0; i < 60; i += 1) {
+      rateLimitDetalle(`propuestas:ip:${IP}`, 60, 60_000)
+    }
+    const porIp = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+    expect(porIp.status).toBe(429)
+    expect((await jsonDe(porIp)).codigo).toBe("RATE_LIMIT")
+
+    expect(mocks.envioFindUnique).not.toHaveBeenCalled()
+    expect(mocks.transaction).not.toHaveBeenCalled()
+  })
+
+  it("exige confirmacion explicita en el body", async () => {
+    for (const body of [{}, { confirmado: false }, { confirmado: "true" }]) {
+      const res = await aprobarEnvio(pedidoAprobacion(body), contexto("env_1"))
+      expect(res.status, JSON.stringify(body)).toBe(400)
+      expect((await jsonDe(res)).codigo).toBe("VALIDACION")
+    }
+
+    const roto = await aprobarEnvio(
+      pedido(URL_APROBAR, "POST", null, { rawBody: "{" }),
+      contexto("env_1"),
+    )
+    expect(roto.status).toBe(400)
+    expect(mocks.envioFindUnique).not.toHaveBeenCalled()
+  })
+
+  it("responde 404 si el envio o el prospecto no existen", async () => {
+    mocks.envioFindUnique.mockResolvedValueOnce(null)
+    const sinEnvio = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+    expect(sinEnvio.status).toBe(404)
+    esperarNoStore(sinEnvio)
+    expect((await jsonDe(sinEnvio)).codigo).toBe("NO_ENCONTRADO")
+
+    mocks.envioFindUnique.mockResolvedValueOnce(envioAprobable())
+    mocks.prospectoFindUnique.mockResolvedValueOnce(null)
+    const sinProspecto = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+    expect(sinProspecto.status).toBe(404)
+    expect((await jsonDe(sinProspecto)).codigo).toBe("NO_ENCONTRADO")
+    expect(mocks.transaction).not.toHaveBeenCalled()
+  })
+
+  it.each(["APROBADO", "ENVIANDO", "ENVIADO", "CANCELADO"])(
+    "en %s responde 409 ESTADO y no reescribe el snapshot",
+    async (estado) => {
+      mocks.envioFindUnique.mockResolvedValue(envioAprobable({ estado }))
+
+      const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+      expect(res.status).toBe(409)
+      esperarNoStore(res)
+      expect((await jsonDe(res)).codigo).toBe("ESTADO")
+      expect(mocks.transaction).not.toHaveBeenCalled()
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each([
+    [
+      "sin secreto",
+      "PROPUESTAS_SECRETO",
+      null,
+      /PROPUESTAS_SECRETO/i,
+    ],
+    [
+      "URL no https",
+      "NEXT_PUBLIC_URL",
+      "http://pixelarch.dev",
+      /NEXT_PUBLIC_URL/i,
+    ],
+    [
+      "URL con path",
+      "NEXT_PUBLIC_URL",
+      "https://pixelarch.dev/portal",
+      /NEXT_PUBLIC_URL/i,
+    ],
+    [
+      "from invalido",
+      "PROPUESTAS_FROM_EMAIL",
+      "no-es-email",
+      /PROPUESTAS_FROM_EMAIL/i,
+    ],
+    [
+      "reply-to invalido",
+      "PROPUESTAS_REPLY_TO",
+      "reply-invalido",
+      /PROPUESTAS_REPLY_TO/i,
+    ],
+    [
+      "sin texto legal",
+      "PROPUESTAS_TEXTO_LEGAL",
+      null,
+      /PROPUESTAS_TEXTO_LEGAL/i,
+    ],
+    [
+      "sin base legal",
+      "PROPUESTAS_BASE_LEGAL",
+      null,
+      /PROPUESTAS_BASE_LEGAL/i,
+    ],
+  ])(
+    "rechaza con 409 CONFIGURACION %s sin tocar datos",
+    async (_caso, clave, valor, motivo) => {
+      if (valor === null) delete process.env[clave]
+      else process.env[clave] = valor
+
+      const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+      expect(res.status).toBe(409)
+      esperarNoStore(res)
+      const cuerpo = await jsonDe(res)
+      expect(cuerpo.codigo).toBe("CONFIGURACION")
+      expect(JSON.stringify(cuerpo.motivos)).toMatch(motivo)
+      expect(mocks.transaction).not.toHaveBeenCalled()
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+      expect(logsDeMocks()).not.toContain("ventas@alfa.com.ar")
+    },
+  )
+
+  it("sin email responde 409 SIN_EMAIL sin escribir", async () => {
+    mocks.prospectoFindUnique.mockResolvedValue(
+      prospectoBd({ estado: "BORRADOR", email: null }),
+    )
+
+    const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+    expect(res.status).toBe(409)
+    expect((await jsonDe(res)).codigo).toBe("SIN_EMAIL")
+    expect(mocks.transaction).not.toHaveBeenCalled()
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+
+  it("un contacto suprimido responde 409 SUPRIMIDO sin escribir", async () => {
+    mocks.supresionFindMany.mockResolvedValue([
+      {
+        ambito: "DOMINIO",
+        emailHash: null,
+        dominioNegocio: "alfa.com.ar",
+      },
+    ])
+
+    const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+    expect(res.status).toBe(409)
+    expect((await jsonDe(res)).codigo).toBe("SUPRIMIDO")
+    expect(mocks.transaction).not.toHaveBeenCalled()
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+
+  it("si falta el secreto para verificar supresion falla con 409 CONFIGURACION", async () => {
+    // Se elimina el secreto despues de la carga del envio: la configuracion se
+    // evalua antes que la supresion, por lo que el motivo es CONFIGURACION.
+    delete process.env.PROPUESTAS_SECRETO
+
+    const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+    expect(res.status).toBe(409)
+    expect((await jsonDe(res)).codigo).toBe("CONFIGURACION")
+    expect(mocks.supresionFindMany).not.toHaveBeenCalled()
+    expect(mocks.transaction).not.toHaveBeenCalled()
+  })
+
+  it("un borrador mutado (hash distinto) responde 409 REVALIDACION", async () => {
+    mocks.envioFindUnique.mockResolvedValue(
+      envioAprobable({ hashContenido: "f".repeat(64) }),
+    )
+
+    const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+    expect(res.status).toBe(409)
+    const cuerpo = await jsonDe(res)
+    expect(cuerpo.codigo).toBe("REVALIDACION")
+    expect(JSON.stringify(cuerpo.motivos)).toMatch(/cambio desde que se genero/i)
+    expect(mocks.transaction).not.toHaveBeenCalled()
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+
+  it("otro envio APROBADO/ENVIANDO de la misma secuencia responde 409", async () => {
+    mocks.envioFindMany.mockResolvedValue([{ id: "env_otro" }])
+
+    const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+    expect(res.status).toBe(409)
+    expect((await jsonDe(res)).codigo).toBe("REVALIDACION")
+    expect(mocks.envioFindMany).toHaveBeenCalledWith({
+      where: {
+        prospectoId: "pros_1",
+        secuencia: 1,
+        id: { not: "env_1" },
+        estado: { in: ["APROBADO", "ENVIANDO"] },
+      },
+      select: { id: true },
+    })
+    expect(mocks.transaction).not.toHaveBeenCalled()
+  })
+
+  it("una plantilla inactiva responde 409 REVALIDACION", async () => {
+    mocks.plantillaFindFirst.mockResolvedValue(null)
+
+    const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+    expect(res.status).toBe(409)
+    expect((await jsonDe(res)).codigo).toBe("REVALIDACION")
+    expect(mocks.plantillaFindFirst).toHaveBeenCalledWith({
+      where: { id: "pl_1", activa: true },
+      select: { version: true },
+    })
+    expect(mocks.transaction).not.toHaveBeenCalled()
+  })
+
+  it("un destinatario distinto al email actual del prospecto responde 409", async () => {
+    mocks.envioFindUnique.mockResolvedValue(
+      envioAprobable({ destinatario: "otro@alfa.com.ar" }),
+    )
+
+    const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+    expect(res.status).toBe(409)
+    const cuerpo = await jsonDe(res)
+    expect(cuerpo.codigo).toBe("REVALIDACION")
+    expect(JSON.stringify(cuerpo.motivos)).toMatch(
+      /no coincide con el email actual/i,
+    )
+    expect(mocks.transaction).not.toHaveBeenCalled()
+  })
+
+  it("un prospecto en un estado sin transicion a APROBADO responde 409", async () => {
+    mocks.prospectoFindUnique.mockResolvedValue(
+      prospectoBd({ estado: "NUEVO" }),
+    )
+
+    const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+    expect(res.status).toBe(409)
+    const cuerpo = await jsonDe(res)
+    expect(cuerpo.codigo).toBe("REVALIDACION")
+    expect(JSON.stringify(cuerpo.motivos)).toMatch(
+      /no esta en un estado que permita aprobar/i,
+    )
+    expect(mocks.transaction).not.toHaveBeenCalled()
+  })
+
+  it("un doble clic pierde la guarda atomica y responde 409 ESTADO", async () => {
+    mocks.tx.envioPropuesta.updateMany.mockResolvedValue({ count: 0 })
+
+    const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+    expect(res.status).toBe(409)
+    expect((await jsonDe(res)).codigo).toBe("ESTADO")
+    expect(mocks.tx.prospecto.updateMany).not.toHaveBeenCalled()
+  })
+
+  it("si el prospecto cambia de estado en la transaccion responde 409 ESTADO", async () => {
+    mocks.tx.prospecto.updateMany.mockResolvedValue({ count: 0 })
+
+    const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+    expect(res.status).toBe(409)
+    expect((await jsonDe(res)).codigo).toBe("ESTADO")
+  })
+
+  it("con el esquema faltante responde 503 sin filtrar detalles", async () => {
+    mocks.envioFindUnique.mockRejectedValue({ code: "P2021" })
+
+    const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+    expect(res.status).toBe(503)
+    expect((await jsonDe(res)).codigo).toBe("ESQUEMA_NO_APLICADO")
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+
+  it("un error inesperado responde 500 sanitizado y sin PII en logs", async () => {
+    mocks.envioFindUnique.mockRejectedValue(
+      new Error(
+        "fallo con ventas@alfa.com.ar y token v1.pros_1.deadbeef",
+      ),
+    )
+
+    const res = await aprobarEnvio(pedidoAprobacion(), contexto("env_1"))
+
+    expect(res.status).toBe(500)
+    esperarNoStore(res)
+    const cuerpo = await jsonDe(res)
+    expect(cuerpo).toEqual({
+      error: "Error inesperado.",
+      codigo: "DESCONOCIDO",
+    })
+    const logs = logsDeMocks()
+    expect(logs).not.toContain("ventas@alfa.com.ar")
+    expect(logs).not.toContain("v1.pros_1.deadbeef")
+  })
+
+  it("no importa Resend, no hace fetch y no programa envios", () => {
+    const ruta = readFileSync(
+      join(
+        process.cwd(),
+        "src/app/api/propuestas/envios/[id]/aprobar/route.ts",
+      ),
+      "utf8",
+    )
+
+    expect(ruta).not.toMatch(/@\/lib\/propuestas\/resend/)
+    expect(ruta).not.toMatch(/sendEmail|enviarEmail|sendPaymentReceipt/)
+    expect(ruta).not.toMatch(/\bfetch\s*\(/)
+    expect(ruta).not.toMatch(/scheduledAt\s*:/)
+    expect(ruta).not.toMatch(/\benviarEmail\b|\benviar\s*\(/)
   })
 })

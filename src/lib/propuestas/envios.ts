@@ -1,21 +1,33 @@
 /**
- * T-16 (AC-22, AC-23, AC-24; RF-34..RF-39): helpers de borradores y envíos.
+ * T-16 (AC-22, AC-23, AC-24; RF-34..RF-39) y T-17 (AC-25, AC-27; RF-40..RF-42,
+ * RF-44): helpers de borradores y envíos.
  *
  * Este módulo es server-only por `node:crypto`, pero no hace red, no toca
  * Prisma ni proveedores. Reúne lo que comparten el borrador determinista, la
- * edición versionada y las tareas posteriores (aprobación/envío):
- * - hash SHA-256 estable del contenido de un envío;
+ * edición versionada, la aprobación y el envío:
+ * - hash SHA-256 estable del contenido de un borrador (`hashContenido`);
+ * - recomputo/verificación de ese hash para detectar mutaciones;
+ * - hash SHA-256 del snapshot final aprobado (`aprobadoHash`);
  * - datos verificados del prospecto para `renderPlantilla`, sin inventar;
  * - validación del contenido ya renderizado (asunto/cuerpo/HTML seguro);
+ * - construcción del snapshot final con footer legal, token de baja y headers
+ *   reutilizando `construirEmail` (T-08), sin duplicar esa lógica;
  * - siguiente versión de un envío.
  *
- * No incluye footer legal ni token de baja: eso se materializa al aprobar
- * (`email.ts`, T-17). No se guardan ni loguean asuntos, cuerpos, destinatarios
- * ni secretos desde aquí.
+ * El borrador no incluye footer legal ni token de baja: eso se materializa al
+ * aprobar. No se guardan ni loguean asuntos, cuerpos, destinatarios ni
+ * secretos desde aquí.
  */
 
 import { createHash } from "node:crypto"
 
+import {
+  construirEmail,
+  EmailInvalidoError,
+  type CodigoErrorEmail,
+  type EmailRenderizado,
+  type HeadersEmail,
+} from "./email"
 import {
   MAX_ASUNTO,
   PlantillaInvalidaError,
@@ -33,6 +45,11 @@ export type CodigoErrorEnvio =
   | "SECUENCIA"
   | "PLANTILLA"
   | "HASH"
+  | "REMITENTE"
+  | "TOKEN"
+  | "HEADERS"
+  | "URL"
+  | "AVISO"
 
 /**
  * Error de contenido de envío. El mensaje solo expone el código fijo: nunca el
@@ -123,6 +140,237 @@ export function hashContenidoEnvio(input: EntradaHashEnvio): string {
   ])
 
   return createHash("sha256").update(canonico, "utf8").digest("hex")
+}
+
+/**
+ * Recomputa `hashContenidoEnvio` desde el borrador actual y lo compara con el
+ * hash persistido. Devuelve `false` (fail-closed) si falta el hash, si el
+ * contenido esta incompleto o si no coincide: la aprobacion no puede continuar.
+ */
+export function verificarHashContenido(
+  contenido: EntradaHashEnvio,
+  hashGuardado: string | null | undefined,
+): boolean {
+  if (typeof hashGuardado !== "string" || hashGuardado.trim().length === 0) {
+    return false
+  }
+
+  try {
+    return hashContenidoEnvio(contenido) === hashGuardado.trim().toLowerCase()
+  } catch {
+    return false
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Snapshot final aprobado                                             */
+/* ------------------------------------------------------------------ */
+
+export interface EntradaHashAprobado {
+  asunto: string
+  cuerpoHtml: string
+  cuerpoTexto: string
+  destinatario: string
+  fromEmail: string
+  fromNombre: string
+  replyTo: string
+  tokenBaja: string
+  headers: HeadersEmail
+  plantillaId?: string | null
+  plantillaVersion?: number | null
+  secuencia: number
+}
+
+/**
+ * SHA-256 hex determinista del snapshot final que se enviara. Cubre **todo**
+ * lo que se persiste al aprobar: asunto, HTML, texto, destinatario, from,
+ * reply-to, token de baja, headers `List-Unsubscribe`, plantilla/version y
+ * secuencia. T-18 lo recomputa desde el snapshot para detectar cambios.
+ *
+ * No es un secreto: no se loguea el contenido que lo origina.
+ */
+export function hashSnapshotAprobado(input: EntradaHashAprobado): string {
+  if (!input || typeof input !== "object") {
+    throw new EnvioInvalidoError("HASH")
+  }
+
+  const asunto = textoHash(input.asunto, "ASUNTO")
+  const cuerpoHtml = textoHash(input.cuerpoHtml, "CUERPO")
+  const cuerpoTexto = textoHash(input.cuerpoTexto, "CUERPO")
+  const destinatario = textoHash(input.destinatario, "DESTINATARIO")
+  const fromEmail = textoHash(input.fromEmail, "REMITENTE")
+  const fromNombre = textoHash(input.fromNombre, "REMITENTE")
+  const replyTo = textoHash(input.replyTo, "REMITENTE")
+  const tokenBaja = textoHash(input.tokenBaja, "TOKEN")
+
+  const headers = input.headers
+  if (!headers || typeof headers !== "object") {
+    throw new EnvioInvalidoError("HEADERS")
+  }
+  const listUnsubscribe = textoHash(headers["List-Unsubscribe"], "HEADERS")
+  const listUnsubscribePost = textoHash(
+    headers["List-Unsubscribe-Post"],
+    "HEADERS",
+  )
+
+  if (
+    typeof input.secuencia !== "number" ||
+    !Number.isSafeInteger(input.secuencia) ||
+    input.secuencia < 1
+  ) {
+    throw new EnvioInvalidoError("SECUENCIA")
+  }
+
+  const canonico = JSON.stringify([
+    "propuesta-aprobacion-v1",
+    asunto,
+    cuerpoHtml,
+    cuerpoTexto,
+    destinatario,
+    fromEmail,
+    fromNombre,
+    replyTo,
+    tokenBaja,
+    listUnsubscribe,
+    listUnsubscribePost,
+    identificadorHash(input.plantillaId),
+    versionHash(input.plantillaVersion),
+    input.secuencia,
+  ])
+
+  return createHash("sha256").update(canonico, "utf8").digest("hex")
+}
+
+export interface EntradaSnapshotAprobado {
+  asunto: string
+  cuerpoTexto: string
+  destinatario: string
+  fromEmail: string
+  fromNombre: string
+  replyTo: string
+  tokenBaja: string
+  plantillaId?: string | null
+  plantillaVersion?: number | null
+  secuencia: number
+  /** Fuente publica de los datos (sitio del negocio o URL del email). */
+  sitioWeb?: string | null
+  fuenteUrl?: string | null
+  /** `PROPUESTAS_TEXTO_LEGAL` ya validado por la configuracion. */
+  textoLegal?: string | null
+  /** `NEXT_PUBLIC_URL` https absoluta ya validada. */
+  urlPublica?: string | null
+  etiquetaPublicidad?: boolean
+  canalArco?: string | null
+}
+
+export interface SnapshotAprobado {
+  asunto: string
+  cuerpoHtml: string
+  cuerpoTexto: string
+  tokenBaja: string
+  headers: HeadersEmail
+  aprobadoHash: string
+}
+
+function codigoDesdeEmail(codigo: CodigoErrorEmail): CodigoErrorEnvio {
+  switch (codigo) {
+    case "ASUNTO":
+      return "ASUNTO"
+    case "CUERPO":
+      return "CUERPO"
+    case "URL_PUBLICA":
+      return "URL"
+    case "TOKEN":
+      return "TOKEN"
+    case "AVISO_LEGAL":
+      return "AVISO"
+  }
+}
+
+/**
+ * Construye el snapshot final del email a partir del borrador, el token de baja
+ * y la configuracion ya validada. Delega el render en `construirEmail` (T-08):
+ * footer legal, fuente, canal ARCO, enlace visible y headers
+ * `List-Unsubscribe`/`List-Unsubscribe-Post`. Falla cerrado si asunto, cuerpo,
+ * token, aviso o headers quedan vacios; no inventa texto legal.
+ */
+export function construirSnapshotAprobado(
+  input: EntradaSnapshotAprobado,
+): SnapshotAprobado {
+  if (!input || typeof input !== "object") {
+    throw new EnvioInvalidoError("HASH")
+  }
+
+  const tokenBaja = textoHash(input.tokenBaja, "TOKEN")
+  const destinatario = textoHash(input.destinatario, "DESTINATARIO")
+  const fromEmail = textoHash(input.fromEmail, "REMITENTE")
+  const fromNombre = textoHash(input.fromNombre, "REMITENTE")
+  const replyTo = textoHash(input.replyTo, "REMITENTE")
+
+  if (
+    typeof input.secuencia !== "number" ||
+    !Number.isSafeInteger(input.secuencia) ||
+    input.secuencia < 1
+  ) {
+    throw new EnvioInvalidoError("SECUENCIA")
+  }
+
+  let email: EmailRenderizado
+  try {
+    email = construirEmail({
+      asunto: input.asunto,
+      cuerpoTexto: input.cuerpoTexto,
+      sitioWeb: input.sitioWeb,
+      fuenteUrl: input.fuenteUrl,
+      textoLegal: input.textoLegal,
+      urlPublica: input.urlPublica,
+      tokenBaja,
+      etiquetaPublicidad: input.etiquetaPublicidad === true,
+      canalArco: input.canalArco,
+    })
+  } catch (error) {
+    if (error instanceof EmailInvalidoError) {
+      throw new EnvioInvalidoError(codigoDesdeEmail(error.codigo))
+    }
+    throw error
+  }
+
+  const headers: HeadersEmail = {
+    "List-Unsubscribe": textoHash(
+      email.headers["List-Unsubscribe"],
+      "HEADERS",
+    ),
+    "List-Unsubscribe-Post": textoHash(
+      email.headers["List-Unsubscribe-Post"],
+      "HEADERS",
+    ),
+  }
+
+  const asunto = textoHash(email.asunto, "ASUNTO")
+  const cuerpoHtml = textoHash(email.html, "CUERPO")
+  const cuerpoTexto = textoHash(email.text, "CUERPO")
+
+  return {
+    asunto,
+    cuerpoHtml,
+    cuerpoTexto,
+    tokenBaja,
+    headers,
+    aprobadoHash: hashSnapshotAprobado({
+      asunto,
+      cuerpoHtml,
+      cuerpoTexto,
+      destinatario,
+      fromEmail,
+      fromNombre,
+      replyTo,
+      tokenBaja,
+      headers,
+      plantillaId: input.plantillaId,
+      plantillaVersion: input.plantillaVersion,
+      secuencia: input.secuencia,
+    }),
+  }
 }
 
 /* ------------------------------------------------------------------ */

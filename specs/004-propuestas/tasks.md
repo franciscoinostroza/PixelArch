@@ -91,7 +91,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Cierre: tester (`propuestas-score.test.ts`, `propuestas-transiciones.test.ts`) · reviewer (reglas de negocio, explicabilidad) · 1 commit.
   - PASS tester+reviewer: score v1 determinista, puedeAprobar/puedeEnviar, edición versionada, secuencias; 74 tests, tsc 0.
 
-- [ ] **T-08 (AC-22, AC-32, AC-34; RF-34, RF-37, RF-47, RF-52, RF-53) — Plantillas, render determinista y email legal.**
+- [x] **T-08 (AC-22, AC-32, AC-34; RF-34, RF-37, RF-47, RF-52, RF-53) — Plantillas, render determinista y email legal.**
   - `plantillas.ts`: lista blanca de variables, validación, render con escape HTML, asunto sin CR/LF, máximo 120, error ante variable desconocida.
   - `email.ts`: HTML/texto, footer legal, identificación, fuente, ARCO, enlace visible, `List-Unsubscribe`/`-Post`, prefijo `[publicidad]` si aplica; sin tracking ni adjuntos.
   - `legal.ts`: estructura del aviso; el texto literal sale de `PROPUESTAS_TEXTO_LEGAL`.
@@ -99,6 +99,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-07.
   - Tests: variables conocidas/desconocidas; escape de `<script>` e instrucciones hostiles; asunto con `\r\n` rechazado/limpiado y sin prefijos falsos `Re:`/`Fwd:`; footer con aviso/ARCO/fuente; «publicidad» sin duplicar; headers RFC 8058; texto plano equivalente; sin píxeles/adjuntos.
   - Cierre: tester (`propuestas-plantillas.test.ts`, `propuestas-email.test.ts`) · reviewer (contenido legal, XSS, headers) · 1 commit.
+  - PASS tester+reviewer: plantillas, email HTML/texto, legal, List-Unsubscribe, token; 54 tests, tsc 0.
 
 ---
 

@@ -124,7 +124,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Cierre: tester (`propuestas-web.test.ts`) · reviewer (SSRF, red, parsing) · 1 commit.
   - PASS tester+reviewer: 90 tests verdes en `src/__tests__/lib/propuestas-web.test.ts`, tsc 0 errores; reviewer PASS con observaciones (sin test directo del transporte real; presupuesto DNS+request puede sumar ~2×8 s; rangos IPv6 especiales poco frecuentes y duplicación menor de `quitarRuidoHtml` quedan como deuda menor).
 
-- [ ] **T-11 (AC-8, AC-11, AC-12, AC-38, AC-39; RF-10, RF-11, RF-17, RF-57, RF-58) — Cliente Places y cupos/costos.**
+- [x] **T-11 (AC-8, AC-11, AC-12, AC-38, AC-39; RF-10, RF-11, RF-17, RF-57, RF-58) — Cliente Places y cupos/costos.**
   - `places.ts`: endpoint oficial, `X-Goog-Api-Key`, field mask `places.id,places.displayName.text,places.websiteUri`, body `textQuery/languageCode/regionCode/pageSize`, sin paginación ni detalles.
   - Mapear `400/401/403/429/5xx/timeout` a códigos; sin reintentos en bucle.
   - `consumo.ts`: `evaluarCupo` puro; `reservarCupo` con `pg_advisory_xact_lock` por `(proveedor, fecha)`, upsert de `ConsumoProveedor` con `clave` por campaña/prospecto/proveedor/día, tope global, costo opcional y presupuesto mensual; `estadoCupos`.
@@ -132,6 +132,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-04, T-05.
   - Tests: URL/método/headers/body exactos; field mask; `place_id`; 429 corta sin retry; 5xx/timeout; cupo 20/día bloquea la 21; 80% alerta; 100% bloquea; costo en centavos; concurrencia simulada.
   - Cierre: tester (`propuestas-places.test.ts`, `propuestas-consumo.test.ts`) · reviewer (términos Places, costos, concurrencia) · 1 commit.
+  - PASS tester+reviewer: 136 tests verdes (70 consumo + 66 places), tsc 0 errores; reviewer PASS. Handoff/deuda menor: T-13/T-15 deben envolver `reservarCupo` en `prisma.$transaction` (si pasan el singleton los locks no protegen); los overrides de `capDiario`/`capCampana` son solo para tests/dev y las rutas deben usar la config como hard cap; `llamadas` vs `unidades` a definir en T-13/T-15; evaluar índice `[fecha]` para la consulta mensual; T-13 debe mapear errores de validación a 400/503; validar en staging (T-26) el advisory lock de un argumento; deadlock residual solo si se mezclan reservas con presupuesto 0 y >0 o sin presupuesto con claves diarias invertidas.
 
 ---
 

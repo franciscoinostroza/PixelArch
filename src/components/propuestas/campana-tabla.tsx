@@ -4,10 +4,12 @@
  *
  * Server component de solo lectura para los datos. Las acciones de alta,
  * corrección y descarte viven en `prospecto-ficha.tsx` (client) y se montan
- * por fila; "Ver ficha" y "Analizar" siguen deshabilitados hasta T-15. La
- * tabla tiene `caption` y encabezados con `scope` para lectores de pantalla.
+ * por fila. "Ver ficha" enlaza a la ficha del prospecto, donde vive el botón
+ * "Analizar" que ejecuta el enriquecimiento. La tabla tiene `caption` y
+ * encabezados con `scope` para lectores de pantalla.
  */
 
+import Link from "next/link"
 import { ProspectoAcciones } from "@/components/propuestas/prospecto-ficha"
 
 export interface ProspectoFila {
@@ -34,8 +36,8 @@ interface CampanaTablaProps {
 const CLASE_CELDA = "px-4 py-3 align-top text-text-dim"
 const CLASE_ENCABEZADO =
   "whitespace-nowrap px-4 py-3 text-left font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint"
-const CLASE_PLACEHOLDER =
-  "rounded border border-border px-2 py-1 font-mono text-[0.68rem] uppercase tracking-[0.1em] text-text-faint"
+const CLASE_ENLACE =
+  "rounded border border-border px-2 py-1 font-mono text-[0.68rem] uppercase tracking-[0.1em] text-text transition-colors hover:border-violet/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
 
 export function CampanaTabla({ prospectos }: CampanaTablaProps) {
   if (prospectos.length === 0) {
@@ -127,24 +129,12 @@ export function CampanaTabla({ prospectos }: CampanaTablaProps) {
               </td>
               <td className={CLASE_CELDA}>
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* T-15 implementa la ficha completa del prospecto. */}
-                  <button
-                    type="button"
-                    disabled
-                    title="Disponible en T-15"
-                    className={CLASE_PLACEHOLDER}
+                  <Link
+                    href={`/propuestas/prospectos/${prospecto.id}`}
+                    className={CLASE_ENLACE}
                   >
                     Ver ficha
-                  </button>
-                  {/* T-15 implementa el analisis del prospecto. */}
-                  <button
-                    type="button"
-                    disabled
-                    title="Disponible en T-15"
-                    className={CLASE_PLACEHOLDER}
-                  >
-                    Analizar
-                  </button>
+                  </Link>
                   <ProspectoAcciones prospecto={prospecto} />
                 </div>
               </td>

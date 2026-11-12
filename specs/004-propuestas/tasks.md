@@ -170,7 +170,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Cierre: tester (`prospectos.test.ts`) · reviewer (procedencia, PII, permisos) · 1 commit.
   - PASS tester+reviewer: 111 tests verdes (56 API + 55 páginas), suite completa 2338/2338 (reportada por el implementer), tsc 0 errores; reviewer PASS. Deuda menor: dedupe multiinquilino (`wixsite.com`) a revisar; PATCH no recalcula duplicados al cambiar sitio ni actualiza fechas de fuente; DESCARTADO editable (confirmar intención); el diálogo no recibe `busy`; faltan asserts de `where`/campos nuevos y PATCH con vacío; falta guardia Content-Type/tamaño; P2022 no mapeado; `fuenteUrl`/`emailFuenteUrl` no se normalizan ni rechazan credenciales; schemas no `.strict()`.
 
-- [ ] **T-15 (AC-9, AC-10, AC-19, AC-20, AC-21; RF-13..RF-16, RF-31..RF-33) — Analizar prospecto: fetch, email, auditoría y score.**
+- [x] **T-15 (AC-9, AC-10, AC-19, AC-20, AC-21; RF-13..RF-16, RF-31..RF-33) — Analizar prospecto: fetch, email, auditoría y score.**
   - `POST /api/propuestas/prospectos/[id]/analizar`: guard/origen/rate limit; reserva fetches por página (máx. 3) y auditoría (1); comprueba supresión por email y por dominio antes de analizar; fetch seguro; extrae email/teléfono/nombre con fuente/fecha sin sobrescribir datos cargados manualmente (solo completa vacíos); si el email ya pertenece a otro prospecto, marca `posibleDuplicadoDeId` y no lo asigna en silencio; audita si hay sitio reutilizando el HTML del home (y <24 h); calcula score; actualiza `ultimaInteraccionEn` y estado.
   - Sin web → `SIN_ENRIQUECER` con motivo; sin email → sigue sin contacto y no se puede aprobar; auditoría fallida → `auditoriaEstado=FALLIDA` y score con motivo.
   - Página de prospecto con ficha, fuentes, auditoría, score y botón "Analizar".
@@ -178,6 +178,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-09, T-10, T-14.
   - Tests: host privado → rechazo; robots; timeout; HTTP/TLS inválido → hallazgo sintético sin saltar TLS; email publicado con `emailFuenteUrl`; nombre/email manual no se sobrescriben; email de otro prospecto → `posibleDuplicadoDeId`; sin email → no aprobable; supresión por email/dominio detectada; auditoría resumida sin HTML; score determinista; una auditoría/24 h; límites diarios.
   - Cierre: tester (`prospectos.test.ts`, `propuestas-auditoria.test.ts`, `propuestas-score.test.ts`) · reviewer (SSRF, PII, exactitud del score) · 1 commit.
+  - PASS tester+reviewer: 200 tests verdes (105 API + 23 auditoría + 72 páginas), tsc 0 errores; reviewer PASS. Deuda menor: el botón «Analizar» muestra tono ok si un estado preservado tiene `auditoriaEstado FALLIDA`; `auditarSitio` de transporte TLS sigue sin resumen sintético (T-15 usa `resumenTlsFallido`); procedencia del nombre al corregir un PLACES; `posibleDuplicadoDeId` puede borrar un duplicado por dominio al limpiar email; `fuenteUrl` general vs «sin fuente» en la ficha; faltan tests de `updateMany count:0` concurrente; `transicionInvalida` sin uso; resumen de auditoría viejo bajo FALLIDA no TLS.
 
 - [ ] **T-16 (AC-22, AC-23, AC-24; RF-34..RF-39) — Plantillas y borrador determinista.**
   - `POST /api/propuestas/plantillas` y `PATCH /api/propuestas/plantillas/[id]`: nueva versión al editar, desactiva la anterior; variables con lista blanca; validación de asunto/cuerpo.

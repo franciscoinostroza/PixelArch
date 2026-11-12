@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => ({
   queryRaw: vi.fn(),
   plantillaFindMany: vi.fn(),
   campanaFindUnique: vi.fn(),
+  prospectoFindUnique: vi.fn(),
   pathname: "/propuestas",
   refresh: vi.fn(),
   notFound: vi.fn(() => {
@@ -39,6 +40,7 @@ vi.mock("@/lib/prisma", () => ({
     $queryRaw: mocks.queryRaw,
     plantillaPropuesta: { findMany: mocks.plantillaFindMany },
     campanaProspeccion: { findUnique: mocks.campanaFindUnique },
+    prospecto: { findUnique: mocks.prospectoFindUnique },
   },
 }))
 
@@ -69,6 +71,11 @@ import BuscarProspectosPage, {
 import CampanaDetallePage, {
   metadata as metadataCampana,
 } from "@/app/(propuestas)/propuestas/campanas/[id]/page"
+import ProspectoDetallePage, {
+  metadata as metadataProspecto,
+} from "@/app/(propuestas)/propuestas/prospectos/[id]/page"
+import { ScoreDesglose } from "@/components/propuestas/score-desglose"
+import { AnalizarProspecto } from "@/components/propuestas/analizar-prospecto-button"
 import {
   CODIGO_ESQUEMA_NO_APLICADO,
   esErrorTablaFaltante,
@@ -99,6 +106,7 @@ beforeEach(() => {
   mocks.pathname = "/propuestas"
   mocks.plantillaFindMany.mockResolvedValue([])
   mocks.campanaFindUnique.mockResolvedValue(null)
+  mocks.prospectoFindUnique.mockResolvedValue(null)
 })
 
 afterEach(() => {
@@ -625,6 +633,11 @@ describe("/propuestas/campanas/[id] (T-13, AC-8, AC-11, AC-14)", () => {
     expect(screen.getByText("Contabilidad")).toBeInTheDocument()
     expect(screen.getByText("Primer contacto (v2)")).toBeInTheDocument()
     expect(screen.getByText("Ana Pérez")).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        /el análisis se ejecuta desde la ficha de cada prospecto con el botón Analizar/i,
+      ),
+    ).toBeInTheDocument()
 
     const contadores = screen.getByRole("region", {
       name: /contadores de la campaña/i,
@@ -643,20 +656,26 @@ describe("/propuestas/campanas/[id] (T-13, AC-8, AC-11, AC-14)", () => {
       within(tabla).getByTitle(/referencia interna: pros_previo/i),
     ).toBeInTheDocument()
     expect(within(tabla).getByText("72")).toBeInTheDocument()
-    // T-15 aun no existe: "Ver ficha" es un boton deshabilitado, no un enlace
-    // a una ruta inexistente.
-    const verFicha = within(tabla).getAllByRole("button", {
+    // T-15: "Ver ficha" es un enlace a la ficha del prospecto y el analisis
+    // vive alli, no como boton deshabilitado en la tabla.
+    const verFicha = within(tabla).getAllByRole("link", {
       name: /ver ficha/i,
     })
     expect(verFicha).toHaveLength(2)
-    expect(verFicha[0]).toBeDisabled()
-    expect(verFicha[0]).toHaveAttribute("title", "Disponible en T-15")
+    expect(verFicha[0]).toHaveAttribute(
+      "href",
+      "/propuestas/prospectos/pros_1",
+    )
+    expect(verFicha[1]).toHaveAttribute(
+      "href",
+      "/propuestas/prospectos/pros_2",
+    )
     expect(
-      within(tabla).queryByRole("link", { name: /ver ficha/i }),
+      within(tabla).queryByRole("button", { name: /ver ficha/i }),
     ).not.toBeInTheDocument()
     expect(
-      within(tabla).getAllByRole("button", { name: /analizar/i })[0],
-    ).toBeDisabled()
+      within(tabla).queryByRole("button", { name: /analizar/i }),
+    ).not.toBeInTheDocument()
     // T-14 habilito la correccion y el descarte manual por fila.
     const descartar = within(tabla).getAllByRole("button", {
       name: /descartar/i,
@@ -1361,6 +1380,559 @@ describe("ProspectoFicha edición (T-14, AC-13, AC-19)", () => {
     expect(alerta).toHaveTextContent(/el contacto está suprimido/i)
     expect(alerta).not.toHaveTextContent("contacto@alfa.com.ar")
     await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* T-15 (AC-9, AC-10, AC-19, AC-20, AC-21; RF-13..16, RF-31..33)      */
+/* Ficha del prospecto, score y boton Analizar                         */
+/* ------------------------------------------------------------------ */
+
+const MARCADOR_HTML = "HTML_SECRETO_MARCADOR"
+
+function prospectoDetalleFixture(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    id: "pros_1",
+    nombreNegocio: "Consultora Alfa",
+    sitioWeb: "https://alfa.com.ar/",
+    dominioNormalizado: "alfa.com.ar",
+    ciudad: "Palermo, CABA",
+    rubro: "Consultoría",
+    email: "ventas@alfa.com.ar",
+    telefono: "+541155551234",
+    contactoNombre: "Ana",
+    contactoCargo: "Socia",
+    emailFuenteUrl: "https://alfa.com.ar/contacto",
+    emailFechaFuente: new Date("2026-11-10T15:00:00.000Z"),
+    fuenteTipo: "CARGA_MANUAL",
+    fuenteUrl: "https://alfa.com.ar/contacto",
+    fechaFuente: new Date("2026-11-10T14:00:00.000Z"),
+    estado: "PUNTUADO",
+    score: 88,
+    scoreDetalle: {
+      total: 88,
+      version: "v1",
+      componentes: [
+        {
+          clave: "CONTACTO_PROFESIONAL",
+          etiqueta: "Contacto profesional",
+          puntos: 30,
+          maximo: 30,
+          motivos: ["Email profesional con fuente registrada."],
+        },
+        {
+          clave: "SITIO_PROPIO",
+          etiqueta: "Sitio propio",
+          puntos: 20,
+          maximo: 20,
+          motivos: ["El sitio usa HTTPS."],
+        },
+        {
+          clave: "OPORTUNIDAD_TECNICA",
+          etiqueta: "Oportunidad tecnica",
+          puntos: 8,
+          maximo: 20,
+          motivos: ["La auditoria detecta margen de mejora tecnica."],
+        },
+        {
+          clave: "ENCAJE_CAMPANA",
+          etiqueta: "Encaje de campana",
+          puntos: 15,
+          maximo: 15,
+          motivos: ["El rubro coincide con la campana."],
+        },
+        {
+          clave: "COMPLETITUD",
+          etiqueta: "Completitud",
+          puntos: 15,
+          maximo: 15,
+          motivos: ["El telefono suma completitud."],
+        },
+      ],
+    },
+    auditoriaResumen: {
+      estado: "OK",
+      fecha: "2026-11-12T15:30:00.000Z",
+      finalUrl: "https://alfa.com.ar/",
+      scores: { velocidad: 40, ssl: 90, seo: 50, seguridad: 60 },
+      findings: [
+        {
+          type: "warn",
+          text: "La velocidad del sitio puede mejorar.",
+        },
+      ],
+      motivo: null,
+      html: `<html>${MARCADOR_HTML}</html>`,
+      certificado: "BEGIN CERTIFICATE",
+    },
+    auditoriaEstado: "OK",
+    auditoriaFecha: new Date("2026-11-12T15:30:00.000Z"),
+    posibleDuplicadoDeId: "pros_otro",
+    motivoSinEnriquecer: null,
+    notas: "Nota interna del prospecto.",
+    ultimaInteraccionEn: new Date("2026-11-12T16:00:00.000Z"),
+    creadoEn: new Date("2026-11-10T12:00:00.000Z"),
+    actualizadoEn: new Date("2026-11-12T16:00:00.000Z"),
+    campanaOrigen: {
+      id: "camp_1",
+      nombre: "Estudios contables Palermo",
+      estado: "EN_CURSO",
+      rubro: "Consultoría",
+      zona: "Palermo, CABA",
+    },
+    ...overrides,
+  }
+}
+
+async function renderProspecto(id = "pros_1") {
+  return render(
+    await ProspectoDetallePage({ params: Promise.resolve({ id }) }),
+  )
+}
+
+describe("/propuestas/prospectos/[id] (T-15, AC-9, AC-10, AC-19, AC-20, AC-21)", () => {
+  it("renderiza ficha, fuentes, auditoria, score, estado y enlace a la campana", async () => {
+    mocks.prospectoFindUnique.mockResolvedValue(prospectoDetalleFixture())
+
+    await renderProspecto()
+
+    expect(
+      screen.getByRole("heading", { name: "Consultora Alfa" }),
+    ).toBeInTheDocument()
+    expect(screen.getAllByText("PUNTUADO").length).toBeGreaterThan(0)
+
+    const datos = screen.getByRole("region", {
+      name: /datos del prospecto/i,
+    })
+    expect(
+      within(datos).getByRole("link", { name: "https://alfa.com.ar/" }),
+    ).toHaveAttribute("href", "https://alfa.com.ar/")
+    expect(screen.getByRole("link", { name: "ventas@alfa.com.ar" })).toHaveAttribute(
+      "href",
+      "mailto:ventas@alfa.com.ar",
+    )
+    expect(screen.getByText("+541155551234")).toBeInTheDocument()
+    expect(screen.getByText(/Ana — Socia/)).toBeInTheDocument()
+    expect(screen.getByText("Carga manual con fuente")).toBeInTheDocument()
+    expect(
+      screen.getByText("Email registrado con fuente"),
+    ).toBeInTheDocument()
+
+    expect(
+      screen.getByRole("link", {
+        name: /Volver a la campaña «Estudios contables Palermo»/,
+      }),
+    ).toHaveAttribute("href", "/propuestas/campanas/camp_1")
+    expect(
+      screen.getAllByRole("link", { name: "Estudios contables Palermo" })[0],
+    ).toHaveAttribute("href", "/propuestas/campanas/camp_1")
+
+    // Fuentes y fechas: cada dato con su procedencia.
+    const fuentes = screen.getByRole("region", { name: /fuentes y fechas/i })
+    expect(
+      within(fuentes).getAllByRole("link", {
+        name: "https://alfa.com.ar/contacto",
+      }).length,
+    ).toBeGreaterThanOrEqual(2)
+    expect(
+      within(fuentes).getAllByText(/10 de nov de 2026/i).length,
+    ).toBeGreaterThanOrEqual(2)
+
+    // Auditoria resumida sin HTML ni certificado.
+    const auditoria = screen.getByRole("region", {
+      name: /auditoría del sitio/i,
+    })
+    expect(within(auditoria).getByText("OK")).toBeInTheDocument()
+    expect(within(auditoria).getByText("40/100")).toBeInTheDocument()
+    expect(within(auditoria).getByText("90/100")).toBeInTheDocument()
+    expect(
+      within(auditoria).getByText(/La velocidad del sitio puede mejorar/i),
+    ).toBeInTheDocument()
+    expect(document.body).not.toHaveTextContent(MARCADOR_HTML)
+    expect(document.body).not.toHaveTextContent("BEGIN CERTIFICATE")
+
+    // Score total y desglose accesible.
+    const score = screen.getByRole("region", {
+      name: /score del prospecto y motivos/i,
+    })
+    expect(within(score).getByText("88")).toBeInTheDocument()
+    expect(within(score).getByText("30/30 puntos")).toBeInTheDocument()
+    expect(within(score).getByText("8/20 puntos")).toBeInTheDocument()
+    expect(
+      within(score).getByText(/Email profesional con fuente registrada/i),
+    ).toBeInTheDocument()
+
+    // Duplicado visible con enlace interno.
+    const duplicado = screen.getByRole("note", {
+      name: /posible duplicado/i,
+    })
+    expect(
+      within(duplicado).getByRole("link", { name: /ver ficha relacionada/i }),
+    ).toHaveAttribute("href", "/propuestas/prospectos/pros_otro")
+  })
+
+  it("publica metadata noindex y falla con notFound si no existe (AC-5, AC-9)", async () => {
+    expect(metadataProspecto.robots).toEqual({ index: false, follow: false })
+
+    mocks.prospectoFindUnique.mockResolvedValue(null)
+
+    await expect(
+      ProspectoDetallePage({ params: Promise.resolve({ id: "no-existe" }) }),
+    ).rejects.toThrow("NEXT_NOT_FOUND")
+    expect(mocks.notFound).toHaveBeenCalledTimes(1)
+  })
+
+  it("con esquema faltante muestra EstadoOperativo y no renderiza datos ni acciones", async () => {
+    mocks.prospectoFindUnique.mockRejectedValue({ code: "P2021" })
+
+    await renderProspecto()
+
+    const estado = screen.getByRole("alert")
+    expect(estado).toHaveAttribute("data-estado", CODIGO_ESQUEMA_NO_APLICADO)
+    expect(screen.getByText("Esquema no aplicado")).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "Analizar" }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("region", { name: /datos del prospecto/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("no oculta errores que no son de esquema", async () => {
+    mocks.prospectoFindUnique.mockRejectedValue(new Error("base caida"))
+
+    await expect(
+      ProspectoDetallePage({ params: Promise.resolve({ id: "pros_1" }) }),
+    ).rejects.toThrow("base caida")
+  })
+
+  it("muestra el motivo SIN_WEB y el estado sin auditoria cuando corresponde (AC-10)", async () => {
+    mocks.prospectoFindUnique.mockResolvedValue(
+      prospectoDetalleFixture({
+        estado: "SIN_ENRIQUECER",
+        motivoSinEnriquecer: "SIN_WEB",
+        email: null,
+        auditoriaResumen: null,
+        auditoriaEstado: null,
+        auditoriaFecha: null,
+        score: 20,
+        scoreDetalle: null,
+        posibleDuplicadoDeId: null,
+      }),
+    )
+
+    await renderProspecto()
+
+    expect(
+      screen.getByRole("note", { name: /motivo sin enriquecer/i }),
+    ).toHaveTextContent("SIN_WEB")
+    expect(
+      screen.getByText(/Sin email: no se puede aprobar/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/Sin auditoría registrada/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("note", { name: /posible duplicado/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("distingue un email registrado sin fuente (AC-19)", async () => {
+    mocks.prospectoFindUnique.mockResolvedValue(
+      prospectoDetalleFixture({ emailFuenteUrl: null }),
+    )
+
+    await renderProspecto()
+
+    expect(
+      screen.getByText("Email registrado sin fuente"),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText("Email registrado con fuente"),
+    ).not.toBeInTheDocument()
+    expect(
+      screen
+        .getByRole("region", { name: /fuentes y fechas/i })
+        .textContent,
+    ).toContain("Fuente del email")
+  })
+
+  it("incluye el boton Analizar y no enlaza a /api/audit", async () => {
+    mocks.prospectoFindUnique.mockResolvedValue(prospectoDetalleFixture())
+
+    await renderProspecto()
+
+    expect(
+      screen.getByRole("region", { name: /analizar prospecto/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Analizar" }),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/No se envía ningún email/i)).toBeInTheDocument()
+    expect(document.body.innerHTML).not.toContain("/api/audit")
+  })
+})
+
+describe("AnalizarProspecto (T-15, AC-9, AC-19, AC-20, AC-21)", () => {
+  it("hace POST, bloquea el doble clic, muestra pending, resultado y refresca", async () => {
+    let resolver: (valor: unknown) => void = () => undefined
+    const pendiente = new Promise((resolve) => {
+      resolver = resolve
+    })
+    const fetchMock = vi.fn().mockReturnValue(pendiente)
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<AnalizarProspecto prospectoId="pros_1" />)
+
+    const boton = screen.getByRole("button", { name: "Analizar" })
+    fireEvent.click(boton)
+    fireEvent.click(boton)
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    expect(
+      screen.getByRole("button", { name: /analizando/i }),
+    ).toBeDisabled()
+    expect(
+      screen.getByRole("region", { name: /analizar prospecto/i }),
+    ).toHaveAttribute("aria-busy", "true")
+
+    resolver({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        estado: "PUNTUADO",
+        emailEncontrado: true,
+        tieneEmail: true,
+        auditoriaEstado: "OK",
+        score: 88,
+      }),
+    })
+
+    const resultado = await screen.findByRole("status")
+    expect(resultado).toHaveTextContent(/Análisis completado/i)
+    expect(resultado).toHaveTextContent(/Se encontró un email profesional/i)
+    expect(resultado).toHaveTextContent(/Auditoría: OK/i)
+    expect(resultado).toHaveTextContent(/Score: 88\/100/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/prospectos/pros_1/analizar")
+    expect(url).not.toContain("ventas@")
+    expect(init.method).toBe("POST")
+    expect(JSON.parse(String(init.body))).toEqual({})
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1))
+  })
+
+  it("muestra un error accesible por codigo y refresca (AC-9)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      json: async () => ({ codigo: "CUPO" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<AnalizarProspecto prospectoId="pros_1" />)
+    fireEvent.click(screen.getByRole("button", { name: "Analizar" }))
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/cupo diario/i)
+    expect(alerta).not.toHaveTextContent("contacto@")
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("muestra SUPRIMIDO como aviso sin filtrar el email (AC-15)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        estado: "SUPRIMIDO",
+        emailEncontrado: false,
+        tieneEmail: false,
+        auditoriaEstado: null,
+        score: null,
+      }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<AnalizarProspecto prospectoId="pros_1" />)
+    fireEvent.click(screen.getByRole("button", { name: "Analizar" }))
+
+    const aviso = await screen.findByRole("status")
+    expect(aviso).toHaveTextContent(/quedó SUPRIMIDO/i)
+    expect(aviso).not.toHaveTextContent("@")
+  })
+
+  it("si el prospecto ya tenia email y no se encontro uno nuevo, lo dice y refresca (AC-19)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        estado: "PUNTUADO",
+        emailEncontrado: false,
+        tieneEmail: true,
+        auditoriaEstado: "OK",
+        score: 88,
+      }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<AnalizarProspecto prospectoId="pros_1" />)
+    fireEvent.click(screen.getByRole("button", { name: "Analizar" }))
+
+    const resultado = await screen.findByRole("status")
+    expect(resultado).toHaveTextContent(
+      /ya tenía un email registrado; se conservó sin cambios/i,
+    )
+    expect(resultado).not.toHaveTextContent(
+      /Se encontró un email profesional publicado/i,
+    )
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1))
+  })
+
+  it("si no hay email ni se encontro uno, avisa que no se puede aprobar (AC-19)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        estado: "PUNTUADO",
+        emailEncontrado: false,
+        tieneEmail: false,
+        auditoriaEstado: "OK",
+        score: 58,
+      }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<AnalizarProspecto prospectoId="pros_1" />)
+    fireEvent.click(screen.getByRole("button", { name: "Analizar" }))
+
+    const resultado = await screen.findByRole("status")
+    expect(resultado).toHaveTextContent(
+      /No se encontró un email público; el prospecto sigue sin contacto/i,
+    )
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1))
+  })
+
+  it("un SIN_ENRIQUECER se muestra como aviso, no como exito (AC-10)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        estado: "SIN_ENRIQUECER",
+        emailEncontrado: false,
+        tieneEmail: false,
+        auditoriaEstado: "FALLIDA",
+        score: 40,
+      }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<AnalizarProspecto prospectoId="pros_1" />)
+    fireEvent.click(screen.getByRole("button", { name: "Analizar" }))
+
+    const aviso = await screen.findByRole("status")
+    expect(aviso).toHaveTextContent(/No se pudo completar el análisis del sitio/i)
+    expect(aviso).toHaveTextContent(/Auditoría: FALLIDA/i)
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1))
+  })
+
+  it("un error de red se muestra saneado y refresca (AC-9)", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("fallo juan@example.com"))
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<AnalizarProspecto prospectoId="pros_1" />)
+    fireEvent.click(screen.getByRole("button", { name: "Analizar" }))
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/Error de red/i)
+    expect(alerta).not.toHaveTextContent("juan@example.com")
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+})
+
+describe("ScoreDesglose (T-15, AC-21; RF-33)", () => {
+  it("muestra total, componentes, motivos y maximo de forma accesible", () => {
+    render(
+      <ScoreDesglose
+        score={88}
+        detalle={{
+          total: 88,
+          version: "v1",
+          componentes: [
+            {
+              clave: "CONTACTO_PROFESIONAL",
+              etiqueta: "Contacto profesional",
+              puntos: 30,
+              maximo: 30,
+              motivos: ["Email profesional con fuente registrada."],
+            },
+            {
+              clave: "OPORTUNIDAD_TECNICA",
+              etiqueta: "Oportunidad tecnica",
+              puntos: 8,
+              maximo: 20,
+              motivos: [],
+            },
+          ],
+        }}
+      />,
+    )
+
+    const region = screen.getByRole("region", {
+      name: /score del prospecto y motivos/i,
+    })
+    expect(within(region).getByText("88")).toBeInTheDocument()
+    expect(within(region).getByText("30/30 puntos")).toBeInTheDocument()
+    expect(within(region).getByText("8/20 puntos")).toBeInTheDocument()
+    expect(
+      within(region).getByText(/Email profesional con fuente registrada/i),
+    ).toBeInTheDocument()
+    expect(
+      within(region).getByText(/Sin motivos registrados para este componente/i),
+    ).toBeInTheDocument()
+  })
+
+  it("no inventa datos si falta el desglose y avisa del score pendiente", () => {
+    render(<ScoreDesglose score={null} detalle={null} />)
+
+    expect(
+      screen.getByText(/Todavía no hay un score calculado/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(/puntos/i),
+    ).not.toBeInTheDocument()
+  })
+
+  it("con un JSON manipulado conserva solo componentes validos sin romper", () => {
+    render(
+      <ScoreDesglose
+        score={50}
+        detalle={{
+          total: 50,
+          componentes: [
+            null,
+            { clave: "X", etiqueta: "Sin puntos", puntos: "30", maximo: 30 },
+            {
+              clave: "VALIDO",
+              etiqueta: "Componente valido",
+              puntos: 10,
+              maximo: 20,
+              motivos: ["Motivo valido.", "", 42],
+            },
+          ],
+        }}
+      />,
+    )
+
+    expect(screen.getByText("Componente valido")).toBeInTheDocument()
+    expect(screen.getByText("10/20 puntos")).toBeInTheDocument()
+    expect(screen.getByText("Motivo valido.")).toBeInTheDocument()
+    expect(screen.queryByText("Sin puntos")).not.toBeInTheDocument()
+    expect(screen.queryByText("42")).not.toBeInTheDocument()
   })
 })
 

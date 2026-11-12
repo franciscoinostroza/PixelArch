@@ -307,8 +307,8 @@ export default async function CampanaDetallePage({
             </h2>
             <p className="mt-1 text-sm leading-6 text-text-dim">
               Datos del portal, con su fuente. El alta manual, la corrección y
-              el descarte se registran con motivo; el análisis se habilita en
-              T-15.
+              el descarte se registran con motivo; el análisis se ejecuta desde
+              la ficha de cada prospecto con el botón Analizar.
             </p>
           </div>
         </div>

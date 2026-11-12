@@ -12,9 +12,11 @@
  * - El resumen guardado es serializable y solo incluye `scores`, `findings`,
  *   `finalUrl`, `fecha` y `estado` (mas el motivo saneado si falla). Nunca
  *   incluye HTML, cabeceras crudas, cookies ni datos del certificado.
- * - Un sitio HTTP o un certificado TLS que no se puede validar agrega un
- *   hallazgo sintetico (`SIN_HTTPS`/`TLS_INVALIDO`) y fuerza `ssl: 0`; no se
- *   salta la validacion TLS ni se reintenta con `rejectUnauthorized: false`.
+ * - Un sitio HTTP agrega un hallazgo sintetico (`SIN_HTTPS`) y fuerza `ssl: 0`.
+ * - Un sitio HTTPS cuyo certificado no se puede validar devuelve
+ *   `estado: "FALLIDA"`, `motivo: "TLS"`, `ssl: 0` y el hallazgo sintetico
+ *   `TLS_INVALIDO`; no se salta la validacion TLS ni se reintenta con
+ *   `rejectUnauthorized: false`.
  *
  * Modulo server-only: no toca Prisma, entorno, proveedores ni logs.
  *
@@ -130,12 +132,38 @@ function resumenFallido(
 }
 
 /**
+ * Resumen sintetico para un fallo TLS detectado antes de auditar (por ejemplo,
+ * el fetch seguro rechazo el certificado). No incluye HTML ni el certificado:
+ * solo el hallazgo saneado que explica el `ssl: 0`.
+ */
+export function resumenTlsFallido(
+  finalUrl: string | null,
+  ahora?: Date | (() => Date),
+): AuditoriaResumen {
+  return {
+    estado: "FALLIDA",
+    fecha: fechaIso(ahora),
+    finalUrl,
+    scores: null,
+    findings: [
+      {
+        type: "fail",
+        codigo: "TLS_INVALIDO",
+        text: TEXTO_TLS_INVALIDO,
+      },
+    ],
+    motivo: "TLS",
+  }
+}
+
+/**
  * Audita una pagina cuyo fetch seguro ya termino bien. No vuelve a pedir el
  * home: usa el HTML, las cabeceras y los tiempos del `ResultadoWebOk`.
  *
- * - Si el sitio no es HTTPS, agrega `SIN_HTTPS` y deja `ssl: 0`.
+ * - Si el sitio no es HTTPS, agrega `SIN_HTTPS` y deja `ssl: 0` (estado OK).
  * - Si es HTTPS y el helper TLS devuelve `null` (timeout, error o certificado
- *   no verificable), agrega `TLS_INVALIDO` y deja `ssl: 0`.
+ *   no verificable), devuelve `estado: "FALLIDA"`, `motivo: "TLS"`, agrega
+ *   `TLS_INVALIDO` y deja `ssl: 0`; el resto de scores se conserva.
  * - Cualquier fallo interno inesperado devuelve `estado: "FALLIDA"` con scores
  *   `null`, findings `[]` y un motivo del vocabulario de `web.ts`.
  */
@@ -196,6 +224,15 @@ export async function auditarPagina(
         ...findings,
       ]
       scores = { ...scores, ssl: 0 }
+
+      return {
+        estado: "FALLIDA",
+        fecha,
+        finalUrl: resultado.finalUrl,
+        scores,
+        findings,
+        motivo: "TLS",
+      }
     }
 
     return {

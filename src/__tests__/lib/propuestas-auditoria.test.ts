@@ -10,6 +10,7 @@ import {
   auditarPagina,
   auditarSitio,
   auditoriaVigente,
+  resumenTlsFallido,
   type AuditoriaResumen,
 } from "@/lib/propuestas/auditoria"
 import {
@@ -224,13 +225,14 @@ describe("auditarPagina (AC-20) — reutiliza el fetch del analisis", () => {
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
-  it("agrega TLS_INVALIDO y deja ssl 0 si el certificado no se puede validar", async () => {
+  it("HTTPS sin certificado valido: FALLIDA con motivo TLS, TLS_INVALIDO y ssl 0", async () => {
     const resumen = await auditarPagina(resultadoOk(), {
       certDaysLeft: async () => null,
       ahora: () => FECHA_FIJA,
     })
 
-    expect(resumen.estado).toBe("OK")
+    expect(resumen.estado).toBe("FALLIDA")
+    expect(resumen.motivo).toBe("TLS")
     expect(resumen.scores?.ssl).toBe(0)
     expect(resumen.findings[0]).toMatchObject({
       type: "fail",
@@ -240,13 +242,15 @@ describe("auditarPagina (AC-20) — reutiliza el fetch del analisis", () => {
     expect(resumen.finalUrl).toBe("https://negocio-ejemplo.com/")
   })
 
-  it("un helper TLS que lanza o devuelve NaN no desactiva la validacion", async () => {
+  it("un helper TLS que lanza o devuelve NaN no desactiva la validacion y deja FALLIDA", async () => {
     const lanza = await auditarPagina(resultadoOk(), {
       certDaysLeft: async () => {
         throw new Error("handshake roto")
       },
       ahora: () => FECHA_FIJA,
     })
+    expect(lanza.estado).toBe("FALLIDA")
+    expect(lanza.motivo).toBe("TLS")
     expect(lanza.findings[0]).toMatchObject({ codigo: "TLS_INVALIDO" })
     expect(lanza.scores?.ssl).toBe(0)
 
@@ -254,6 +258,8 @@ describe("auditarPagina (AC-20) — reutiliza el fetch del analisis", () => {
       certDaysLeft: async () => Number.NaN,
       ahora: () => FECHA_FIJA,
     })
+    expect(nan.estado).toBe("FALLIDA")
+    expect(nan.motivo).toBe("TLS")
     expect(nan.findings[0]).toMatchObject({ codigo: "TLS_INVALIDO" })
     expect(nan.scores?.ssl).toBe(0)
 
@@ -261,6 +267,48 @@ describe("auditarPagina (AC-20) — reutiliza el fetch del analisis", () => {
     const cert = vi.fn(async () => null)
     await auditarPagina(resultadoOk(), { certDaysLeft: cert })
     expect(cert.mock.calls[0]).toEqual(["negocio-ejemplo.com"])
+  })
+
+  it("resumenTlsFallido deja un resumen sintetico saneado sin HTML ni certificado (AC-20)", () => {
+    const resumen = resumenTlsFallido(
+      "https://negocio-ejemplo.com/",
+      () => FECHA_FIJA,
+    )
+
+    expect(resumen).toEqual({
+      estado: "FALLIDA",
+      fecha: FECHA_FIJA.toISOString(),
+      finalUrl: "https://negocio-ejemplo.com/",
+      scores: null,
+      findings: [
+        {
+          type: "fail",
+          codigo: "TLS_INVALIDO",
+          text: expect.stringContaining("TLS_INVALIDO"),
+        },
+      ],
+      motivo: "TLS",
+    })
+    expect(clavesResumen(resumen)).toEqual(CLAVES_RESUMEN)
+    expect(JSON.stringify(resumen)).not.toContain("BEGIN CERTIFICATE")
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it("un HTML vacio o roto no lanza y devuelve un resumen serializable (AC-20)", async () => {
+    const resumen = await auditarPagina(
+      resultadoOk({
+        html: "",
+        finalUrl: "https://negocio-ejemplo.com/",
+        https: true,
+      }),
+      { certDaysLeft: async () => 30, ahora: () => FECHA_FIJA },
+    )
+
+    expect(resumen.estado).toBe("OK")
+    expect(clavesResumen(resumen)).toEqual(CLAVES_RESUMEN)
+    expect(resumen.scores).not.toBeNull()
+    expect(JSON.stringify(resumen)).not.toContain("BEGIN CERTIFICATE")
+    expect(fetchSpy).not.toHaveBeenCalled()
   })
 
   it("con certificado valido no agrega hallazgos sinteticos y respeta scores", async () => {
@@ -455,6 +503,31 @@ describe("auditarSitio (AC-20) — exito y fallos saneados", () => {
       motivo: "TIMEOUT",
     })
     expect(JSON.stringify(resumen)).not.toContain("sitio-fallido.com")
+  })
+
+  it("fallo TLS del transporte: FALLIDA con motivo TLS y sin resumen sintetico (AC-20)", async () => {
+    const sitio = crearSitioFalso({
+      pagina: () => {
+        throw new ErrorCargaWeb("TLS")
+      },
+    })
+
+    const resumen = await auditarSitio("https://sitio-fallido.com/", {
+      fetch: opcionesFetch(sitio),
+      certDaysLeft: async () => 90,
+      ahora: () => FECHA_FIJA,
+    })
+
+    expect(resumen).toEqual({
+      estado: "FALLIDA",
+      fecha: FECHA_FIJA.toISOString(),
+      finalUrl: null,
+      scores: null,
+      findings: [],
+      motivo: "TLS",
+    })
+    expect(JSON.stringify(resumen)).not.toContain("sitio-fallido.com")
+    expect(JSON.stringify(resumen)).not.toContain("BEGIN CERTIFICATE")
   })
 
   it("fallo HTTP: FALLIDA con motivo HTTP", async () => {

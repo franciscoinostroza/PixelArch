@@ -105,15 +105,16 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
 
 ## Fase 2: Integraciones
 
-- [ ] **T-09 (AC-20; RF-31, RF-32) — Extraer la auditoría y crear la auditoría interna.**
+- [x] **T-09 (AC-20; RF-31, RF-32) — Extraer la auditoría y crear la auditoría interna.**
   - Extraer de `/api/audit` el parseo puro a `src/lib/audit-server.ts` (`analizarHtmlAudit`) y el helper TLS; la ruta pública conserva rate limit 8/h, UA, timeout y respuesta.
   - `src/lib/propuestas/auditoria.ts`: usa `fetchHtmlSeguro` + `analizarHtmlAudit`; reutiliza el HTML/headers del home ya obtenido en el análisis; guarda `{ scores, findings, finalUrl, fecha, estado }`; no HTML; no llama a `/api/audit`.
   - Archivos: `src/lib/audit-server.ts`; `src/app/api/audit/route.ts`; `src/lib/propuestas/auditoria.ts`; tests `src/__tests__/lib/audit-server.test.ts`, `src/__tests__/lib/propuestas-auditoria.test.ts`.
   - Depende: T-05, T-10.
   - Tests: regresión de scores/findings; la auditoría interna no hace fetch a `/api/audit`; resumen sin HTML; fallo → `FALLIDA`; una auditoría por prospecto/24 h; timeout.
   - Cierre: tester (`audit-server.test.ts`, `propuestas-auditoria.test.ts`, `audit.test.ts`) · reviewer (regresión `/api/audit`, SSRF, PII) · 1 commit.
+  - PASS tester+reviewer: 60 tests verdes (27 `audit-server` + 20 `propuestas-auditoria` + 13 `audit` existentes), tsc 0 errores; reviewer PASS. Deuda menor: falta un caso HTTPS/TLS en la regresión de la ruta; algunas comparaciones de tests son tautológicas; en HTTP se duplica el hallazgo de HTTPS (15 vs tope 14); cerrar el socket si `getPeerCertificate` lanza; T-15 debe distinguir «no se pudo verificar TLS» de «certificado inválido»/fallo `TLS` del fetch.
 
-- [ ] **T-10 (AC-9, AC-10, AC-19; RF-13, RF-14, RF-16) — Fetch web seguro, robots y extracción.**
+- [x] **T-10 (AC-9, AC-10, AC-19; RF-13, RF-14, RF-16) — Fetch web seguro, robots y extracción.**
   - `fetchHtmlSeguro` con `normalizeUrl`/`isBlockedHost`, DNS `all`, rechazo de rangos privados/loopback/link-local/multicast, puertos 80/443, sin credenciales, redirects manuales máx. 3, timeout 8 s, 1 MB, solo HTML, sin cookies/JS/referrer. Usa `node:https`/`node:http` con `lookup` validador en el connect para cerrar DNS rebinding (no el `fetch` global).
   - `robots.txt` con parser puro y cache 24 h; UA `PixelArchProspectBot/1.0 (+https://pixelarch.dev/propuestas; contacto: hola@pixelarch.dev)`.
   - `descubrirPaginasContacto` (máx. 2, mismo dominio registrable) y extracción de email/teléfono/nombre; motivos `SIN_WEB`, `DNS`, `ROBOTS`, `LOGIN`, `TIMEOUT`, `TAMANIO`, `NO_HTML`, `HTTP`, `SIN_EMAIL`.
@@ -121,6 +122,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-05.
   - Tests: host privado/loopback/`.local`/puerto/credenciales → rechazo; redirect a host privado o a otro dominio → rechazo; DNS que cambia a IP privada en el connect → rechazo; host social/agregador → rechazo; login/password → rechazo; timeout/tamaño/content-type/encoding; robots allow/disallow/404/403; UA; email `mailto` vs texto visible (sin `<script>`/`<style>`); sin JS/assets/social; fixture de prompt injection se trata como texto.
   - Cierre: tester (`propuestas-web.test.ts`) · reviewer (SSRF, red, parsing) · 1 commit.
+  - PASS tester+reviewer: 90 tests verdes en `src/__tests__/lib/propuestas-web.test.ts`, tsc 0 errores; reviewer PASS con observaciones (sin test directo del transporte real; presupuesto DNS+request puede sumar ~2×8 s; rangos IPv6 especiales poco frecuentes y duplicación menor de `quitarRuidoHtml` quedan como deuda menor).
 
 - [ ] **T-11 (AC-8, AC-11, AC-12, AC-38, AC-39; RF-10, RF-11, RF-17, RF-57, RF-58) — Cliente Places y cupos/costos.**
   - `places.ts`: endpoint oficial, `X-Goog-Api-Key`, field mask `places.id,places.displayName.text,places.websiteUri`, body `textQuery/languageCode/regionCode/pageSize`, sin paginación ni detalles.

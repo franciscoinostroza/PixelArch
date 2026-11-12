@@ -1,42 +1,15 @@
 import { NextResponse } from "next/server"
-import tls from "node:tls"
 import { rateLimit } from "@/lib/rate-limit"
-import { normalizeUrl, isBlockedHost, computeScores, buildFindings, type AuditData } from "@/lib/audit"
+import { normalizeUrl, isBlockedHost, computeScores, buildFindings } from "@/lib/audit"
+import {
+  analizarHtmlAudit,
+  auditHeadersDesdeHeaders,
+  certDaysLeft,
+} from "@/lib/audit-server"
 import { logger } from "@/lib/logger"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-
-function certDaysLeft(hostname: string): Promise<number | null> {
-  return new Promise((resolve) => {
-    try {
-      const socket = tls.connect(
-        { host: hostname, port: 443, servername: hostname, timeout: 6000 },
-        () => {
-          try {
-            const cert = socket.getPeerCertificate()
-            socket.end()
-            if (cert && cert.valid_to) {
-              const days = Math.round((new Date(cert.valid_to).getTime() - Date.now()) / 86400000)
-              resolve(days)
-            } else {
-              resolve(null)
-            }
-          } catch {
-            resolve(null)
-          }
-        }
-      )
-      socket.on("error", () => resolve(null))
-      socket.on("timeout", () => {
-        socket.destroy()
-        resolve(null)
-      })
-    } catch {
-      resolve(null)
-    }
-  })
-}
 
 export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
@@ -82,50 +55,19 @@ export async function POST(req: Request) {
     const finalUrl = res.url || url
     const https = finalUrl.startsWith("https://")
 
-    const titleMatch = text.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
-    const title = titleMatch ? titleMatch[1].replace(/\s+/g, " ").trim().slice(0, 120) || null : null
-
-    const metaDesc =
-      text.match(/<meta[^>]+name=["']description["'][^>]*content=["']([^"']*)["']/i) ||
-      text.match(/<meta[^>]+content=["']([^"']*)["'][^>]*name=["']description["']/i)
-    const metaDescription = metaDesc ? metaDesc[1].trim().slice(0, 200) || null : null
-
-    const hasViewport = /<meta[^>]+name=["']viewport["']/i.test(text)
-    const h1Count = (text.match(/<h1[\s>]/gi) || []).length
-    const langMatch = text.match(/<html[^>]+lang=["']([^"']+)["']/i)
-    const lang = langMatch ? langMatch[1] : null
-    const imgTags = text.match(/<img[\s>][^>]*>/gi) || []
-    const imgCount = imgTags.length
-    const imgNoAlt = imgTags.filter((t) => !/\balt\s*=\s*["'][^"']+["']/i.test(t)).length
-
-    const headers = {
-      hsts: res.headers.has("strict-transport-security"),
-      csp: res.headers.has("content-security-policy"),
-      xfo: res.headers.has("x-frame-options"),
-      xcto: res.headers.has("x-content-type-options"),
-      referrer: res.headers.has("referrer-policy"),
-    }
-
     const cert = https ? await certDaysLeft(new URL(finalUrl).hostname) : null
 
-    const data: AuditData = {
+    const data = analizarHtmlAudit({
+      html: text,
       finalUrl,
       status: res.status,
       redirects: res.redirected,
       ttfbMs,
       totalMs,
-      htmlKb: Math.round(Buffer.byteLength(text, "utf8") / 1024),
-      title,
-      metaDescription,
-      hasViewport,
-      h1Count,
-      lang,
-      imgCount,
-      imgNoAlt,
       https,
+      headers: auditHeadersDesdeHeaders(res.headers),
       certDaysLeft: cert,
-      headers,
-    }
+    })
 
     return NextResponse.json({
       ok: true,

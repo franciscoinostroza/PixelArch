@@ -16,23 +16,36 @@ import type { AnchorHTMLAttributes, ReactNode } from "react"
  * T-12 (AC-7; RF-9, RF-12): pagina `/propuestas/buscar` y formulario de alta
  * de campana (aviso de "no busca ni envia", plantillas activas, idempotencia
  * por montaje, doble submit bloqueado y errores accesibles).
+ *
+ * T-13 (AC-8, AC-11, AC-12, AC-14; RF-16): detalle de campana, tabla de
+ * prospectos, consumo y acciones (`campana-acciones`). El detalle es solo
+ * lectura; ejecutar/cancelar viven en el componente cliente con confirmacion,
+ * guard de doble clic y refresco del server component.
  */
 
 const mocks = vi.hoisted(() => ({
   queryRaw: vi.fn(),
   plantillaFindMany: vi.fn(),
+  campanaFindUnique: vi.fn(),
   pathname: "/propuestas",
+  refresh: vi.fn(),
+  notFound: vi.fn(() => {
+    throw new Error("NEXT_NOT_FOUND")
+  }),
 }))
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     $queryRaw: mocks.queryRaw,
     plantillaPropuesta: { findMany: mocks.plantillaFindMany },
+    campanaProspeccion: { findUnique: mocks.campanaFindUnique },
   },
 }))
 
 vi.mock("next/navigation", () => ({
   usePathname: () => mocks.pathname,
+  useRouter: () => ({ refresh: mocks.refresh }),
+  notFound: mocks.notFound,
 }))
 
 vi.mock("next/link", () => ({
@@ -53,6 +66,9 @@ import PropuestasDashboardPage, {
 import BuscarProspectosPage, {
   metadata as metadataBuscar,
 } from "@/app/(propuestas)/propuestas/buscar/page"
+import CampanaDetallePage, {
+  metadata as metadataCampana,
+} from "@/app/(propuestas)/propuestas/campanas/[id]/page"
 import {
   CODIGO_ESQUEMA_NO_APLICADO,
   esErrorTablaFaltante,
@@ -63,6 +79,7 @@ import {
 } from "@/lib/propuestas/fechas"
 import { PortalShell } from "@/components/propuestas/portal-shell"
 import { CampanaForm } from "@/components/propuestas/campana-form"
+import { CampanaAcciones } from "@/components/propuestas/campana-acciones"
 
 const UUID_V4 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -71,6 +88,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mocks.pathname = "/propuestas"
   mocks.plantillaFindMany.mockResolvedValue([])
+  mocks.campanaFindUnique.mockResolvedValue(null)
 })
 
 afterEach(() => {
@@ -474,3 +492,491 @@ describe("CampanaForm (T-12, AC-7; RF-9, RF-12)", () => {
     ).toBeInTheDocument()
   })
 })
+
+/* ------------------------------------------------------------------ */
+/* T-13 (AC-8, AC-11, AC-12, AC-14; RF-16)                             */
+/* Detalle de campana y acciones                                       */
+/* ------------------------------------------------------------------ */
+
+interface ProspectoFilaFixture {
+  id: string
+  nombreNegocio: string
+  sitioWeb: string | null
+  ciudad: string | null
+  estado: string
+  posibleDuplicadoDeId: string | null
+  score: number | null
+}
+
+interface ConsumoFixture {
+  id: string
+  fecha: Date
+  llamadas: number
+  unidades: number
+  costoCentavos: number
+}
+
+interface CampanaDetalleFixture {
+  id: string
+  nombre: string
+  consulta: string
+  zona: string | null
+  rubro: string | null
+  estado: string
+  limiteCorrida: number
+  creadaPorNombre: string | null
+  ultimoError: string | null
+  creadoEn: Date
+  iniciadaEn: Date | null
+  finalizadaEn: Date | null
+  plantilla: { nombre: string; version: number } | null
+  prospectos: ProspectoFilaFixture[]
+  consumos: ConsumoFixture[]
+}
+
+function campanaDetalleFixture(
+  overrides: Partial<CampanaDetalleFixture> = {},
+): CampanaDetalleFixture {
+  return {
+    id: "camp_1",
+    nombre: "Estudios contables Palermo",
+    consulta: "estudios contables en Palermo, CABA",
+    zona: "Palermo, CABA",
+    rubro: "Contabilidad",
+    estado: "COMPLETADA",
+    limiteCorrida: 10,
+    creadaPorNombre: "Ana Pérez",
+    ultimoError: null,
+    creadoEn: new Date("2026-11-10T12:00:00.000Z"),
+    iniciadaEn: new Date("2026-11-10T12:05:00.000Z"),
+    finalizadaEn: new Date("2026-11-10T12:06:00.000Z"),
+    plantilla: { nombre: "Primer contacto", version: 2 },
+    prospectos: [],
+    consumos: [],
+    ...overrides,
+  }
+}
+
+async function renderDetalle(id = "camp_1") {
+  return render(
+    await CampanaDetallePage({ params: Promise.resolve({ id }) }),
+  )
+}
+
+describe("/propuestas/campanas/[id] (T-13, AC-8, AC-11, AC-14)", () => {
+  it("renderiza estado, consulta, prospectos, duplicados y consumo", async () => {
+    mocks.campanaFindUnique.mockResolvedValue(
+      campanaDetalleFixture({
+        prospectos: [
+          {
+            id: "pros_1",
+            nombreNegocio: "Alfa",
+            sitioWeb: "https://alfa.com.ar",
+            ciudad: "Palermo, CABA",
+            estado: "NUEVO",
+            posibleDuplicadoDeId: null,
+            score: null,
+          },
+          {
+            id: "pros_2",
+            nombreNegocio: "Beta",
+            sitioWeb: "https://beta.com.ar",
+            ciudad: "Palermo, CABA",
+            estado: "NUEVO",
+            posibleDuplicadoDeId: "pros_previo",
+            score: 72,
+          },
+        ],
+        consumos: [
+          {
+            id: "consumo_1",
+            fecha: new Date("2026-11-10T00:00:00.000Z"),
+            llamadas: 2,
+            unidades: 2,
+            costoCentavos: 150,
+          },
+        ],
+      }),
+    )
+
+    await renderDetalle()
+
+    expect(
+      screen.getByRole("heading", { name: "Estudios contables Palermo" }),
+    ).toBeInTheDocument()
+    // El estado aparece en el badge y en el texto de acciones terminales.
+    expect(screen.getAllByText("COMPLETADA").length).toBeGreaterThan(0)
+    expect(
+      screen.getByText("estudios contables en Palermo, CABA"),
+    ).toBeInTheDocument()
+    expect(
+      screen.getAllByText("Palermo, CABA").length,
+    ).toBeGreaterThanOrEqual(3)
+    expect(screen.getByText("Contabilidad")).toBeInTheDocument()
+    expect(screen.getByText("Primer contacto (v2)")).toBeInTheDocument()
+    expect(screen.getByText("Ana Pérez")).toBeInTheDocument()
+
+    const contadores = screen.getByRole("region", {
+      name: /contadores de la campaña/i,
+    })
+    expect(within(contadores).getAllByText("2")).toHaveLength(2)
+    expect(within(contadores).getAllByText("1")).toHaveLength(2)
+
+    const tabla = screen.getByRole("table", {
+      name: /prospectos creados por la campaña/i,
+    })
+    expect(within(tabla).getByText("Alfa")).toBeInTheDocument()
+    expect(
+      within(tabla).getByRole("link", { name: "https://alfa.com.ar" }),
+    ).toHaveAttribute("href", "https://alfa.com.ar")
+    expect(
+      within(tabla).getByTitle(/referencia interna: pros_previo/i),
+    ).toBeInTheDocument()
+    expect(within(tabla).getByText("72")).toBeInTheDocument()
+    // T-15 aun no existe: "Ver ficha" es un boton deshabilitado, no un enlace
+    // a una ruta inexistente.
+    const verFicha = within(tabla).getAllByRole("button", {
+      name: /ver ficha/i,
+    })
+    expect(verFicha).toHaveLength(2)
+    expect(verFicha[0]).toBeDisabled()
+    expect(verFicha[0]).toHaveAttribute("title", "Disponible en T-15")
+    expect(
+      within(tabla).queryByRole("link", { name: /ver ficha/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(tabla).getAllByRole("button", { name: /analizar/i })[0],
+    ).toBeDisabled()
+    expect(
+      within(tabla).getAllByRole("button", { name: /descartar/i })[0],
+    ).toBeDisabled()
+
+    const consumo = screen.getByRole("region", {
+      name: /consumo de google places/i,
+    })
+    expect(
+      within(consumo).getByRole("table", {
+        name: /consumo diario de google places/i,
+      }),
+    ).toBeInTheDocument()
+    expect(within(consumo).getAllByText(/US\$\s?1,50/)).toHaveLength(2)
+  })
+
+  it("muestra los estados vacios de prospectos y consumo", async () => {
+    mocks.campanaFindUnique.mockResolvedValue(
+      campanaDetalleFixture({ estado: "BORRADOR" }),
+    )
+
+    await renderDetalle()
+
+    expect(
+      screen.getByText(/la corrida todavía no creó prospectos/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/todavía no hay consumo de places registrado/i),
+    ).toBeInTheDocument()
+  })
+
+  it.each([
+    ["BORRADOR", true, true],
+    ["EN_CURSO", false, true],
+    ["COMPLETADA", false, false],
+    ["PARCIAL", false, false],
+    ["FALLIDA", false, false],
+    ["CANCELADA", false, false],
+  ] as const)(
+    "en %s muestra ejecutar=%s y cancelar=%s",
+    async (estado, puedeEjecutar, puedeCancelar) => {
+      mocks.campanaFindUnique.mockResolvedValue(
+        campanaDetalleFixture({ estado }),
+      )
+
+      await renderDetalle()
+
+      const ejecutar = screen.queryByRole("button", {
+        name: /ejecutar búsqueda/i,
+      })
+      const cancelar = screen.queryByRole("button", {
+        name: /cancelar campaña/i,
+      })
+
+      if (puedeEjecutar) {
+        expect(ejecutar).toBeInTheDocument()
+      } else {
+        expect(ejecutar).not.toBeInTheDocument()
+      }
+
+      if (puedeCancelar) {
+        expect(cancelar).toBeInTheDocument()
+      } else {
+        expect(cancelar).not.toBeInTheDocument()
+        expect(
+          screen.getByText(/no hay acciones disponibles/i),
+        ).toBeInTheDocument()
+      }
+    },
+  )
+
+  it("muestra el ultimo error sanitizado sin PII", async () => {
+    mocks.campanaFindUnique.mockResolvedValue(
+      campanaDetalleFixture({
+        estado: "FALLIDA",
+        ultimoError:
+          "fallo juan@example.com en https://interno.test/db?token=secreto",
+      }),
+    )
+
+    await renderDetalle()
+
+    const nota = screen.getByRole("note", {
+      name: /último error de la campaña/i,
+    })
+    expect(nota).toHaveTextContent("[email]")
+    expect(nota).toHaveTextContent("[url]")
+    expect(nota).not.toHaveTextContent("juan@example.com")
+    expect(nota).not.toHaveTextContent("interno.test")
+  })
+
+  it("publica metadata noindex/nofollow (AC-5) y usa notFound si no existe", async () => {
+    expect(metadataCampana.robots).toEqual({ index: false, follow: false })
+
+    mocks.campanaFindUnique.mockResolvedValue(null)
+
+    await expect(
+      CampanaDetallePage({ params: Promise.resolve({ id: "no-existe" }) }),
+    ).rejects.toThrow("NEXT_NOT_FOUND")
+    expect(mocks.notFound).toHaveBeenCalledTimes(1)
+  })
+
+  it("con esquema faltante muestra EstadoOperativo y ninguna accion", async () => {
+    mocks.campanaFindUnique.mockRejectedValue({ code: "P2021" })
+
+    await renderDetalle()
+
+    const estado = screen.getByRole("alert")
+    expect(estado).toHaveAttribute("data-estado", CODIGO_ESQUEMA_NO_APLICADO)
+    expect(screen.getByText("Esquema no aplicado")).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /ejecutar búsqueda/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /cancelar campaña/i }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole("table")).not.toBeInTheDocument()
+  })
+
+  it("no oculta errores que no son de esquema", async () => {
+    mocks.campanaFindUnique.mockRejectedValue(new Error("base caida"))
+
+    await expect(
+      CampanaDetallePage({ params: Promise.resolve({ id: "camp_1" }) }),
+    ).rejects.toThrow("base caida")
+  })
+})
+
+describe("CampanaAcciones (T-13, AC-8, AC-11, AC-12; RF-12, RF-16)", () => {
+  it("ejecuta con confirmacion, anuncia el resultado y refresca", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        estado: "COMPLETADA",
+        creados: 2,
+        reutilizados: 0,
+        duplicados: 1,
+        omitidos: 0,
+      }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<CampanaAcciones campanaId="camp_1" estado="BORRADOR" />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Ejecutar búsqueda" }))
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(
+      screen.getByRole("group", {
+        name: /confirmar ejecución de la búsqueda/i,
+      }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar búsqueda" }))
+
+    const resultado = await screen.findByRole("status")
+    expect(resultado).toHaveTextContent(/búsqueda ejecutada/i)
+    expect(resultado).toHaveTextContent(/2 creados/i)
+    expect(resultado).toHaveTextContent(/completada/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/campanas/camp_1/ejecutar")
+    expect(init.method).toBe("POST")
+    expect(JSON.parse(String(init.body))).toEqual({ confirmado: true })
+
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1))
+    expect(
+      screen.queryByRole("button", { name: "Ejecutar búsqueda" }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "Cancelar campaña" }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("cancelar solo aparece en BORRADOR/EN_CURSO y confirma antes de llamar", async () => {
+    mocks.campanaFindUnique.mockResolvedValue(null)
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ estado: "CANCELADA" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<CampanaAcciones campanaId="camp_1" estado="EN_CURSO" />)
+
+    expect(
+      screen.queryByRole("button", { name: "Ejecutar búsqueda" }),
+    ).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar campaña" }))
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole("button", { name: "Sí, cancelar" }))
+
+    const resultado = await screen.findByRole("status")
+    expect(resultado).toHaveTextContent(/quedó cancelada/i)
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "/api/propuestas/campanas/camp_1/cancelar",
+    )
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+    expect(
+      screen.queryByRole("button", { name: "Cancelar campaña" }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("en estado terminal no ofrece acciones", () => {
+    render(<CampanaAcciones campanaId="camp_1" estado="COMPLETADA" />)
+
+    expect(
+      screen.queryByRole("button", { name: "Ejecutar búsqueda" }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "Cancelar campaña" }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText(/no hay acciones disponibles/i)).toBeInTheDocument()
+    expect(screen.getByText("COMPLETADA")).toBeInTheDocument()
+  })
+
+  it("volver cierra la confirmacion sin llamar a la API", () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<CampanaAcciones campanaId="camp_1" estado="BORRADOR" />)
+    fireEvent.click(screen.getByRole("button", { name: "Ejecutar búsqueda" }))
+    fireEvent.click(screen.getByRole("button", { name: "Volver" }))
+
+    expect(
+      screen.queryByRole("group", {
+        name: /confirmar ejecución de la búsqueda/i,
+      }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Ejecutar búsqueda" }),
+    ).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("bloquea el doble clic mientras la corrida esta en curso", async () => {
+    let resolver: (valor: unknown) => void = () => undefined
+    const pendiente = new Promise((resolve) => {
+      resolver = resolve
+    })
+    const fetchMock = vi.fn().mockReturnValue(pendiente)
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<CampanaAcciones campanaId="camp_1" estado="BORRADOR" />)
+    fireEvent.click(screen.getByRole("button", { name: "Ejecutar búsqueda" }))
+
+    const confirmar = screen.getByRole("button", {
+      name: "Confirmar búsqueda",
+    })
+    fireEvent.click(confirmar)
+    fireEvent.click(confirmar)
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    // Con la confirmacion abierta, el boton visible queda deshabilitado y la
+    // region marca aria-busy: el segundo click no dispara otra request.
+    expect(
+      screen.getByRole("button", { name: "Confirmar búsqueda" }),
+    ).toBeDisabled()
+    expect(
+      screen.getByRole("region", { name: /acciones de la campaña/i }),
+    ).toHaveAttribute("aria-busy", "true")
+
+    resolver({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        estado: "COMPLETADA",
+        creados: 0,
+        reutilizados: 0,
+        duplicados: 0,
+        omitidos: 0,
+      }),
+    })
+    await screen.findByRole("status")
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("muestra un error accesible y refresca si la campana ya cambio de estado", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ codigo: "ESTADO" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<CampanaAcciones campanaId="camp_1" estado="BORRADOR" />)
+    fireEvent.click(screen.getByRole("button", { name: "Ejecutar búsqueda" }))
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar búsqueda" }))
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/ya no está en un estado/i)
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+
+    // Sin exito no se inventa un estado final: sigue en BORRADOR.
+    expect(
+      screen.getByRole("button", { name: "Ejecutar búsqueda" }),
+    ).toBeInTheDocument()
+  })
+
+  it("mapea NO_CONFIGURADO sin filtrar detalles", async () => {
+    const fetchNoConfig = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ codigo: "NO_CONFIGURADO" }),
+    })
+    vi.stubGlobal("fetch", fetchNoConfig)
+
+    render(<CampanaAcciones campanaId="camp_1" estado="BORRADOR" />)
+    fireEvent.click(screen.getByRole("button", { name: "Ejecutar búsqueda" }))
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar búsqueda" }))
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /google places no está configurado/i,
+    )
+  })
+
+  it("muestra un error de red accesible sin filtrar detalles internos", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("fallo interno juan@example.com"))
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<CampanaAcciones campanaId="camp_1" estado="BORRADOR" />)
+    fireEvent.click(screen.getByRole("button", { name: "Ejecutar búsqueda" }))
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar búsqueda" }))
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/error de red/i)
+    expect(alerta).not.toHaveTextContent("juan@example.com")
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+})
+

@@ -246,13 +246,20 @@ export function CampanaForm({ plantillas }: CampanaFormProps) {
           </div>
         </dl>
 
-        {/* T-13 agregara el enlace directo a /propuestas/campanas/[id]. */}
-        <Link
-          href="/propuestas"
-          className="mt-6 inline-flex rounded-lg border border-border px-4 py-2 text-sm text-text-dim transition-colors hover:bg-white/5 hover:text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
-        >
-          Volver al panel
-        </Link>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            href={`/propuestas/campanas/${resultado.id}`}
+            className="inline-flex rounded-lg bg-violet px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
+          >
+            Ver campaña
+          </Link>
+          <Link
+            href="/propuestas"
+            className="inline-flex rounded-lg border border-border px-4 py-2 text-sm text-text-dim transition-colors hover:bg-white/5 hover:text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
+          >
+            Volver al panel
+          </Link>
+        </div>
       </section>
     )
   }

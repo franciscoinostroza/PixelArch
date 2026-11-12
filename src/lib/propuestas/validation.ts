@@ -102,3 +102,15 @@ export const campanaFormSchema = z.object({
 })
 
 export type CampanaFormValues = z.infer<typeof campanaFormSchema>
+
+/**
+ * T-13 (AC-8, AC-11, AC-12; RF-12): confirmacion explicita de una accion de
+ * campana (ejecutar o cancelar). El body debe traer exactamente
+ * `{ confirmado: true }`; cualquier otro valor se rechaza con 400 y no se
+ * procesa la mutacion.
+ */
+export const campanaAccionSchema = z.object({
+  confirmado: z.literal(true),
+})
+
+export type CampanaAccionInput = z.infer<typeof campanaAccionSchema>

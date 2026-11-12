@@ -148,7 +148,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Cierre: tester (`campanas.test.ts`) · reviewer (auth, idempotencia, UX) · 1 commit.
   - PASS tester+reviewer: 50 tests verdes (28 API + 22 páginas), suite completa 2261/2261, tsc 0 errores; reviewer PASS. Deuda menor: unificar el helper de IP (`x-forwarded-for`/`x-real-ip`) y documentar que el rate limit es en memoria; `esErrorTablaFaltante` no cubre P2022 (deuda compartida con T-02); mover el foco al primer error del formulario; tope de body explícito opcional.
 
-- [ ] **T-13 (AC-8, AC-11, AC-12, AC-14; RF-10..RF-12, RF-16, RF-17) — Ejecutar búsqueda Places y detalle de campaña.**
+- [x] **T-13 (AC-8, AC-11, AC-12, AC-14; RF-10..RF-12, RF-16, RF-17) — Ejecutar búsqueda Places y detalle de campaña.**
   - `POST /api/propuestas/campanas/[id]/ejecutar`: transición atómica `BORRADOR -> EN_CURSO`; reserva cupo Places; llama al cliente; descarta sitios sociales/agregadores; crea prospectos con `placeId`, `sitioWeb`, nombre desde host y `ciudad`/`rubro` heredados de la campaña; comprueba supresión por dominio; dedupe/posible duplicado; `COMPLETADA|PARCIAL|FALLIDA`; `ultimoError` sanitizado; sin segunda corrida.
   - Respuesta con candidatos transitorios (nombre Places + website) y atribución; no se persiste el nombre de Places.
   - Página `/propuestas/campanas/[id]` con estado, resultados, duplicados, consumo y acciones (analizar, descartar, cancelar); botón de ejecutar solo en BORRADOR.
@@ -157,6 +157,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-11, T-12.
   - Tests: doble clic → 409 y una sola request; cap corta y no hay llamadas extra; 429/5xx/timeout → PARCIAL/FALLIDA y conserva lo creado; sin key → 503; no scraping; dedupe por `placeId`; sitio social/agregador se omite; dominio suprimido se omite; cancelar BORRADOR/EN_CURSO → CANCELADA y 409 en terminal.
   - Cierre: tester (`campanas.test.ts`, `propuestas-places.test.ts`) · reviewer (idempotencia, términos Places, errores) · 1 commit.
+  - PASS tester+reviewer: 127 tests verdes (85 API + 42 páginas), tsc 0 errores; reviewer PASS. Deuda menor: candidatos transitorios sin atribución visible (no mostrar en UI hasta agregar «Datos de Google»); `esErrorTablaFaltante` no cubre P2022; tests de `$transaction`/locks mockeados (validar en staging T-26); `confirmado` no es `.strict()`; dedupe de plataformas multiinquilino (`wixsite.com`) a revisar en T-05/T-14; una cancelación después de reservar consume 1 unidad de Places; copy/títulos internos «Disponible en T-14/T-15» a limpiar.
 
 - [ ] **T-14 (AC-13, AC-14, AC-19; RF-18, RF-22) — Alta manual y corrección de prospectos.**
   - `POST /api/propuestas/prospectos`: exige `nombreNegocio`, `nota` y `fuenteUrl` o `emailFuenteUrl`; no hay endpoint de importación masiva; rechaza sitios sociales/agregadores; si el email no pertenece al dominio del negocio, exige `emailFuenteUrl` y nota justificada; comprueba dedupe y supresión; `fuenteTipo=CARGA_MANUAL`.

@@ -138,7 +138,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
 
 ## Fase 3: Portal y APIs
 
-- [ ] **T-12 (AC-7, AC-14; RF-9, RF-12) — Alta de campaña y página `/propuestas/buscar`.**
+- [x] **T-12 (AC-7, AC-14; RF-9, RF-12) — Alta de campaña y página `/propuestas/buscar`.**
   - `POST /api/propuestas/campanas`: Zod, guard admin, origen, rate limit, `idempotencyKey` único; crea `BORRADOR` con creador, límites y plantilla opcional; si la clave se repite, reutiliza la campaña existente (200 `reutilizada: true`), no crea otra.
   - Página `/propuestas/buscar` con formulario (`nombre`, `consulta`, `zona`, `rubro`, `limiteCorrida` 1-20, plantilla) y aviso de que crear no busca ni envía; el servidor guarda `filtros.soloConWeb=true` (v1 no crea prospectos de Places sin web).
   - Componentes `campana-form.tsx`; estados vacíos/errores accesibles.
@@ -146,6 +146,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-03, T-04, T-05, T-11.
   - Tests: 201 BORRADOR; doble submit con misma clave → una sola campaña (200 reutilizada); sin sesión 401; asistente 403; origen inválido 403; validación de límites; rate limit por admin/IP; no llama a Places ni Resend.
   - Cierre: tester (`campanas.test.ts`) · reviewer (auth, idempotencia, UX) · 1 commit.
+  - PASS tester+reviewer: 50 tests verdes (28 API + 22 páginas), suite completa 2261/2261, tsc 0 errores; reviewer PASS. Deuda menor: unificar el helper de IP (`x-forwarded-for`/`x-real-ip`) y documentar que el rate limit es en memoria; `esErrorTablaFaltante` no cubre P2022 (deuda compartida con T-02); mover el foco al primer error del formulario; tope de body explícito opcional.
 
 - [ ] **T-13 (AC-8, AC-11, AC-12, AC-14; RF-10..RF-12, RF-16, RF-17) — Ejecutar búsqueda Places y detalle de campaña.**
   - `POST /api/propuestas/campanas/[id]/ejecutar`: transición atómica `BORRADOR -> EN_CURSO`; reserva cupo Places; llama al cliente; descarta sitios sociales/agregadores; crea prospectos con `placeId`, `sitioWeb`, nombre desde host y `ciudad`/`rubro` heredados de la campaña; comprueba supresión por dominio; dedupe/posible duplicado; `COMPLETADA|PARCIAL|FALLIDA`; `ultimoError` sanitizado; sin segunda corrida.

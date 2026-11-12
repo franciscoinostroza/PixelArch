@@ -1,20 +1,34 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
-import { fireEvent, render, screen } from "@testing-library/react"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react"
 import type { AnchorHTMLAttributes, ReactNode } from "react"
 
 /**
  * T-02 (AC-3, AC-5, AC-6; RF-1, RF-4, RF-5): dashboard vacio y shell del
  * portal. El esquema faltante se muestra como estado operativo, sin datos ni
  * formularios; el shell no expone navegacion del CRM.
+ *
+ * T-12 (AC-7; RF-9, RF-12): pagina `/propuestas/buscar` y formulario de alta
+ * de campana (aviso de "no busca ni envia", plantillas activas, idempotencia
+ * por montaje, doble submit bloqueado y errores accesibles).
  */
 
 const mocks = vi.hoisted(() => ({
   queryRaw: vi.fn(),
+  plantillaFindMany: vi.fn(),
   pathname: "/propuestas",
 }))
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { $queryRaw: mocks.queryRaw },
+  prisma: {
+    $queryRaw: mocks.queryRaw,
+    plantillaPropuesta: { findMany: mocks.plantillaFindMany },
+  },
 }))
 
 vi.mock("next/navigation", () => ({
@@ -36,6 +50,9 @@ vi.mock("next/link", () => ({
 import PropuestasDashboardPage, {
   metadata,
 } from "@/app/(propuestas)/propuestas/page"
+import BuscarProspectosPage, {
+  metadata as metadataBuscar,
+} from "@/app/(propuestas)/propuestas/buscar/page"
 import {
   CODIGO_ESQUEMA_NO_APLICADO,
   esErrorTablaFaltante,
@@ -45,10 +62,19 @@ import {
   formatearFechaPortal,
 } from "@/lib/propuestas/fechas"
 import { PortalShell } from "@/components/propuestas/portal-shell"
+import { CampanaForm } from "@/components/propuestas/campana-form"
+
+const UUID_V4 =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.pathname = "/propuestas"
+  mocks.plantillaFindMany.mockResolvedValue([])
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
 })
 
 describe("dashboard vacio del portal (AC-3, AC-5)", () => {
@@ -223,5 +249,228 @@ describe("fechas de UI del portal (AC-5)", () => {
     expect(
       formatearFechaHoraPortal(new Date("2026-11-10T15:30:00.000Z")),
     ).toContain("12:30")
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* T-12 (AC-7; RF-9, RF-12): alta de campana en /propuestas/buscar     */
+/* ------------------------------------------------------------------ */
+
+function formulario(): HTMLFormElement {
+  const boton = screen.getByRole("button", { name: /crear campaña/i })
+  return boton.closest("form") as HTMLFormElement
+}
+
+function completarCampos(): void {
+  fireEvent.change(screen.getByLabelText(/nombre de la campaña/i), {
+    target: { value: "Estudio contable Palermo" },
+  })
+  fireEvent.change(screen.getByLabelText(/consulta de búsqueda/i), {
+    target: { value: "estudios contables en Palermo, CABA" },
+  })
+}
+
+async function cuerpoEnviado(
+  fetchMock: ReturnType<typeof vi.fn>,
+  indice = 0,
+): Promise<Record<string, unknown>> {
+  const [, init] = fetchMock.mock.calls[indice] as [string, RequestInit]
+  return JSON.parse(String(init.body)) as Record<string, unknown>
+}
+
+describe("/propuestas/buscar (T-12, AC-7; RF-9)", () => {
+  it("muestra el aviso de que no busca ni envia, el formulario y las plantillas activas", async () => {
+    mocks.plantillaFindMany.mockResolvedValue([
+      { id: "plantilla_1", nombre: "Primer contacto", version: 2 },
+    ])
+
+    render(await BuscarProspectosPage())
+
+    expect(
+      screen.getByText(/crear una campaña no busca ni envía nada/i),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("note")).toBeInTheDocument()
+
+    expect(screen.getByLabelText(/nombre de la campaña/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/consulta de búsqueda/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/zona/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/rubro/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/límite por corrida/i)).toBeInTheDocument()
+
+    const selector = screen.getByRole("combobox")
+    expect(
+      within(selector).getByRole("option", {
+        name: "Primer contacto (v2)",
+      }),
+    ).toBeInTheDocument()
+
+    expect(mocks.plantillaFindMany).toHaveBeenCalledWith({
+      where: { activa: true },
+      select: { id: true, nombre: true, version: true },
+      orderBy: [{ nombre: "asc" }, { version: "desc" }],
+    })
+  })
+
+  it("publica metadata noindex/nofollow", () => {
+    expect(metadataBuscar.robots).toEqual({ index: false, follow: false })
+  })
+
+  it("con esquema faltante muestra EstadoOperativo y no renderiza el formulario", async () => {
+    mocks.plantillaFindMany.mockRejectedValue({ code: "P2021" })
+
+    render(await BuscarProspectosPage())
+
+    const estado = screen.getByRole("alert")
+    expect(estado).toHaveAttribute("data-estado", CODIGO_ESQUEMA_NO_APLICADO)
+    expect(screen.getByText("Esquema no aplicado")).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /crear campaña/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByLabelText(/nombre de la campaña/i),
+    ).not.toBeInTheDocument()
+  })
+
+  it("no oculta errores que no son de esquema", async () => {
+    mocks.plantillaFindMany.mockRejectedValue(new Error("base caida"))
+
+    await expect(BuscarProspectosPage()).rejects.toThrow("base caida")
+  })
+})
+
+describe("CampanaForm (T-12, AC-7; RF-9, RF-12)", () => {
+  it("hace POST al endpoint con una idempotencyKey UUID y muestra exito accesible", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ id: "camp_1", estado: "BORRADOR" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<CampanaForm plantillas={[]} />)
+    completarCampos()
+    fireEvent.submit(formulario())
+
+    const resultado = await screen.findByRole("status", {
+      name: /resultado de la creación de campaña/i,
+    })
+    expect(
+      within(resultado).getByText("La campaña quedó en borrador"),
+    ).toBeInTheDocument()
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/campanas")
+    expect(init.method).toBe("POST")
+
+    const body = await cuerpoEnviado(fetchMock)
+    expect(body.nombre).toBe("Estudio contable Palermo")
+    expect(body.consulta).toBe("estudios contables en Palermo, CABA")
+    expect(body.limiteCorrida).toBe(20)
+    expect(body.zona).toBeUndefined()
+    expect(body.rubro).toBeUndefined()
+    expect(body.plantillaId).toBeUndefined()
+    expect(body.idempotencyKey).toMatch(UUID_V4)
+    expect(body).not.toHaveProperty("filtros")
+  })
+
+  it("reutiliza la idempotencyKey del montaje tras un error y muestra role=alert", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        json: async () => ({ codigo: "RATE_LIMIT" }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: async () => ({ id: "camp_1", estado: "BORRADOR" }),
+      })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<CampanaForm plantillas={[]} />)
+    completarCampos()
+
+    fireEvent.submit(formulario())
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/demasiadas solicitudes/i)
+
+    fireEvent.submit(formulario())
+    await screen.findByRole("status", {
+      name: /resultado de la creación de campaña/i,
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const primera = await cuerpoEnviado(fetchMock, 0)
+    const segunda = await cuerpoEnviado(fetchMock, 1)
+    expect(primera.idempotencyKey).toMatch(UUID_V4)
+    expect(segunda.idempotencyKey).toBe(primera.idempotencyKey)
+  })
+
+  it("bloquea el doble submit mientras la request esta en curso", async () => {
+    let resolver: (valor: unknown) => void = () => undefined
+    const pendiente = new Promise((resolve) => {
+      resolver = resolve
+    })
+    const fetchMock = vi.fn().mockReturnValue(pendiente)
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<CampanaForm plantillas={[]} />)
+    completarCampos()
+
+    const form = formulario()
+    fireEvent.submit(form)
+    fireEvent.submit(form)
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    expect(
+      screen.getByRole("button", { name: /creando campaña/i }),
+    ).toBeDisabled()
+
+    resolver({
+      ok: true,
+      status: 201,
+      json: async () => ({ id: "camp_1", estado: "BORRADOR" }),
+    })
+    await screen.findByRole("status", {
+      name: /resultado de la creación de campaña/i,
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("asocia los errores de validacion con aria-describedby y no envia", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<CampanaForm plantillas={[]} />)
+
+    fireEvent.submit(formulario())
+
+    expect(
+      await screen.findByText("El nombre es obligatorio."),
+    ).toBeInTheDocument()
+    const nombre = screen.getByLabelText(/nombre de la campaña/i)
+    expect(nombre).toHaveAttribute("aria-invalid", "true")
+    expect(nombre).toHaveAttribute("aria-describedby", "campana-nombre-error")
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("muestra las plantillas activas recibidas como opciones", () => {
+    render(
+      <CampanaForm
+        plantillas={[
+          { id: "plantilla_1", nombre: "Primer contacto", version: 2 },
+          { id: "plantilla_2", nombre: "Follow-up", version: 1 },
+        ]}
+      />,
+    )
+
+    expect(
+      screen.getByRole("option", { name: "Primer contacto (v2)" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("option", { name: "Follow-up (v1)" }),
+    ).toBeInTheDocument()
   })
 })

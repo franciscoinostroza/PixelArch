@@ -33,7 +33,7 @@ permission:
     "git push -f *": deny
     "git push*--force*": deny
     "git push*-f*": deny
-    "git push origin main*": deny
+    "git push origin main": allow
     "git push origin master*": deny
   task:
     "*": deny

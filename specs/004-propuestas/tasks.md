@@ -82,13 +82,14 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Cierre: tester (`propuestas-supresion.test.ts`) · reviewer (criptografía, PII, cumplimiento) · 1 commit.
   - PASS tester+reviewer: HMAC/claves, supresión email/dominio, token de baja, públicos/multiinquilino, sin PII/red/Prisma; 86 tests, tsc 0.
 
-- [ ] **T-07 (AC-21, AC-24, AC-27, AC-31; RF-33, RF-38, RF-42..45) — Score, transiciones y permisos.**
+- [x] **T-07 (AC-21, AC-24, AC-27, AC-31; RF-33, RF-38, RF-42..45) — Score, transiciones y permisos.**
   - `calcularScore` v1 con los 5 componentes del plan §4.4, clamp 0-100, desglose y motivos; sin fechas/azar.
   - `puedeAprobar` y `puedeEnviar` con los guardas del plan §4.2; `siguienteSecuencia` y máximo de mensajes.
   - Archivos: `src/lib/propuestas/score.ts`, `transiciones.ts`; tests `src/__tests__/lib/propuestas-score.test.ts`, `src/__tests__/lib/propuestas-transiciones.test.ts`.
   - Depende: T-05, T-06.
   - Tests: mismos inputs → mismo score; rango; datos faltantes no inventan; sin auditoría → 0 con motivo; aprobar sin email/suprimido → motivos; enviar sin hash/estado/cupo → motivos; editar aprobado invalida; follow-up respeta máximo 2.
   - Cierre: tester (`propuestas-score.test.ts`, `propuestas-transiciones.test.ts`) · reviewer (reglas de negocio, explicabilidad) · 1 commit.
+  - PASS tester+reviewer: score v1 determinista, puedeAprobar/puedeEnviar, edición versionada, secuencias; 74 tests, tsc 0.
 
 - [ ] **T-08 (AC-22, AC-32, AC-34; RF-34, RF-37, RF-47, RF-52, RF-53) — Plantillas, render determinista y email legal.**
   - `plantillas.ts`: lista blanca de variables, validación, render con escape HTML, asunto sin CR/LF, máximo 120, error ante variable desconocida.

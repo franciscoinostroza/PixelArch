@@ -26,8 +26,12 @@ import type { AnchorHTMLAttributes, ReactNode } from "react"
 const mocks = vi.hoisted(() => ({
   queryRaw: vi.fn(),
   plantillaFindMany: vi.fn(),
+  plantillaFindUnique: vi.fn(),
   campanaFindUnique: vi.fn(),
   prospectoFindUnique: vi.fn(),
+  prospectoFindFirst: vi.fn(),
+  envioFindFirst: vi.fn(),
+  envioFindMany: vi.fn(),
   pathname: "/propuestas",
   refresh: vi.fn(),
   notFound: vi.fn(() => {
@@ -38,9 +42,19 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     $queryRaw: mocks.queryRaw,
-    plantillaPropuesta: { findMany: mocks.plantillaFindMany },
+    plantillaPropuesta: {
+      findMany: mocks.plantillaFindMany,
+      findUnique: mocks.plantillaFindUnique,
+    },
     campanaProspeccion: { findUnique: mocks.campanaFindUnique },
-    prospecto: { findUnique: mocks.prospectoFindUnique },
+    prospecto: {
+      findUnique: mocks.prospectoFindUnique,
+      findFirst: mocks.prospectoFindFirst,
+    },
+    envioPropuesta: {
+      findFirst: mocks.envioFindFirst,
+      findMany: mocks.envioFindMany,
+    },
   },
 }))
 
@@ -74,8 +88,22 @@ import CampanaDetallePage, {
 import ProspectoDetallePage, {
   metadata as metadataProspecto,
 } from "@/app/(propuestas)/propuestas/prospectos/[id]/page"
+import PlantillasPage, {
+  metadata as metadataPlantillas,
+} from "@/app/(propuestas)/propuestas/plantillas/page"
+import PlantillaDetallePage, {
+  metadata as metadataPlantilla,
+} from "@/app/(propuestas)/propuestas/plantillas/[id]/page"
+import BandejaPage, {
+  metadata as metadataBandeja,
+} from "@/app/(propuestas)/propuestas/bandeja/page"
 import { ScoreDesglose } from "@/components/propuestas/score-desglose"
 import { AnalizarProspecto } from "@/components/propuestas/analizar-prospecto-button"
+import { PlantillaForm } from "@/components/propuestas/plantilla-form"
+import {
+  BorradorEditor,
+  GenerarBorrador,
+} from "@/components/propuestas/borrador-editor"
 import {
   CODIGO_ESQUEMA_NO_APLICADO,
   esErrorTablaFaltante,
@@ -105,8 +133,12 @@ beforeEach(() => {
   vi.clearAllMocks()
   mocks.pathname = "/propuestas"
   mocks.plantillaFindMany.mockResolvedValue([])
+  mocks.plantillaFindUnique.mockResolvedValue(null)
   mocks.campanaFindUnique.mockResolvedValue(null)
   mocks.prospectoFindUnique.mockResolvedValue(null)
+  mocks.prospectoFindFirst.mockResolvedValue(null)
+  mocks.envioFindFirst.mockResolvedValue(null)
+  mocks.envioFindMany.mockResolvedValue([])
 })
 
 afterEach(() => {
@@ -2033,6 +2065,1013 @@ describe("ProspectoAcciones (T-14, AC-13)", () => {
 
     expect(screen.getByRole("button", { name: "Editar" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "Descartar" })).toBeDisabled()
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* T-16 (AC-22, AC-23, AC-24; RF-34..RF-39)                            */
+/* Plantillas, bandeja y panel de borrador en la ficha                 */
+/* ------------------------------------------------------------------ */
+
+function plantillaResumenFixture(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    id: "pl_1",
+    nombre: "Primer contacto",
+    idioma: "es",
+    asunto: "Una idea para {{nombreNegocio}}",
+    variablesPermitidas: ["nombreNegocio", "hallazgoPrincipal"],
+    version: 2,
+    actualizadoEn: new Date("2026-11-12T15:30:00.000Z"),
+    ...overrides,
+  }
+}
+
+function plantillaDetalleFixture(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    id: "pl_1",
+    nombre: "Primer contacto",
+    idioma: "es",
+    asunto: "Una idea para {{nombreNegocio}}",
+    cuerpo:
+      "Vi {{sitioWeb}} en {{ciudad}}: {{hallazgoPrincipal}}.",
+    variablesPermitidas: [
+      "nombreNegocio",
+      "sitioWeb",
+      "ciudad",
+      "hallazgoPrincipal",
+    ],
+    version: 2,
+    activa: true,
+    creadaPorNombre: "Ana Pérez",
+    actualizadoEn: new Date("2026-11-12T15:30:00.000Z"),
+    ...overrides,
+  }
+}
+
+function prospectoPreviaFixture(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    id: "pros_1",
+    nombreNegocio: "Consultora Alfa",
+    ciudad: "Palermo, CABA",
+    rubro: "Consultoría",
+    sitioWeb: "https://alfa.com.ar/",
+    contactoNombre: "Ana",
+    score: 88,
+    auditoriaResumen: {
+      findings: [
+        { type: "warn", text: "La velocidad puede mejorar." },
+      ],
+    },
+    campanaOrigen: { rubro: "Consultoría", zona: "Palermo, CABA" },
+    ...overrides,
+  }
+}
+
+function envioBandejaFixture(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    id: "env_1",
+    estado: "BORRADOR",
+    secuencia: 1,
+    version: 1,
+    asunto: "Asunto del borrador",
+    actualizadoEn: new Date("2026-11-12T15:00:00.000Z"),
+    prospecto: {
+      id: "pros_1",
+      nombreNegocio: "Consultora Alfa",
+      ciudad: "Palermo, CABA",
+      rubro: "Consultoría",
+      score: 88,
+      estado: "BORRADOR",
+    },
+    campana: { id: "camp_1", nombre: "Estudios contables" },
+    ...overrides,
+  }
+}
+
+describe("/propuestas/plantillas (T-16, AC-22)", () => {
+  it("lista las plantillas activas, sus variables y el alta", async () => {
+    mocks.plantillaFindMany.mockResolvedValue([plantillaResumenFixture()])
+
+    render(await PlantillasPage())
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Plantillas" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: "Primer contacto" }),
+    ).toHaveAttribute("href", "/propuestas/plantillas/pl_1")
+    expect(screen.getByText(/v2 · es/)).toBeInTheDocument()
+    expect(
+      screen.getAllByText("{{nombreNegocio}}").length,
+    ).toBeGreaterThan(0)
+    expect(
+      screen.getAllByText("{{hallazgoPrincipal}}").length,
+    ).toBeGreaterThan(0)
+
+    expect(screen.getByLabelText(/nombre de la plantilla/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^asunto$/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/cuerpo \(texto plano\)/i)).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Crear plantilla" }),
+    ).toBeInTheDocument()
+
+    expect(mocks.plantillaFindMany).toHaveBeenCalledWith({
+      where: { activa: true },
+      select: {
+        id: true,
+        nombre: true,
+        idioma: true,
+        asunto: true,
+        variablesPermitidas: true,
+        version: true,
+        actualizadoEn: true,
+      },
+      orderBy: [{ nombre: "asc" }, { version: "desc" }],
+      take: 100,
+    })
+  })
+
+  it("muestra un estado vacio que invita a crear la primera plantilla", async () => {
+    mocks.plantillaFindMany.mockResolvedValue([])
+
+    render(await PlantillasPage())
+
+    expect(
+      screen.getByText(/todavía no hay plantillas activas/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Crear plantilla" }),
+    ).toBeInTheDocument()
+  })
+
+  it("con el esquema faltante falla cerrado sin formulario", async () => {
+    mocks.plantillaFindMany.mockRejectedValue({ code: "P2021" })
+
+    render(await PlantillasPage())
+
+    expect(screen.getByRole("alert")).toHaveAttribute(
+      "data-estado",
+      CODIGO_ESQUEMA_NO_APLICADO,
+    )
+    expect(
+      screen.queryByRole("button", { name: "Crear plantilla" }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByLabelText(/nombre de la plantilla/i),
+    ).not.toBeInTheDocument()
+  })
+
+  it("no oculta errores que no son de esquema", async () => {
+    mocks.plantillaFindMany.mockRejectedValue(new Error("base caida"))
+
+    await expect(PlantillasPage()).rejects.toThrow("base caida")
+  })
+
+  it("publica metadata noindex/nofollow", () => {
+    expect(metadataPlantillas.robots).toEqual({ index: false, follow: false })
+  })
+})
+
+describe("PlantillaForm (T-16, AC-22; RF-37)", () => {
+  it("crea la version 1 por POST con variables y muestra exito accesible", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ id: "pl_1", version: 1 }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<PlantillaForm />)
+
+    fireEvent.change(screen.getByLabelText(/nombre de la plantilla/i), {
+      target: { value: "Primer contacto" },
+    })
+    fireEvent.change(screen.getByLabelText(/^asunto$/i), {
+      target: { value: "Una idea para {{nombreNegocio}}" },
+    })
+    fireEvent.change(screen.getByLabelText(/cuerpo \(texto plano\)/i), {
+      target: {
+        value: "Hola {{contactoNombre}},\n\nVi {{hallazgoPrincipal}}.",
+      },
+    })
+
+    fireEvent.submit(
+      formularioDe(
+        screen.getByRole("button", { name: "Crear plantilla" }),
+      ),
+    )
+
+    const resultado = await screen.findByRole("status", {
+      name: /resultado del guardado de la plantilla/i,
+    })
+    expect(resultado).toHaveTextContent("La plantilla quedó activa")
+    expect(resultado).toHaveTextContent(/no se envió ningún email/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/plantillas")
+    expect(init.method).toBe("POST")
+
+    const body = await cuerpoEnviado(fetchMock)
+    expect(body).toMatchObject({
+      nombre: "Primer contacto",
+      idioma: "es",
+      asunto: "Una idea para {{nombreNegocio}}",
+      cuerpo: "Hola {{contactoNombre}},\n\nVi {{hallazgoPrincipal}}.",
+    })
+    expect(body.variablesPermitidas).toEqual(
+      expect.arrayContaining([
+        "nombreNegocio",
+        "ciudad",
+        "rubro",
+        "sitioWeb",
+        "contactoNombre",
+        "saludo",
+        "hallazgoPrincipal",
+        "score",
+        "remitenteNombre",
+        "anio",
+      ]),
+    )
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("valida en el cliente con errores accesibles y no envia", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<PlantillaForm />)
+    fireEvent.submit(
+      formularioDe(
+        screen.getByRole("button", { name: "Crear plantilla" }),
+      ),
+    )
+
+    expect(
+      await screen.findByText("El nombre de la plantilla es obligatorio."),
+    ).toBeInTheDocument()
+    const nombre = screen.getByLabelText(/nombre de la plantilla/i)
+    expect(nombre).toHaveAttribute("aria-invalid", "true")
+    expect(nombre).toHaveAttribute(
+      "aria-describedby",
+      "plantilla-nombre-error",
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("muestra el error saneado por codigo del servidor", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: async () => ({ codigo: "VALIDACION" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<PlantillaForm />)
+    fireEvent.change(screen.getByLabelText(/nombre de la plantilla/i), {
+      target: { value: "Primer contacto" },
+    })
+    fireEvent.change(screen.getByLabelText(/^asunto$/i), {
+      target: { value: "Propuesta" },
+    })
+    fireEvent.change(screen.getByLabelText(/cuerpo \(texto plano\)/i), {
+      target: { value: "Hola." },
+    })
+    fireEvent.submit(
+      formularioDe(
+        screen.getByRole("button", { name: "Crear plantilla" }),
+      ),
+    )
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/la plantilla no es válida/i)
+    expect(alerta).not.toHaveTextContent("Hola.")
+  })
+
+  it("en edicion avisa de la version nueva, bloquea el nombre y hace PATCH", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: "pl_2", version: 3 }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <PlantillaForm
+        plantilla={{
+          id: "pl_1",
+          nombre: "Primer contacto",
+          idioma: "es",
+          asunto: "Una idea para {{nombreNegocio}}",
+          cuerpo: "Hola {{nombreNegocio}}.",
+          variablesPermitidas: ["nombreNegocio"],
+          version: 2,
+        }}
+      />,
+    )
+
+    expect(screen.getByText("Primer contacto")).toBeInTheDocument()
+    expect(
+      screen.queryByRole("textbox", { name: /nombre de la plantilla/i }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole("note")).toHaveTextContent(
+      /crea la versión 3 y desactiva la versión 2/i,
+    )
+
+    fireEvent.submit(
+      formularioDe(
+        screen.getByRole("button", { name: "Crear versión nueva" }),
+      ),
+    )
+
+    const resultado = await screen.findByRole("status", {
+      name: /resultado del guardado de la plantilla/i,
+    })
+    expect(resultado).toHaveTextContent("Se creó la versión 3")
+    expect(resultado).toHaveTextContent(/versión anterior quedó desactivada/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/plantillas/pl_1")
+    expect(init.method).toBe("PATCH")
+    const body = await cuerpoEnviado(fetchMock)
+    expect(body).not.toHaveProperty("nombre")
+    expect(body).toMatchObject({
+      idioma: "es",
+      asunto: "Una idea para {{nombreNegocio}}",
+      cuerpo: "Hola {{nombreNegocio}}.",
+      variablesPermitidas: ["nombreNegocio"],
+    })
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+})
+
+describe("/propuestas/plantillas/[id] (T-16, AC-22)", () => {
+  async function renderPlantilla(id = "pl_1") {
+    return render(
+      await PlantillaDetallePage({ params: Promise.resolve({ id }) }),
+    )
+  }
+
+  it("muestra el editor y una vista previa con un prospecto real", async () => {
+    mocks.plantillaFindUnique.mockResolvedValue(plantillaDetalleFixture())
+    mocks.prospectoFindFirst.mockResolvedValue(prospectoPreviaFixture())
+
+    await renderPlantilla()
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Primer contacto" }),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/v2 · activa/)).toBeInTheDocument()
+    expect(
+      screen.getByRole("region", { name: /editor de la plantilla/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Crear versión nueva" }),
+    ).toBeInTheDocument()
+
+    const previa = screen.getByRole("region", {
+      name: /vista previa con un prospecto real/i,
+    })
+    expect(
+      within(previa).getByText("Una idea para Consultora Alfa"),
+    ).toBeInTheDocument()
+    expect(
+      within(previa).getAllByText(
+        /Vi https:\/\/alfa\.com\.ar\/ en Palermo, CABA: La velocidad puede mejorar\./,
+      ).length,
+    ).toBeGreaterThan(0)
+    expect(
+      within(previa).getByRole("link", { name: "Consultora Alfa" }),
+    ).toHaveAttribute("href", "/propuestas/prospectos/pros_1")
+    expect(within(previa).getByText("88/100")).toBeInTheDocument()
+    expect(within(previa).getByText(/no incluye el footer legal/i)).toBeInTheDocument()
+
+    expect(mocks.plantillaFindUnique).toHaveBeenCalledWith({
+      where: { id: "pl_1" },
+      select: {
+        id: true,
+        nombre: true,
+        idioma: true,
+        asunto: true,
+        cuerpo: true,
+        variablesPermitidas: true,
+        version: true,
+        activa: true,
+        creadaPorNombre: true,
+        actualizadoEn: true,
+      },
+    })
+    expect(mocks.prospectoFindFirst).toHaveBeenCalledWith({
+      where: {
+        email: { not: null },
+        estado: { notIn: ["SUPRIMIDO", "DESCARTADO"] },
+      },
+      orderBy: [{ score: "desc" }, { creadoEn: "desc" }],
+      select: {
+        id: true,
+        nombreNegocio: true,
+        ciudad: true,
+        rubro: true,
+        sitioWeb: true,
+        contactoNombre: true,
+        score: true,
+        auditoriaResumen: true,
+        campanaOrigen: { select: { rubro: true, zona: true } },
+      },
+    })
+
+    // Sin PII en URLs: solo ids internos.
+    for (const enlace of Array.from(document.querySelectorAll("a"))) {
+      expect(enlace.getAttribute("href") ?? "").not.toContain("@")
+    }
+  })
+
+  it("sin prospectos con email muestra un estado vacio y no inventa datos", async () => {
+    mocks.plantillaFindUnique.mockResolvedValue(plantillaDetalleFixture())
+    mocks.prospectoFindFirst.mockResolvedValue(null)
+
+    await renderPlantilla()
+
+    expect(
+      screen.getByText(/no hay ningún prospecto con email para previsualizar/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(/prospecto usado/i),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText(/\d+\/100/)).not.toBeInTheDocument()
+  })
+
+  it("escapa HTML en la vista previa", async () => {
+    mocks.plantillaFindUnique.mockResolvedValue(
+      plantillaDetalleFixture({
+        asunto: "Propuesta",
+        cuerpo: "<script>alert(1)</script>",
+        variablesPermitidas: [],
+      }),
+    )
+    mocks.prospectoFindFirst.mockResolvedValue(prospectoPreviaFixture())
+
+    await renderPlantilla()
+
+    const previa = screen.getByRole("region", {
+      name: /vista previa con un prospecto real/i,
+    })
+    expect(previa.innerHTML).toContain("&lt;script&gt;")
+    expect(previa.innerHTML).not.toContain("<script>alert(1)</script>")
+  })
+
+  it("muestra un error accesible si la plantilla guardada no renderiza", async () => {
+    mocks.plantillaFindUnique.mockResolvedValue(
+      plantillaDetalleFixture({
+        cuerpo: "Hola {{email}}",
+        variablesPermitidas: [],
+      }),
+    )
+    mocks.prospectoFindFirst.mockResolvedValue(prospectoPreviaFixture())
+
+    await renderPlantilla()
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /la versión guardada no se puede renderizar/i,
+    )
+  })
+
+  it("publica metadata noindex y usa notFound si no existe", async () => {
+    expect(metadataPlantilla.robots).toEqual({ index: false, follow: false })
+
+    mocks.plantillaFindUnique.mockResolvedValue(null)
+
+    await expect(
+      PlantillaDetallePage({ params: Promise.resolve({ id: "no-existe" }) }),
+    ).rejects.toThrow("NEXT_NOT_FOUND")
+    expect(mocks.notFound).toHaveBeenCalledTimes(1)
+  })
+
+  it("con el esquema faltante falla cerrado sin editor", async () => {
+    mocks.plantillaFindUnique.mockRejectedValue({ code: "P2021" })
+
+    await renderPlantilla()
+
+    expect(screen.getByRole("alert")).toHaveAttribute(
+      "data-estado",
+      CODIGO_ESQUEMA_NO_APLICADO,
+    )
+    expect(
+      screen.queryByRole("button", { name: "Crear versión nueva" }),
+    ).not.toBeInTheDocument()
+  })
+})
+
+describe("/propuestas/bandeja (T-16, AC-22, AC-24)", () => {
+  it("lista BORRADOR/APROBADO por score, sin acciones masivas ni PII en URLs", async () => {
+    mocks.envioFindMany.mockResolvedValue([
+      envioBandejaFixture({
+        id: "env_media",
+        estado: "BORRADOR",
+        asunto: "Asunto medio",
+        prospecto: {
+          id: "pros_media",
+          nombreNegocio: "Beta",
+          ciudad: "Córdoba",
+          rubro: "Diseño",
+          score: 40,
+          estado: "BORRADOR",
+        },
+      }),
+      envioBandejaFixture({
+        id: "env_alta",
+        estado: "APROBADO",
+        asunto: "Asunto alto",
+        prospecto: {
+          id: "pros_alta",
+          nombreNegocio: "Alfa",
+          ciudad: "Palermo, CABA",
+          rubro: "Consultoría",
+          score: 88,
+          estado: "APROBADO",
+        },
+      }),
+      envioBandejaFixture({
+        id: "env_sin_score",
+        estado: "BORRADOR",
+        asunto: "Asunto sin score",
+        prospecto: {
+          id: "pros_sin_score",
+          nombreNegocio: "Gamma",
+          ciudad: null,
+          rubro: null,
+          score: null,
+          estado: "BORRADOR",
+        },
+      }),
+    ])
+
+    render(await BandejaPage())
+
+    const filas = screen.getAllByRole("listitem")
+    expect(filas).toHaveLength(3)
+    expect(within(filas[0]).getByText("Alfa")).toBeInTheDocument()
+    expect(within(filas[0]).getByText("APROBADO")).toBeInTheDocument()
+    expect(within(filas[1]).getByText("Beta")).toBeInTheDocument()
+    expect(within(filas[1]).getByText(/40\/100/)).toBeInTheDocument()
+    expect(within(filas[2]).getByText("Gamma")).toBeInTheDocument()
+    expect(
+      within(filas[2]).getAllByText("—").length,
+    ).toBeGreaterThan(0)
+
+    expect(
+      screen.getByText(/2 en borrador · 1 aprobados sin enviar/i),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("note")).toHaveTextContent(
+      /la bandeja es solo lectura/i,
+    )
+    expect(screen.getByRole("note")).toHaveTextContent(
+      /no hay aprobación ni envío por lote/i,
+    )
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0)
+    expect(screen.queryAllByRole("button")).toHaveLength(0)
+
+    const enlaces = screen.getAllByRole("link")
+    expect(
+      enlaces.some(
+        (enlace) =>
+          enlace.getAttribute("href") === "/propuestas/prospectos/pros_alta",
+      ),
+    ).toBe(true)
+    for (const enlace of enlaces) {
+      expect(enlace.getAttribute("href") ?? "").not.toContain("@")
+    }
+
+    expect(mocks.envioFindMany).toHaveBeenCalledWith({
+      where: { estado: { in: ["BORRADOR", "APROBADO"] } },
+      select: {
+        id: true,
+        estado: true,
+        secuencia: true,
+        version: true,
+        asunto: true,
+        actualizadoEn: true,
+        prospecto: {
+          select: {
+            id: true,
+            nombreNegocio: true,
+            ciudad: true,
+            rubro: true,
+            score: true,
+            estado: true,
+          },
+        },
+        campana: { select: { id: true, nombre: true } },
+      },
+      orderBy: { actualizadoEn: "desc" },
+      take: 200,
+    })
+  })
+
+  it("muestra el estado vacio y no inventa borradores", async () => {
+    mocks.envioFindMany.mockResolvedValue([])
+
+    render(await BandejaPage())
+
+    expect(
+      screen.getByRole("heading", { name: /no hay borradores pendientes/i }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole("listitem")).not.toBeInTheDocument()
+    expect(screen.queryByRole("list")).not.toBeInTheDocument()
+  })
+
+  it("con el esquema faltante falla cerrado sin datos", async () => {
+    mocks.envioFindMany.mockRejectedValue({ code: "P2021" })
+
+    render(await BandejaPage())
+
+    expect(screen.getByRole("alert")).toHaveAttribute(
+      "data-estado",
+      CODIGO_ESQUEMA_NO_APLICADO,
+    )
+    expect(screen.queryByRole("listitem")).not.toBeInTheDocument()
+  })
+
+  it("publica metadata noindex/nofollow", () => {
+    expect(metadataBandeja.robots).toEqual({ index: false, follow: false })
+  })
+})
+
+describe("panel de borrador en la ficha del prospecto (T-16, AC-22, AC-24)", () => {
+  const campanaConPlantilla = {
+    id: "camp_1",
+    nombre: "Estudios contables Palermo",
+    estado: "EN_CURSO",
+    rubro: "Consultoría",
+    zona: "Palermo, CABA",
+    plantillaId: "pl_1",
+  }
+
+  it("ofrece Generar borrador con las plantillas activas de la campana", async () => {
+    mocks.prospectoFindUnique.mockResolvedValue(
+      prospectoDetalleFixture({ campanaOrigen: campanaConPlantilla }),
+    )
+    mocks.plantillaFindMany.mockResolvedValue([
+      { id: "pl_1", nombre: "Primer contacto", version: 1 },
+    ])
+
+    await renderProspecto()
+
+    const panel = screen.getByRole("region", {
+      name: /borrador de propuesta/i,
+    })
+    expect(
+      within(panel).getByRole("button", { name: "Generar borrador" }),
+    ).toBeEnabled()
+    expect(
+      within(panel).getByRole("option", { name: "Primer contacto (v1)" }),
+    ).toBeInTheDocument()
+    expect(
+      within(panel).getByText(/no inventa métricas, no usa LLM/i),
+    ).toBeInTheDocument()
+    expect(mocks.plantillaFindMany).toHaveBeenCalledWith({
+      where: { activa: true },
+      select: { id: true, nombre: true, version: true },
+      orderBy: [{ nombre: "asc" }, { version: "desc" }],
+    })
+    expect(mocks.envioFindFirst).toHaveBeenCalledWith({
+      where: {
+        prospectoId: "pros_1",
+        estado: { in: ["BORRADOR", "APROBADO"] },
+      },
+      orderBy: { actualizadoEn: "desc" },
+      select: {
+        id: true,
+        estado: true,
+        version: true,
+        secuencia: true,
+        asunto: true,
+        cuerpoTexto: true,
+      },
+    })
+  })
+
+  it("sin email avisa que no se puede redactar y deshabilita la accion", async () => {
+    mocks.prospectoFindUnique.mockResolvedValue(
+      prospectoDetalleFixture({
+        email: null,
+        campanaOrigen: campanaConPlantilla,
+      }),
+    )
+    mocks.plantillaFindMany.mockResolvedValue([
+      { id: "pl_1", nombre: "Primer contacto", version: 1 },
+    ])
+
+    await renderProspecto()
+
+    const panel = screen.getByRole("region", {
+      name: /borrador de propuesta/i,
+    })
+    expect(
+      within(panel).getByText(/el prospecto no tiene email de contacto/i),
+    ).toBeInTheDocument()
+    expect(
+      within(panel).getByRole("button", { name: "Generar borrador" }),
+    ).toBeDisabled()
+  })
+
+  it("con un borrador abierto muestra el editor en lugar del boton", async () => {
+    mocks.prospectoFindUnique.mockResolvedValue(
+      prospectoDetalleFixture({ campanaOrigen: campanaConPlantilla }),
+    )
+    mocks.plantillaFindMany.mockResolvedValue([
+      { id: "pl_1", nombre: "Primer contacto", version: 1 },
+    ])
+    mocks.envioFindFirst.mockResolvedValue({
+      id: "env_1",
+      estado: "BORRADOR",
+      version: 1,
+      secuencia: 1,
+      asunto: "Una idea para Consultora Alfa",
+      cuerpoTexto: "Hola Ana,\n\nTe escribo.",
+    })
+
+    await renderProspecto()
+
+    const panel = screen.getByRole("region", {
+      name: /borrador de propuesta/i,
+    })
+    expect(within(panel).getByLabelText("Asunto")).toHaveValue(
+      "Una idea para Consultora Alfa",
+    )
+    expect(within(panel).getByLabelText(/cuerpo \(texto plano\)/i)).toHaveValue(
+      "Hola Ana,\n\nTe escribo.",
+    )
+    expect(
+      within(panel).getByRole("button", { name: "Guardar borrador" }),
+    ).toBeInTheDocument()
+    expect(
+      within(panel).queryByRole("button", { name: "Generar borrador" }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("con un envio aprobado avisa que editar invalida la aprobacion", async () => {
+    mocks.prospectoFindUnique.mockResolvedValue(
+      prospectoDetalleFixture({ campanaOrigen: campanaConPlantilla }),
+    )
+    mocks.plantillaFindMany.mockResolvedValue([
+      { id: "pl_1", nombre: "Primer contacto", version: 1 },
+    ])
+    mocks.envioFindFirst.mockResolvedValue({
+      id: "env_1",
+      estado: "APROBADO",
+      version: 2,
+      secuencia: 1,
+      asunto: "Una idea para Consultora Alfa",
+      cuerpoTexto: "Hola Ana,\n\nTe escribo.",
+    })
+
+    await renderProspecto()
+
+    const panel = screen.getByRole("region", {
+      name: /borrador de propuesta/i,
+    })
+    expect(within(panel).getByRole("note")).toHaveTextContent(
+      /este envío está aprobado \(versión 2, secuencia 1\)/i,
+    )
+    expect(
+      within(panel).getByRole("button", {
+        name: "Guardar como versión nueva",
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it("no renderiza datos ni acciones si falta el esquema", async () => {
+    mocks.prospectoFindUnique.mockRejectedValue({ code: "P2021" })
+
+    await renderProspecto()
+
+    expect(
+      screen.queryByRole("region", { name: /borrador de propuesta/i }),
+    ).not.toBeInTheDocument()
+  })
+})
+
+describe("GenerarBorrador (T-16, AC-22, AC-23)", () => {
+  const PLANTILLAS = [{ id: "pl_1", nombre: "Primer contacto", version: 1 }]
+
+  it("hace un POST determinista y muestra el resultado sin enviar", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ envioId: "env_1", secuencia: 1, version: 1 }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <GenerarBorrador
+        prospectoId="pros_1"
+        plantillas={PLANTILLAS}
+        plantillaPorDefectoId={null}
+        tieneEmail
+        estadoProspecto="PUNTUADO"
+      />,
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "Generar borrador" }))
+
+    const resultado = await screen.findByRole("status")
+    expect(resultado).toHaveTextContent(
+      /Borrador creado \(secuencia 1, versión 1\)/i,
+    )
+    expect(resultado).toHaveTextContent(/no se envió ningún email/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/prospectos/pros_1/borrador")
+    expect(url).not.toContain("@")
+    expect(init.method).toBe("POST")
+    expect(JSON.parse(String(init.body))).toEqual({
+      modo: "PLANTILLA",
+      plantillaId: "pl_1",
+    })
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("muestra el motivo saneado del servidor sin PII", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ codigo: "SIN_EMAIL" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <GenerarBorrador
+        prospectoId="pros_1"
+        plantillas={PLANTILLAS}
+        plantillaPorDefectoId={null}
+        tieneEmail
+        estadoProspecto="PUNTUADO"
+      />,
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Generar borrador" }))
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/no tiene email de contacto/i)
+    expect(alerta).not.toHaveTextContent("@")
+  })
+
+  it("sin plantillas activas deshabilita la accion y enlaza al alta", () => {
+    render(
+      <GenerarBorrador
+        prospectoId="pros_1"
+        plantillas={[]}
+        plantillaPorDefectoId={null}
+        tieneEmail
+        estadoProspecto="PUNTUADO"
+      />,
+    )
+
+    expect(
+      screen.getByRole("button", { name: "Generar borrador" }),
+    ).toBeDisabled()
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /no hay plantillas activas/i,
+    )
+    expect(
+      screen.getByRole("link", { name: /creá una plantilla/i }),
+    ).toHaveAttribute("href", "/propuestas/plantillas")
+  })
+
+  it("un prospecto no puntuado explica el estado y no habilita la accion", () => {
+    render(
+      <GenerarBorrador
+        prospectoId="pros_1"
+        plantillas={PLANTILLAS}
+        plantillaPorDefectoId={null}
+        tieneEmail
+        estadoProspecto="NUEVO"
+      />,
+    )
+
+    expect(
+      screen.getByRole("button", { name: "Generar borrador" }),
+    ).toBeDisabled()
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /se necesita un prospecto puntuado/i,
+    )
+  })
+})
+
+describe("BorradorEditor (T-16, AC-22, AC-24)", () => {
+  const PROPS = {
+    envioId: "env_1",
+    prospectoId: "pros_1",
+    version: 1,
+    secuencia: 1,
+    asunto: "Una idea para Consultora Alfa",
+    cuerpoTexto: "Hola Ana,\n\nTe escribo.",
+  }
+
+  it("en BORRADOR actualiza en sitio y muestra el resultado", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ envioId: "env_1", version: 1 }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<BorradorEditor {...PROPS} estado="BORRADOR" />)
+
+    fireEvent.submit(
+      formularioDe(
+        screen.getByRole("button", { name: "Guardar borrador" }),
+      ),
+    )
+
+    const resultado = await screen.findByRole("status")
+    expect(resultado).toHaveTextContent(/Borrador actualizado \(versión 1\)/i)
+    expect(resultado).toHaveTextContent(/no se envió ningún email/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/envios/env_1")
+    expect(url).not.toContain("@")
+    expect(init.method).toBe("PATCH")
+    expect(JSON.parse(String(init.body))).toEqual({
+      asunto: "Una idea para Consultora Alfa",
+      cuerpoTexto: "Hola Ana,\n\nTe escribo.",
+    })
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("en APROBADO avisa que se crea una version y se cancela la aprobacion", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ envioId: "env_2", version: 2 }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<BorradorEditor {...PROPS} estado="APROBADO" version={2} />)
+
+    expect(screen.getByRole("note")).toHaveTextContent(
+      /guardar crea una versión nueva en borrador/i,
+    )
+
+    fireEvent.submit(
+      formularioDe(
+        screen.getByRole("button", { name: "Guardar como versión nueva" }),
+      ),
+    )
+
+    const resultado = await screen.findByRole("status")
+    expect(resultado).toHaveTextContent(/Se creó la versión 2/i)
+    expect(resultado).toHaveTextContent(/aprobación anterior quedó cancelada/i)
+    expect(resultado).toHaveTextContent(/aprobá de nuevo/i)
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("muestra un error accesible si el envio cambio de estado", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ codigo: "ESTADO" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<BorradorEditor {...PROPS} estado="BORRADOR" />)
+    fireEvent.submit(
+      formularioDe(
+        screen.getByRole("button", { name: "Guardar borrador" }),
+      ),
+    )
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/el envío cambió de estado/i)
+    expect(alerta).not.toHaveTextContent("Hola Ana")
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("no envia un cuerpo vacio desde la UI", () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<BorradorEditor {...PROPS} estado="BORRADOR" />)
+
+    fireEvent.change(screen.getByLabelText(/cuerpo \(texto plano\)/i), {
+      target: { value: "   " },
+    })
+
+    expect(
+      screen.getByRole("button", { name: "Guardar borrador" }),
+    ).toBeDisabled()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })
 

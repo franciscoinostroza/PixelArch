@@ -280,3 +280,139 @@ export const prospectoDescartarSchema = z.object({
 export type ProspectoDescartarInput = z.infer<
   typeof prospectoDescartarSchema
 >
+
+/* ------------------------------------------------------------------ */
+/* T-16 (AC-22, AC-23, AC-24; RF-34..RF-39): plantillas y borradores   */
+/* ------------------------------------------------------------------ */
+
+export const PLANTILLA_NOMBRE_MAX = 120
+export const PLANTILLA_ASUNTO_MAX = 120
+export const PLANTILLA_CUERPO_MAX = 10_000
+export const PLANTILLA_VARIABLE_MAX = 40
+export const PLANTILLA_VARIABLES_MAX = 50
+export const PLANTILLA_IDIOMAS = ["es", "en"] as const
+export const ENVIO_ASUNTO_MAX = 120
+export const ENVIO_CUERPO_MAX = 10_000
+
+const plantillaNombreSchema = z
+  .string("El nombre de la plantilla es obligatorio.")
+  .trim()
+  .min(1, "El nombre de la plantilla es obligatorio.")
+  .max(
+    PLANTILLA_NOMBRE_MAX,
+    `El nombre no puede superar ${PLANTILLA_NOMBRE_MAX} caracteres.`,
+  )
+
+const plantillaIdiomaSchema = z.enum(
+  PLANTILLA_IDIOMAS,
+  "El idioma debe ser es o en.",
+)
+
+const plantillaAsuntoSchema = z
+  .string("El asunto es obligatorio.")
+  .trim()
+  .min(1, "El asunto es obligatorio.")
+  .max(
+    PLANTILLA_ASUNTO_MAX,
+    `El asunto no puede superar ${PLANTILLA_ASUNTO_MAX} caracteres.`,
+  )
+
+const plantillaCuerpoSchema = z
+  .string("El cuerpo es obligatorio.")
+  .trim()
+  .min(1, "El cuerpo es obligatorio.")
+  .max(
+    PLANTILLA_CUERPO_MAX,
+    `El cuerpo no puede superar ${PLANTILLA_CUERPO_MAX} caracteres.`,
+  )
+
+const plantillaVariableSchema = z
+  .string("La variable debe ser texto.")
+  .trim()
+  .min(1, "La variable no puede estar vacía.")
+  .max(
+    PLANTILLA_VARIABLE_MAX,
+    `La variable no puede superar ${PLANTILLA_VARIABLE_MAX} caracteres.`,
+  )
+
+const plantillaVariablesSchema = z
+  .array(plantillaVariableSchema)
+  .max(
+    PLANTILLA_VARIABLES_MAX,
+    `No se pueden declarar más de ${PLANTILLA_VARIABLES_MAX} variables.`,
+  )
+
+/**
+ * Contrato de `POST /api/propuestas/plantillas`. `variablesPermitidas` solo
+ * declara el subconjunto usado; el servidor valida la lista blanca y guarda la
+ * lista canónica de variables realmente usadas.
+ */
+export const plantillaCreateSchema = z.object({
+  nombre: plantillaNombreSchema,
+  idioma: plantillaIdiomaSchema.default("es"),
+  asunto: plantillaAsuntoSchema,
+  cuerpo: plantillaCuerpoSchema,
+  variablesPermitidas: plantillaVariablesSchema.optional(),
+})
+
+export type PlantillaCreateInput = z.infer<typeof plantillaCreateSchema>
+
+/**
+ * Contrato de `PATCH /api/propuestas/plantillas/[id]`: siempre crea una
+ * versión nueva con el mismo nombre. El nombre no se edita en esta ruta.
+ */
+export const plantillaPatchSchema = z.object({
+  idioma: plantillaIdiomaSchema.default("es"),
+  asunto: plantillaAsuntoSchema,
+  cuerpo: plantillaCuerpoSchema,
+  variablesPermitidas: plantillaVariablesSchema.optional(),
+})
+
+export type PlantillaPatchInput = z.infer<typeof plantillaPatchSchema>
+
+/** Variante del formulario (incluye el nombre y no transforma el tipo). */
+export const plantillaFormSchema = z.object({
+  nombre: plantillaNombreSchema,
+  idioma: plantillaIdiomaSchema,
+  asunto: plantillaAsuntoSchema,
+  cuerpo: plantillaCuerpoSchema,
+  variablesPermitidas: plantillaVariablesSchema,
+})
+
+export type PlantillaFormValues = z.infer<typeof plantillaFormSchema>
+
+/**
+ * `POST /api/propuestas/prospectos/[id]/borrador`. En v1 solo se acepta
+ * `PLANTILLA`; `LLM` existe en el contrato para responder 503 sin escribir.
+ */
+export const borradorCreateSchema = z.object({
+  modo: z.enum(["PLANTILLA", "LLM"]).default("PLANTILLA"),
+  plantillaId: textoOpcional(
+    CAMPANA_PLANTILLA_ID_MAX,
+    "La plantilla",
+  ),
+})
+
+export type BorradorCreateInput = z.infer<typeof borradorCreateSchema>
+
+/** `PATCH /api/propuestas/envios/[id]`: edición de asunto y cuerpo texto. */
+export const envioEdicionSchema = z.object({
+  asunto: z
+    .string("El asunto es obligatorio.")
+    .trim()
+    .min(1, "El asunto es obligatorio.")
+    .max(
+      ENVIO_ASUNTO_MAX,
+      `El asunto no puede superar ${ENVIO_ASUNTO_MAX} caracteres.`,
+    ),
+  cuerpoTexto: z
+    .string("El cuerpo es obligatorio.")
+    .trim()
+    .min(1, "El cuerpo es obligatorio.")
+    .max(
+      ENVIO_CUERPO_MAX,
+      `El cuerpo no puede superar ${ENVIO_CUERPO_MAX} caracteres.`,
+    ),
+})
+
+export type EnvioEdicionInput = z.infer<typeof envioEdicionSchema>

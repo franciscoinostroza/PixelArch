@@ -11,6 +11,11 @@ import { EstadoOperativo } from "@/components/propuestas/estado-vacio"
 import { ProspectoFicha } from "@/components/propuestas/prospecto-ficha"
 import { ScoreDesglose } from "@/components/propuestas/score-desglose"
 import { AnalizarProspecto } from "@/components/propuestas/analizar-prospecto-button"
+import {
+  BorradorEditor,
+  GenerarBorrador,
+} from "@/components/propuestas/borrador-editor"
+import type { PlantillaOpcion } from "@/components/propuestas/campana-form"
 
 export const dynamic = "force-dynamic"
 
@@ -33,6 +38,10 @@ export const metadata: Metadata = {
  *
  * Si el esquema aditivo no esta aplicado, falla cerrado con un estado
  * operativo y no renderiza datos ni acciones. `noindex` en metadata.
+ *
+ * T-16 (AC-22, AC-24): agrega el panel de borrador: boton "Generar borrador"
+ * con las plantillas activas o el editor del envio BORRADOR/APROBADO abierto.
+ * No se envia nada desde esta ficha.
  */
 
 const CLASE_SECCION = "rounded-xl border border-border bg-panel p-5"
@@ -194,8 +203,50 @@ function cargarProspecto(id: string) {
       creadoEn: true,
       actualizadoEn: true,
       campanaOrigen: {
-        select: { id: true, nombre: true, estado: true, rubro: true, zona: true },
+        select: {
+          id: true,
+          nombre: true,
+          estado: true,
+          rubro: true,
+          zona: true,
+          plantillaId: true,
+        },
       },
+    },
+  })
+}
+
+function cargarPlantillasActivas(): Promise<PlantillaOpcion[]> {
+  return prisma.plantillaPropuesta.findMany({
+    where: { activa: true },
+    select: { id: true, nombre: true, version: true },
+    orderBy: [{ nombre: "asc" }, { version: "desc" }],
+  })
+}
+
+interface EnvioAbierto {
+  id: string
+  estado: string
+  version: number
+  secuencia: number
+  asunto: string
+  cuerpoTexto: string
+}
+
+function cargarEnvioAbierto(prospectoId: string): Promise<EnvioAbierto | null> {
+  return prisma.envioPropuesta.findFirst({
+    where: {
+      prospectoId,
+      estado: { in: ["BORRADOR", "APROBADO"] },
+    },
+    orderBy: { actualizadoEn: "desc" },
+    select: {
+      id: true,
+      estado: true,
+      version: true,
+      secuencia: true,
+      asunto: true,
+      cuerpoTexto: true,
     },
   })
 }
@@ -240,6 +291,30 @@ export default async function ProspectoDetallePage({
   }
 
   if (!prospecto) notFound()
+
+  let plantillas: PlantillaOpcion[] = []
+  let envioAbierto: EnvioAbierto | null = null
+
+  try {
+    const [plantillasCargadas, envioCargado] = await Promise.all([
+      cargarPlantillasActivas(),
+      cargarEnvioAbierto(prospecto.id),
+    ])
+    plantillas = plantillasCargadas
+    envioAbierto = envioCargado
+  } catch (error) {
+    if (esErrorTablaFaltante(error)) {
+      return (
+        <EstadoOperativo
+          codigo={CODIGO_ESQUEMA_NO_APLICADO}
+          titulo="Esquema no aplicado"
+          descripcion="El portal queda deshabilitado hasta que se aplique el esquema de propuestas. No se muestran datos ni acciones."
+          fecha={new Date()}
+        />
+      )
+    }
+    throw error
+  }
 
   const resumen = esObjeto(prospecto.auditoriaResumen)
     ? prospecto.auditoriaResumen
@@ -639,6 +714,41 @@ export default async function ProspectoDetallePage({
           detalle={prospecto.scoreDetalle}
         />
       </div>
+
+      <section
+        aria-label="Borrador de propuesta"
+        className={`${CLASE_SECCION} mb-8`}
+      >
+        <h2 className="font-display text-xl font-semibold text-text">
+          Borrador de propuesta
+        </h2>
+        <p className="mt-1 text-sm leading-6 text-text-dim">
+          El borrador se genera con una plantilla activa, los datos verificados
+          de la ficha y los hallazgos de la auditoría. No se envía nada: la
+          aprobación y el envío son pasos separados.
+        </p>
+
+        {envioAbierto ? (
+          <BorradorEditor
+            key={envioAbierto.id}
+            envioId={envioAbierto.id}
+            prospectoId={prospecto.id}
+            estado={envioAbierto.estado}
+            version={envioAbierto.version}
+            secuencia={envioAbierto.secuencia}
+            asunto={envioAbierto.asunto}
+            cuerpoTexto={envioAbierto.cuerpoTexto}
+          />
+        ) : (
+          <GenerarBorrador
+            prospectoId={prospecto.id}
+            plantillas={plantillas}
+            plantillaPorDefectoId={prospecto.campanaOrigen.plantillaId}
+            tieneEmail={Boolean(prospecto.email)}
+            estadoProspecto={prospecto.estado}
+          />
+        )}
+      </section>
 
       <section aria-label="Corrección del prospecto">
         <ProspectoFicha prospecto={editable} />

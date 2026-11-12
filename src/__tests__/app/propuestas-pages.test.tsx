@@ -80,6 +80,16 @@ import {
 import { PortalShell } from "@/components/propuestas/portal-shell"
 import { CampanaForm } from "@/components/propuestas/campana-form"
 import { CampanaAcciones } from "@/components/propuestas/campana-acciones"
+import {
+  AltaProspecto,
+  ProspectoAcciones,
+  ProspectoFicha,
+  type ProspectoEditable,
+} from "@/components/propuestas/prospecto-ficha"
+import {
+  PROSPECTO_MOTIVO_MAX,
+  PROSPECTO_NOTA_MAX,
+} from "@/lib/propuestas/validation"
 
 const UUID_V4 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -647,9 +657,15 @@ describe("/propuestas/campanas/[id] (T-13, AC-8, AC-11, AC-14)", () => {
     expect(
       within(tabla).getAllByRole("button", { name: /analizar/i })[0],
     ).toBeDisabled()
+    // T-14 habilito la correccion y el descarte manual por fila.
+    const descartar = within(tabla).getAllByRole("button", {
+      name: /descartar/i,
+    })
+    expect(descartar).toHaveLength(2)
+    expect(descartar[0]).toBeEnabled()
     expect(
-      within(tabla).getAllByRole("button", { name: /descartar/i })[0],
-    ).toBeDisabled()
+      within(tabla).getAllByRole("button", { name: /editar/i }),
+    ).toHaveLength(2)
 
     const consumo = screen.getByRole("region", {
       name: /consumo de google places/i,
@@ -771,6 +787,42 @@ describe("/propuestas/campanas/[id] (T-13, AC-8, AC-11, AC-14)", () => {
     await expect(
       CampanaDetallePage({ params: Promise.resolve({ id: "camp_1" }) }),
     ).rejects.toThrow("base caida")
+  })
+
+  it("mantiene el alta manual y la tabla de prospectos (T-14, AC-13)", async () => {
+    mocks.campanaFindUnique.mockResolvedValue(
+      campanaDetalleFixture({
+        estado: "EN_CURSO",
+        prospectos: [
+          {
+            id: "pros_1",
+            nombreNegocio: "Consultora Alfa",
+            sitioWeb: "https://alfa.com.ar",
+            ciudad: "Palermo, CABA",
+            estado: "NUEVO",
+            posibleDuplicadoDeId: null,
+            score: null,
+          },
+        ],
+      }),
+    )
+
+    await renderDetalle()
+
+    expect(
+      screen.getByRole("heading", { name: /agregar prospecto manualmente/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/no pegues datos sensibles ni listas compradas/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("table", {
+        name: /prospectos creados por la campaña/i,
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Agregar prospecto" }),
+    ).toBeInTheDocument()
   })
 })
 
@@ -977,6 +1029,438 @@ describe("CampanaAcciones (T-13, AC-8, AC-11, AC-12; RF-12, RF-16)", () => {
     expect(alerta).toHaveTextContent(/error de red/i)
     expect(alerta).not.toHaveTextContent("juan@example.com")
     await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* T-14 (AC-13, AC-14, AC-19; RF-18, RF-22)                            */
+/* Alta manual, correccion y descarte                                  */
+/* ------------------------------------------------------------------ */
+
+function prospectoEditable(
+  overrides: Partial<ProspectoEditable> = {},
+): ProspectoEditable {
+  return {
+    id: "pros_1",
+    nombreNegocio: "Consultora Alfa",
+    sitioWeb: "https://alfa.com.ar/contacto",
+    email: "contacto@alfa.com.ar",
+    telefono: "+541155555555",
+    ciudad: "Palermo, CABA",
+    rubro: "Consultoría",
+    contactoNombre: null,
+    contactoCargo: null,
+    fuenteUrl: "https://alfa.com.ar/contacto",
+    emailFuenteUrl: null,
+    estado: "NUEVO",
+    ...overrides,
+  }
+}
+
+function formularioDe(elemento: HTMLElement): HTMLFormElement {
+  return elemento.closest("form") as HTMLFormElement
+}
+
+describe("AltaProspecto (T-14, AC-13, AC-19)", () => {
+  it("abre el panel con aviso de datos sensibles, fuentes y contador de nota", () => {
+    render(<AltaProspecto campanaId="camp_1" />)
+
+    const abrir = screen.getByRole("button", { name: "Agregar prospecto" })
+    expect(abrir).toHaveAttribute("aria-expanded", "false")
+
+    fireEvent.click(abrir)
+
+    expect(
+      screen.getByRole("button", { name: "Cerrar formulario" }),
+    ).toHaveAttribute("aria-expanded", "true")
+    expect(screen.getByRole("note")).toHaveTextContent(
+      /no pegues datos sensibles ni listas compradas/i,
+    )
+    expect(screen.getByLabelText(/^sitio web$/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/fuente de los datos/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/fuente del email/i)).toBeInTheDocument()
+
+    const nota = screen.getByLabelText(/nota de procedencia/i)
+    expect(nota).toHaveAttribute("maxlength", String(PROSPECTO_NOTA_MAX))
+    expect(
+      screen.getByText(new RegExp(`0/${PROSPECTO_NOTA_MAX} caracteres`)),
+    ).toBeInTheDocument()
+
+    fireEvent.change(nota, { target: { value: "x".repeat(120) } })
+    expect(
+      screen.getByText(new RegExp(`120/${PROSPECTO_NOTA_MAX} caracteres`)),
+    ).toBeInTheDocument()
+  })
+
+  it("envía POST con procedencia, muestra éxito accesible y refresca (AC-13)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ id: "pros_1", estado: "NUEVO" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<AltaProspecto campanaId="camp_1" />)
+    fireEvent.click(screen.getByRole("button", { name: "Agregar prospecto" }))
+
+    fireEvent.change(screen.getByLabelText(/nombre del negocio/i), {
+      target: { value: "Consultora Alfa" },
+    })
+    fireEvent.change(screen.getByLabelText(/^sitio web$/i), {
+      target: { value: "https://www.alfa.com.ar/contacto" },
+    })
+    fireEvent.change(screen.getByLabelText(/email de contacto/i), {
+      target: { value: "contacto@alfa.com.ar" },
+    })
+    fireEvent.change(screen.getByLabelText(/fuente de los datos/i), {
+      target: { value: "https://www.alfa.com.ar/contacto" },
+    })
+    fireEvent.change(screen.getByLabelText(/nota de procedencia/i), {
+      target: {
+        value: "Datos de la página de contacto publicada por el negocio.",
+      },
+    })
+
+    fireEvent.submit(
+      formularioDe(
+        screen.getByRole("button", { name: "Agregar prospecto" }),
+      ),
+    )
+
+    const exito = await screen.findByRole("status")
+    expect(exito).toHaveTextContent(/prospecto agregado con su fuente y nota/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/prospectos")
+    expect(url).not.toContain("contacto@")
+    expect(init.method).toBe("POST")
+
+    const body = JSON.parse(String(init.body)) as Record<string, unknown>
+    expect(body).toMatchObject({
+      campanaId: "camp_1",
+      nombreNegocio: "Consultora Alfa",
+      email: "contacto@alfa.com.ar",
+      fuenteUrl: "https://www.alfa.com.ar/contacto",
+      nota: "Datos de la página de contacto publicada por el negocio.",
+    })
+    expect(body).not.toHaveProperty("emailFuenteUrl")
+
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+    expect(screen.getByLabelText(/nota de procedencia/i)).toHaveValue("")
+  })
+
+  it("valida en el cliente con errores accesibles y no envía sin datos (AC-13)", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<AltaProspecto campanaId="camp_1" />)
+    fireEvent.click(screen.getByRole("button", { name: "Agregar prospecto" }))
+    fireEvent.submit(
+      formularioDe(
+        screen.getByRole("button", { name: "Agregar prospecto" }),
+      ),
+    )
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /revisá los datos/i,
+    )
+    expect(screen.getByLabelText(/nombre del negocio/i)).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("exige una fuente y la asocia al campo (AC-13)", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<AltaProspecto campanaId="camp_1" />)
+    fireEvent.click(screen.getByRole("button", { name: "Agregar prospecto" }))
+    fireEvent.change(screen.getByLabelText(/nombre del negocio/i), {
+      target: { value: "Consultora Alfa" },
+    })
+    fireEvent.change(screen.getByLabelText(/nota de procedencia/i), {
+      target: { value: "Datos públicos verificados." },
+    })
+    fireEvent.submit(
+      formularioDe(
+        screen.getByRole("button", { name: "Agregar prospecto" }),
+      ),
+    )
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /falta la fuente/i,
+    )
+    const fuente = screen.getByLabelText(/fuente de los datos/i)
+    expect(fuente).toHaveAttribute("aria-invalid", "true")
+    expect(fuente).toHaveAttribute("aria-describedby")
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("rechaza en el cliente un sitio social o agregador (AC-19)", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<AltaProspecto campanaId="camp_1" />)
+    fireEvent.click(screen.getByRole("button", { name: "Agregar prospecto" }))
+    fireEvent.change(screen.getByLabelText(/nombre del negocio/i), {
+      target: { value: "Consultora Alfa" },
+    })
+    fireEvent.change(screen.getByLabelText(/^sitio web$/i), {
+      target: { value: "https://www.instagram.com/consultora-alfa" },
+    })
+    fireEvent.change(screen.getByLabelText(/fuente de los datos/i), {
+      target: { value: "https://www.instagram.com/consultora-alfa" },
+    })
+    fireEvent.change(screen.getByLabelText(/nota de procedencia/i), {
+      target: { value: "Datos públicos del perfil." },
+    })
+
+    fireEvent.submit(
+      formularioDe(
+        screen.getByRole("button", { name: "Agregar prospecto" }),
+      ),
+    )
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /no es una web de negocio válida/i,
+    )
+    expect(screen.getByLabelText(/^sitio web$/i)).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+describe("ProspectoFicha edición (T-14, AC-13, AC-19)", () => {
+  it("envía solo los campos cambiados con motivo y sin PII en la URL (AC-13)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: "pros_1", estado: "NUEVO" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<ProspectoFicha prospecto={prospectoEditable()} />)
+
+    fireEvent.change(screen.getByLabelText(/teléfono comercial/i), {
+      target: { value: "+54 11 4444 0000" },
+    })
+
+    const motivo = screen.getByLabelText(/motivo de la corrección/i)
+    expect(motivo).toHaveAttribute("maxlength", String(PROSPECTO_MOTIVO_MAX))
+    expect(
+      screen.getByText(new RegExp(`0/${PROSPECTO_MOTIVO_MAX} caracteres`)),
+    ).toBeInTheDocument()
+    fireEvent.change(motivo, {
+      target: { value: "Corrección verificada en la fuente pública." },
+    })
+
+    fireEvent.submit(
+      formularioDe(
+        screen.getByRole("button", { name: "Guardar corrección" }),
+      ),
+    )
+
+    const exito = await screen.findByRole("status")
+    expect(exito).toHaveTextContent(/corrección guardada/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/prospectos/pros_1")
+    expect(url).not.toContain("contacto@")
+    expect(init.method).toBe("PATCH")
+    expect(JSON.parse(String(init.body))).toEqual({
+      telefono: "+54 11 4444 0000",
+      motivo: "Corrección verificada en la fuente pública.",
+    })
+
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("no envía si solo se escribe el motivo sin cambiar datos (AC-13)", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<ProspectoFicha prospecto={prospectoEditable()} />)
+    fireEvent.change(screen.getByLabelText(/motivo de la corrección/i), {
+      target: { value: "Nada cambió en los datos." },
+    })
+    fireEvent.submit(
+      formularioDe(
+        screen.getByRole("button", { name: "Guardar corrección" }),
+      ),
+    )
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /no cambiaste ningún dato/i,
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("exige la fuente del email nuevo y la marca con aria-invalid (AC-19)", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <ProspectoFicha
+        prospecto={prospectoEditable({
+          fuenteUrl: null,
+          emailFuenteUrl: null,
+        })}
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText(/email de contacto/i), {
+      target: { value: "ventas@beta.com.ar" },
+    })
+    fireEvent.change(screen.getByLabelText(/motivo de la corrección/i), {
+      target: { value: "Email publicado por el negocio." },
+    })
+    fireEvent.submit(
+      formularioDe(
+        screen.getByRole("button", { name: "Guardar corrección" }),
+      ),
+    )
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /falta la fuente del email nuevo/i,
+    )
+    expect(screen.getByLabelText(/fuente del email/i)).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("muestra un error accesible si el prospecto está suprimido (AC-13)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ codigo: "SUPRIMIDO" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<ProspectoFicha prospecto={prospectoEditable()} />)
+    fireEvent.change(screen.getByLabelText(/teléfono comercial/i), {
+      target: { value: "+54 11 4444 0000" },
+    })
+    fireEvent.change(screen.getByLabelText(/motivo de la corrección/i), {
+      target: { value: "Corrección verificada." },
+    })
+    fireEvent.submit(
+      formularioDe(
+        screen.getByRole("button", { name: "Guardar corrección" }),
+      ),
+    )
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/el contacto está suprimido/i)
+    expect(alerta).not.toHaveTextContent("contacto@alfa.com.ar")
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+})
+
+describe("ProspectoAcciones (T-14, AC-13)", () => {
+  it("abre Editar y exige motivo antes de confirmar el descarte (AC-13)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ estado: "DESCARTADO" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<ProspectoAcciones prospecto={prospectoEditable()} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }))
+    const editar = screen.getByRole("dialog", { name: "Corregir prospecto" })
+    expect(
+      within(editar).getByLabelText(/motivo de la corrección/i),
+    ).toBeInTheDocument()
+    fireEvent.click(within(editar).getByRole("button", { name: "Cerrar modal" }))
+
+    fireEvent.click(screen.getByRole("button", { name: "Descartar" }))
+    const descarte = screen.getByRole("dialog", {
+      name: "Descartar prospecto",
+    })
+    expect(within(descarte).getByText(/vas a descartar/i)).toHaveTextContent(
+      /consultora alfa/i,
+    )
+
+    const motivo = within(descarte).getByLabelText(/motivo del descarte/i)
+    expect(motivo).toHaveAttribute("maxlength", String(PROSPECTO_MOTIVO_MAX))
+    expect(
+      within(descarte).getByText(
+        new RegExp(`0/${PROSPECTO_MOTIVO_MAX} caracteres`),
+      ),
+    ).toBeInTheDocument()
+
+    fireEvent.submit(formularioDe(motivo))
+    expect(
+      await within(descarte).findByText("El motivo es obligatorio."),
+    ).toBeInTheDocument()
+    expect(motivo).toHaveAttribute("aria-invalid", "true")
+    expect(motivo).toHaveAttribute("aria-describedby")
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    fireEvent.change(motivo, {
+      target: { value: "El negocio no encaja con el servicio." },
+    })
+    fireEvent.submit(formularioDe(motivo))
+
+    const exito = await within(descarte).findByRole("status")
+    expect(exito).toHaveTextContent(/prospecto descartado/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/prospectos/pros_1/descartar")
+    expect(url).not.toContain("contacto@")
+    expect(JSON.parse(String(init.body))).toEqual({
+      motivo: "El negocio no encaja con el servicio.",
+    })
+
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+    expect(screen.getByRole("button", { name: "Descartar" })).toBeDisabled()
+  })
+
+  it("muestra el error del servidor de forma accesible sin filtrar PII (AC-13)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ codigo: "SUPRIMIDO" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<ProspectoAcciones prospecto={prospectoEditable()} />)
+    fireEvent.click(screen.getByRole("button", { name: "Descartar" }))
+    const descarte = screen.getByRole("dialog", {
+      name: "Descartar prospecto",
+    })
+    fireEvent.change(within(descarte).getByLabelText(/motivo del descarte/i), {
+      target: { value: "El negocio no encaja." },
+    })
+    fireEvent.submit(
+      formularioDe(within(descarte).getByLabelText(/motivo del descarte/i)),
+    )
+
+    const alerta = await within(descarte).findByRole("alert")
+    expect(alerta).toHaveTextContent(/suprimido/i)
+    expect(alerta).not.toHaveTextContent("contacto@alfa.com.ar")
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("deshabilita Editar y Descartar de un prospecto suprimido (AC-15, AC-19)", () => {
+    render(
+      <ProspectoAcciones
+        prospecto={prospectoEditable({ estado: "SUPRIMIDO" })}
+      />,
+    )
+
+    expect(screen.getByRole("button", { name: "Editar" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Descartar" })).toBeDisabled()
   })
 })
 

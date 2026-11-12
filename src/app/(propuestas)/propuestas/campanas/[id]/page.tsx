@@ -17,6 +17,7 @@ import {
   type ProspectoFila,
 } from "@/components/propuestas/campana-tabla"
 import { CampanaAcciones } from "@/components/propuestas/campana-acciones"
+import { AltaProspecto } from "@/components/propuestas/prospecto-ficha"
 
 export const dynamic = "force-dynamic"
 
@@ -63,7 +64,14 @@ function cargarCampana(id: string) {
           id: true,
           nombreNegocio: true,
           sitioWeb: true,
+          email: true,
+          telefono: true,
           ciudad: true,
+          rubro: true,
+          contactoNombre: true,
+          contactoCargo: true,
+          fuenteUrl: true,
+          emailFuenteUrl: true,
           estado: true,
           posibleDuplicadoDeId: true,
           score: true,
@@ -298,10 +306,14 @@ export default async function CampanaDetallePage({
               Prospectos
             </h2>
             <p className="mt-1 text-sm leading-6 text-text-dim">
-              Datos del portal, con su fuente. El análisis y el descarte se
-              habilitan en las próximas tareas.
+              Datos del portal, con su fuente. El alta manual, la corrección y
+              el descarte se registran con motivo; el análisis se habilita en
+              T-15.
             </p>
           </div>
+        </div>
+        <div className="mb-4">
+          <AltaProspecto campanaId={campana.id} />
         </div>
         <CampanaTabla prospectos={prospectos} />
       </section>

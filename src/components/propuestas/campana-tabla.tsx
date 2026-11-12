@@ -1,17 +1,27 @@
 /**
- * T-13 (AC-14; RF-16): tabla de prospectos de una campaña.
+ * T-13 (AC-14; RF-16) / T-14 (AC-13, AC-19; RF-18, RF-22): tabla de
+ * prospectos de una campaña.
  *
- * Server component de solo lectura. Muestra solo datos del portal (nunca del
- * CRM). "Ver ficha", "Analizar" y "Descartar" quedan deshabilitados hasta
- * T-14/T-15, para no enlazar a una ruta que todavía no existe. La tabla tiene
- * `caption` y encabezados con `scope` para lectores de pantalla.
+ * Server component de solo lectura para los datos. Las acciones de alta,
+ * corrección y descarte viven en `prospecto-ficha.tsx` (client) y se montan
+ * por fila; "Ver ficha" y "Analizar" siguen deshabilitados hasta T-15. La
+ * tabla tiene `caption` y encabezados con `scope` para lectores de pantalla.
  */
+
+import { ProspectoAcciones } from "@/components/propuestas/prospecto-ficha"
 
 export interface ProspectoFila {
   id: string
   nombreNegocio: string
   sitioWeb: string | null
+  email: string | null
+  telefono: string | null
   ciudad: string | null
+  rubro: string | null
+  contactoNombre: string | null
+  contactoCargo: string | null
+  fuenteUrl: string | null
+  emailFuenteUrl: string | null
   estado: string
   posibleDuplicadoDeId: string | null
   score: number | null
@@ -117,7 +127,7 @@ export function CampanaTabla({ prospectos }: CampanaTablaProps) {
               </td>
               <td className={CLASE_CELDA}>
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* T-15 implementa la ficha del prospecto. */}
+                  {/* T-15 implementa la ficha completa del prospecto. */}
                   <button
                     type="button"
                     disabled
@@ -126,7 +136,7 @@ export function CampanaTabla({ prospectos }: CampanaTablaProps) {
                   >
                     Ver ficha
                   </button>
-                  {/* Placeholders: la logica de T-14/T-15 no se implementa aca. */}
+                  {/* T-15 implementa el analisis del prospecto. */}
                   <button
                     type="button"
                     disabled
@@ -135,14 +145,7 @@ export function CampanaTabla({ prospectos }: CampanaTablaProps) {
                   >
                     Analizar
                   </button>
-                  <button
-                    type="button"
-                    disabled
-                    title="Disponible en T-14"
-                    className={CLASE_PLACEHOLDER}
-                  >
-                    Descartar
-                  </button>
+                  <ProspectoAcciones prospecto={prospecto} />
                 </div>
               </td>
             </tr>

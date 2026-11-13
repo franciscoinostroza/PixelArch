@@ -218,7 +218,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
 
 ## Fase 4: Cumplimiento y operación
 
-- [ ] **T-19 (AC-33, AC-34, AC-35; RF-51, RF-52, RF-56) — Baja pública y POST one-click.**
+- [x] **T-19 (AC-33, AC-34, AC-35; RF-51, RF-52, RF-56) — Baja pública y POST one-click.**
   - Página `/propuestas/baja/[token]`: valida token sin revelar datos; formulario de confirmación; genérica para token inválido/usado; `noindex`/`no-store`; sin login. Vive en un route group `(propuestas-baja)` con layout mínimo, **fuera** del layout admin de `(propuestas)`.
   - `POST /api/opt-out`: rate limit 10/min por IP y 5/min por token (clave = hash del token, nunca el token en claro); verifica HMAC; crea/actualiza supresión por `emailHash`; cancela BORRADOR/APROBADO; si el email actual del prospecto coincide con el hash, lo marca SUPRIMIDO; si no, solo cancela los envíos pendientes de ese email; responde 200/202 genérico; idempotente.
   - `List-Unsubscribe` del email apunta a este POST; enlace visible apunta a la página.
@@ -226,6 +226,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-06, T-18.
   - Tests: render público sin guard admin; token válido → supresión; inválido/usado → misma respuesta; sin enumeración; idempotente; rate limit 429 con `Retry-After`; headers; no PII; POST one-click 200/202; GET no muta.
   - Cierre: tester (`opt-out.test.ts`, `propuestas-email.test.ts`) · reviewer (privacidad, enumeración, cumplimiento) · 1 commit.
+  - PASS tester+reviewer: 218 tests focalizados verdes (opt-out/middleware/email/páginas), suite completa 2794/2794, tsc 0 errores; reviewer PASS. Deuda menor: 202 vs 200 sin secreto; fallos DB genéricos requieren monitoreo; JS obligatorio en la página (evaluar form POST); historial fuera de transacción; body sin streaming; rotación de secreto invalida enlaces (runbook T-24); rate limit en memoria; baja pasa por Clerk (evaluar desacople); test de precedencia de headers es estructural, validar con curl en T-26.
 
 - [ ] **T-20 (AC-15..AC-18, AC-27, AC-36; RF-23..RF-28, RF-56) — Supresiones admin, rebotes y respuestas.**
   - `POST /api/propuestas/supresiones`: EMAIL por hash o DOMINIO de negocio; motivo/origen; idempotente por clave; rechaza proveedores públicos; cancela pendientes y marca prospectos.

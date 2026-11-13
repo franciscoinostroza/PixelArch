@@ -109,5 +109,16 @@ export default clerkMiddleware(async (auth, req) => {
 })
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next|monitoring|api/webhooks|api/revalidate|api/cron|api/contact|api/health|api/reviews|api/audit|api/newsletter).*)", "/", "/(api/(?!webhooks|revalidate|cron|contact|health|reviews|audit|newsletter)|trpc)(.*)"],
+  matcher: [
+    "/((?!.*\\..*|_next|monitoring|api/webhooks|api/revalidate|api/cron|api/contact|api/health|api/reviews|api/audit|api/newsletter).*)",
+    "/",
+    "/(api/(?!webhooks|revalidate|cron|contact|health|reviews|audit|newsletter)|trpc)(.*)",
+    // T-19: el token real de baja (`v1.<prospecto>.<emailHash>.<hmac>`) contiene
+    // puntos. El primer matcher excluye cualquier ruta con extension (`.*\..*`),
+    // asi que `/propuestas/baja/<token>` no pasaba por middleware y no recibia
+    // `X-Robots-Tag`/`Cache-Control`. Este matcher explicito no excluye puntos y
+    // deja que `ROUTES.public` la trate como publica; `/api/opt-out` ya entra
+    // por el matcher de APIs.
+    "/propuestas/baja/:path*",
+  ],
 }

@@ -1,15 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { NextRequest } from "next/server"
+import { crearTokenBaja, hashEmail } from "@/lib/propuestas/supresion"
 
 /**
  * T-01 (AC-1, AC-4, AC-5; RF-3): el middleware es la primera barrera del portal
  * `/propuestas`. Cubre la colision `/propuesta` (singular, publica) vs
  * `/propuestas` (plural, admin-only), la baja publica y las APIs internas.
+ *
+ * T-19 (AC-33, AC-34): el token real de baja contiene puntos y el matcher
+ * generico excluye rutas con extension. Se verifica que el matcher explicito de
+ * la baja cubra el token real y que los headers de `next.config.ts` no se
+ * cacheen ni filtren el referrer.
  */
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   routePatterns: [] as string[][],
+}))
+
+// `next.config.ts` se envuelve con Sentry al importarse; en el test se usa la
+// configuracion tal cual, sin inicializar el SDK ni tocar la red.
+vi.mock("@sentry/nextjs/config", () => ({
+  withSentryConfig: (config: unknown) => config,
 }))
 
 function patronARegExp(patron: string): RegExp {
@@ -19,6 +31,29 @@ function patronARegExp(patron: string): RegExp {
   }
   return new RegExp(`^${patron.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`)
 }
+
+/**
+ * Emula lo justo de path-to-regexp que usa Next en `config.matcher`:
+ * `:param*` cubre cero o mas segmentos. El resto del patron se toma literal.
+ */
+function matcherARegExp(patron: string): RegExp {
+  const marca = "__PARAM_RESTO__"
+  // `/:path*` incluye la barra: el segmento completo es opcional.
+  const conMarca = patron.replace("/:path*", marca)
+  const escapado = conMarca.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const fuente = escapado.replace(marca, "(?:/.*)?")
+  return new RegExp(`^${fuente}$`)
+}
+
+// Token real (mismo formato que produce T-19): `v1.<id>.<hmac email>.<firma>`.
+// Los tres puntos son justamente lo que el matcher generico excluia.
+const SECRETO_BAJA_T19 = "secreto-de-pruebas-t19-middleware-0123456789"
+const HASH_BAJA_T19 = hashEmail("info@consultora-ejemplo.com", SECRETO_BAJA_T19)
+const TOKEN_BAJA_T19 = crearTokenBaja(
+  "pros_baja_1",
+  HASH_BAJA_T19,
+  SECRETO_BAJA_T19,
+)
 
 vi.mock("@clerk/nextjs/server", () => ({
   // El handler real queda envuelto por clerkMiddleware; en el test lo exponemos
@@ -33,7 +68,8 @@ vi.mock("@clerk/nextjs/server", () => ({
   clerkClient: vi.fn(async () => ({ users: { getUser: mocks.getUser } })),
 }))
 
-import middleware from "@/middleware"
+import middleware, { config as middlewareConfig } from "@/middleware"
+import nextConfig from "../../next.config"
 
 type AuthResult = { userId: string | null }
 type MiddlewareHandler = (
@@ -182,13 +218,42 @@ describe("middleware del portal /propuestas (T-01)", () => {
     expect(mocks.getUser).not.toHaveBeenCalled()
   })
 
-  it("deja publico /api/opt-out sin consultar Clerk (AC-34)", async () => {
-    const res = await handler(sesion(null), request("/api/opt-out"))
+  it("cubre la baja con token real (con puntos) sin gate y con noindex/no-store (T-19, AC-33, AC-34)", async () => {
+    // El fixture tiene el formato real; si dejara de tener puntos, el test no
+    // probaria el caso que rompia el matcher generico.
+    expect(TOKEN_BAJA_T19).toMatch(
+      /^v1\.[A-Za-z0-9_-]+\.[0-9a-f]{64}\.[A-Za-z0-9_-]{43}$/,
+    )
+    expect(TOKEN_BAJA_T19.split(".")).toHaveLength(4)
+
+    // La ruta entra por el matcher explicito de T-19 (el generico excluye
+    // cualquier ruta con un punto, como el token).
+    expect(middlewareConfig.matcher).toContain("/propuestas/baja/:path*")
+    const ruta = `/propuestas/baja/${TOKEN_BAJA_T19}`
+    expect(matcherARegExp("/propuestas/baja/:path*").test(ruta)).toBe(true)
+
+    const res = await handler(sesion(null), request(ruta))
 
     expect(locationDe(res)).toBeNull()
     expect(res.headers.get("x-middleware-rewrite")).toBeNull()
     expect(res.headers.get("x-robots-tag")).toBe("noindex, nofollow")
     expect(res.headers.get("cache-control")).toBe("no-store")
+    expect(mocks.getUser).not.toHaveBeenCalled()
+  })
+
+  it("deja publico /api/opt-out con y sin token real en query, sin Clerk (AC-34, T-19)", async () => {
+    for (const ruta of [
+      "/api/opt-out",
+      `/api/opt-out?token=${TOKEN_BAJA_T19}`,
+    ]) {
+      const res = await handler(sesion(null), request(ruta))
+
+      expect(locationDe(res), ruta).toBeNull()
+      expect(res.headers.get("x-middleware-rewrite"), ruta).toBeNull()
+      expect(res.headers.get("x-robots-tag"), ruta).toBe("noindex, nofollow")
+      expect(res.headers.get("cache-control"), ruta).toBe("no-store")
+    }
+
     expect(mocks.getUser).not.toHaveBeenCalled()
   })
 
@@ -249,5 +314,60 @@ describe("middleware del portal /propuestas (T-01)", () => {
     expect(res.headers.get("x-middleware-rewrite")).toBeNull()
     expect(res.headers.get("x-robots-tag")).toBe("noindex, nofollow")
     expect(res.headers.get("cache-control")).toBe("no-store")
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* T-19 (AC-33, AC-34): headers de la baja publica en next.config      */
+/* ------------------------------------------------------------------ */
+
+describe("next.config: headers de la baja publica (T-19, AC-33, AC-34)", () => {
+  it("fuerza no-referrer, noindex y no-store despues de la entrada global", async () => {
+    const headers = nextConfig.headers
+    if (!headers) throw new Error("next.config.ts no define headers()")
+
+    const entradas = await headers()
+    const indiceGlobal = entradas.findIndex(
+      (entrada) => entrada.source === "/(.*)",
+    )
+    expect(indiceGlobal).toBeGreaterThanOrEqual(0)
+
+    const global = new Map(
+      entradas[indiceGlobal].headers.map((header) => [
+        header.key.toLowerCase(),
+        header.value,
+      ]),
+    )
+    // La entrada global es la que se debe pisar; si dejara de existir, el test
+    // de orden perderia sentido.
+    expect(global.get("referrer-policy")).toBe(
+      "strict-origin-when-cross-origin",
+    )
+
+    for (const fuente of ["/propuestas/baja/:path*", "/api/opt-out"]) {
+      const indice = entradas.findIndex((entrada) => entrada.source === fuente)
+      expect(indice, fuente).toBeGreaterThan(indiceGlobal)
+
+      const especificos = new Map(
+        entradas[indice].headers.map((header) => [
+          header.key.toLowerCase(),
+          header.value,
+        ]),
+      )
+      expect(especificos.get("referrer-policy"), fuente).toBe("no-referrer")
+      expect(especificos.get("x-robots-tag"), fuente).toBe(
+        "noindex, nofollow",
+      )
+      expect(especificos.get("cache-control"), fuente).toBe("no-store")
+    }
+  })
+
+  it("el source de la baja cubre el token real con puntos", () => {
+    const baja = matcherARegExp("/propuestas/baja/:path*")
+
+    expect(baja.test("/propuestas/baja")).toBe(true)
+    expect(baja.test(`/propuestas/baja/${TOKEN_BAJA_T19}`)).toBe(true)
+    expect(baja.test("/propuestas/baja/v1.incompleto")).toBe(true)
+    expect(baja.test("/propuestas/buscar")).toBe(false)
   })
 })

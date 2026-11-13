@@ -52,6 +52,31 @@ const nextConfig: NextConfig = {
           { key: "Content-Security-Policy", value: csp },
         ],
       },
+      // T-19: el token de baja viaja en la URL y el header HTTP de
+      // `Referrer-Policy` tiene precedencia sobre `<meta name="referrer">`.
+      // El header global de arriba es `strict-origin-when-cross-origin`, que en
+      // navegaciones cross-origin enviaria el origen; aca se fuerza
+      // `no-referrer`. Next aplica las entradas de `headers()` en orden y la
+      // ultima que matchea pisa el mismo header (`resHeaders[key] = value` en
+      // resolve-routes), por eso estas entradas van despues de `/(.*)`.
+      // `X-Robots-Tag`/`Cache-Control` se repiten como defensa en profundidad
+      // aunque el middleware tambien los aplica.
+      {
+        source: "/propuestas/baja/:path*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Cache-Control", value: "no-store" },
+        ],
+      },
+      {
+        source: "/api/opt-out",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Cache-Control", value: "no-store" },
+        ],
+      },
     ]
   },
 }

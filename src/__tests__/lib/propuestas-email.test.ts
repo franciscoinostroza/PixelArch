@@ -397,3 +397,69 @@ describe("email: fallar cerrado", () => {
     ).toBe("CUERPO")
   })
 })
+
+/* ------------------------------------------------------------------ */
+/* T-19 (AC-34; RF-51, RF-52): baja publica one-click                  */
+/* ------------------------------------------------------------------ */
+
+describe("email: baja publica one-click (T-19, AC-34; RF-51, RF-52)", () => {
+  it("el enlace visible apunta a /propuestas/baja/<token> y el header POST a /api/opt-out", () => {
+    const email = construirEmail(emailValido())
+    const tokenCodificado = encodeURIComponent(TOKEN)
+
+    expect(email.enlaceBaja).toBe(
+      `${URL_PUBLICA}/propuestas/baja/${tokenCodificado}`,
+    )
+    expect(email.optOutUrl).toBe(
+      `${URL_PUBLICA}/api/opt-out?token=${tokenCodificado}`,
+    )
+
+    // El header RFC 8058 usa el endpoint POST, no la pagina visible.
+    expect(email.headers[HEADER_LIST_UNSUBSCRIBE]).toContain(
+      `<${URL_PUBLICA}/api/opt-out?token=${tokenCodificado}>`,
+    )
+    expect(email.headers[HEADER_LIST_UNSUBSCRIBE]).not.toContain(
+      "/propuestas/baja/",
+    )
+
+    // El enlace visible aparece en HTML y en texto plano.
+    expect(email.html).toContain(
+      `<a href="${URL_PUBLICA}/propuestas/baja/${tokenCodificado}">Darse de baja</a>`,
+    )
+    expect(email.text).toContain(
+      `Darse de baja: ${URL_PUBLICA}/propuestas/baja/${tokenCodificado}`,
+    )
+
+    // Ni el email ni el secreto viajan en la URL de baja.
+    expect(email.enlaceBaja).not.toContain(EMAIL)
+    expect(email.optOutUrl).not.toContain(EMAIL)
+    expect(email.enlaceBaja).not.toContain(SECRETO)
+    expect(email.optOutUrl).not.toContain(SECRETO)
+  })
+
+  it("declara List-Unsubscribe-Post one-click para el mismo POST", () => {
+    const email = construirEmail(emailValido())
+
+    expect(email.headers[HEADER_LIST_UNSUBSCRIBE_POST]).toBe(
+      LIST_UNSUBSCRIBE_POST,
+    )
+    expect(LIST_UNSUBSCRIBE_POST).toBe("List-Unsubscribe=One-Click")
+    // El POST one-click no requiere sesion: es la unica API publica de baja.
+    expect(email.optOutUrl.startsWith(`${URL_PUBLICA}/api/opt-out?token=`)).toBe(
+      true,
+    )
+    expect(email.optOutUrl).not.toContain("/admin")
+    expect(email.optOutUrl).not.toContain("clerk")
+  })
+
+  it("el modulo de email no loguea PII ni tokens", () => {
+    const fuente = readFileSync(
+      path.join(process.cwd(), "src", "lib", "propuestas", "email.ts"),
+      "utf8",
+    )
+
+    expect(fuente).not.toMatch(/from\s+["']@\/lib\/logger["']/)
+    expect(fuente).not.toMatch(/\bconsole\.(log|info|warn|error|debug)\s*\(/)
+    expect(fuente).not.toMatch(/\blogger\./)
+  })
+})

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs"
+import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   fireEvent,
@@ -7,6 +9,7 @@ import {
   within,
 } from "@testing-library/react"
 import type { AnchorHTMLAttributes, ReactNode } from "react"
+import { unstable_noStore } from "next/cache"
 
 /**
  * T-02 (AC-3, AC-5, AC-6; RF-1, RF-4, RF-5): dashboard vacio y shell del
@@ -76,6 +79,8 @@ vi.mock("next/link", () => ({
   ),
 }))
 
+vi.mock("next/cache", () => ({ unstable_noStore: vi.fn() }))
+
 import PropuestasDashboardPage, {
   metadata,
 } from "@/app/(propuestas)/propuestas/page"
@@ -134,6 +139,16 @@ import {
   PROSPECTO_MOTIVO_MAX,
   PROSPECTO_NOTA_MAX,
 } from "@/lib/propuestas/validation"
+import BajaPropuestasPage, {
+  dynamic as dynamicBaja,
+  metadata as metadataBaja,
+  revalidate as revalidateBaja,
+} from "@/app/(propuestas-baja)/propuestas/baja/[token]/page"
+import BajaPropuestasLayout, {
+  metadata as metadataLayoutBaja,
+} from "@/app/(propuestas-baja)/layout"
+import { BajaConfirmar } from "@/components/propuestas/baja-confirmar"
+import { crearTokenBaja, hashEmail } from "@/lib/propuestas/supresion"
 
 const UUID_V4 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -4388,6 +4403,275 @@ describe("ficha del prospecto: envio y seguimiento (T-18, AC-26, AC-29)", () => 
         name: /crear versión borrador para reintentar/i,
       }),
     ).toBeInTheDocument()
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* T-19 (AC-16, AC-33, AC-34, AC-35; RF-51, RF-52, RF-56)             */
+/* Baja publica: pagina, layout y confirmacion explicita               */
+/* ------------------------------------------------------------------ */
+
+const SECRETO_BAJA = "secreto-de-pruebas-t19-baja-publica-0123456789"
+const EMAIL_BAJA = "info@consultora-ejemplo.com"
+const HASH_BAJA = hashEmail(EMAIL_BAJA, SECRETO_BAJA)
+const TOKEN_BAJA = crearTokenBaja("pros_baja_1", HASH_BAJA, SECRETO_BAJA)
+const TOKEN_BAJA_ALTERADO =
+  TOKEN_BAJA.slice(0, -1) + (TOKEN_BAJA.endsWith("A") ? "B" : "A")
+
+async function vistaDeBaja(token: string): Promise<string> {
+  const { container, unmount } = render(
+    await BajaPropuestasPage({ params: Promise.resolve({ token }) }),
+  )
+  const html = container.innerHTML
+  unmount()
+  return html
+}
+
+describe("/propuestas/baja/[token] (T-19, AC-33; RF-51)", () => {
+  it("publica metadata noindex/nocache, no-referrer y no-store (AC-33)", () => {
+    expect(metadataBaja.robots).toEqual({
+      index: false,
+      follow: false,
+      nocache: true,
+    })
+    expect(metadataBaja.referrer).toBe("no-referrer")
+    expect(metadataLayoutBaja.robots).toEqual({
+      index: false,
+      follow: false,
+      nocache: true,
+    })
+    expect(metadataLayoutBaja.referrer).toBe("no-referrer")
+    expect(dynamicBaja).toBe("force-dynamic")
+    expect(revalidateBaja).toBe(0)
+  })
+
+  it("renderiza sin guard admin, sin auto-POST y sin datos del prospecto", async () => {
+    vi.stubEnv("PROPUESTAS_SECRETO", SECRETO_BAJA)
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      await BajaPropuestasPage({
+        params: Promise.resolve({ token: TOKEN_BAJA }),
+      }),
+    )
+
+    expect(
+      screen.getByRole("heading", { name: "Baja de propuestas" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Confirmar baja" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/no necesitás cuenta/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/abrir esta página no da de baja nada por sí solo/i),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/inmediata y global/i)).toBeInTheDocument()
+
+    // No se dispara ninguna baja al abrir la pagina.
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(unstable_noStore).toHaveBeenCalled()
+
+    // Sin email, token ni id del prospecto en el DOM.
+    const texto = document.body.textContent ?? ""
+    expect(texto).not.toContain(EMAIL_BAJA)
+    expect(texto).not.toContain(TOKEN_BAJA)
+    expect(texto).not.toContain("pros_baja_1")
+    expect(document.body.innerHTML).not.toContain("mailto:")
+  })
+
+  it("token valido, alterado y ya usado devuelven la misma vista generica (AC-33)", async () => {
+    vi.stubEnv("PROPUESTAS_SECRETO", SECRETO_BAJA)
+
+    const valido = await vistaDeBaja(TOKEN_BAJA)
+    const alterado = await vistaDeBaja(TOKEN_BAJA_ALTERADO)
+    // La pagina no consulta la base: un enlace ya usado luce igual.
+    const usado = await vistaDeBaja(TOKEN_BAJA)
+
+    expect(alterado).toBe(valido)
+    expect(usado).toBe(valido)
+    expect(valido).not.toContain(EMAIL_BAJA)
+    expect(valido).not.toContain(TOKEN_BAJA)
+    expect(valido).not.toContain("SUPRIMIDO")
+    expect(valido).not.toContain("consultora-ejemplo")
+  })
+
+  it("el layout es minimo y no muestra navegacion del CRM (AC-33)", () => {
+    render(
+      <BajaPropuestasLayout>
+        <p>contenido de baja</p>
+      </BajaPropuestasLayout>,
+    )
+
+    expect(screen.getByText("contenido de baja")).toBeInTheDocument()
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument()
+    for (const nombre of [/clientes/i, /cobros/i, /pagos/i, /propuestas/i]) {
+      expect(screen.queryByRole("link", { name: nombre })).not.toBeInTheDocument()
+    }
+  })
+
+  it("pagina, layout y componente no importan Clerk/Prisma ni hacen fetch al renderizar (AC-33)", () => {
+    const appDir = path.join(process.cwd(), "src", "app", "(propuestas-baja)")
+    const pagina = readFileSync(
+      path.join(appDir, "propuestas", "baja", "[token]", "page.tsx"),
+      "utf8",
+    )
+    const layout = readFileSync(path.join(appDir, "layout.tsx"), "utf8")
+    const componente = readFileSync(
+      path.join(
+        process.cwd(),
+        "src",
+        "components",
+        "propuestas",
+        "baja-confirmar.tsx",
+      ),
+      "utf8",
+    )
+
+    for (const [nombre, fuente] of [
+      ["pagina", pagina],
+      ["layout", layout],
+    ] as const) {
+      expect(fuente, nombre).not.toMatch(
+        /requireAdmin|@clerk|@\/lib\/prisma|@\/lib\/auth/,
+      )
+      expect(fuente, nombre).not.toMatch(/\bfetch\s*\(/)
+    }
+
+    // La baja solo se dispara con el click del boton, no por efecto.
+    expect(componente).not.toMatch(/useEffect/)
+    expect(componente).not.toMatch(/\bconsole\./)
+    expect(componente).toMatch(/onClick=\{\(\) => void confirmarBaja\(\)\}/)
+  })
+})
+
+describe("BajaConfirmar (T-19, AC-33, AC-34; RF-51, RF-52)", () => {
+  it("no hace auto-POST: exige un click explicito (AC-33)", () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<BajaConfirmar token={TOKEN_BAJA} />)
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(
+      screen.getByRole("button", { name: "Confirmar baja" }),
+    ).toBeEnabled()
+    expect(screen.getByText(/paso explícito/i)).toBeInTheDocument()
+    expect(document.body.textContent ?? "").not.toContain(TOKEN_BAJA)
+  })
+
+  it("pending bloquea el doble click y envia el token por POST (AC-33, AC-34)", async () => {
+    let resolver: (valor: unknown) => void = () => undefined
+    const pendiente = new Promise((resolve) => {
+      resolver = resolve
+    })
+    const fetchMock = vi.fn().mockReturnValue(pendiente)
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<BajaConfirmar token={TOKEN_BAJA} />)
+    const boton = screen.getByRole("button", { name: "Confirmar baja" })
+    fireEvent.click(boton)
+    fireEvent.click(boton)
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    const enCurso = screen.getByRole("button", { name: /confirmando/i })
+    expect(enCurso).toBeDisabled()
+    expect(enCurso.closest("[aria-busy]")).toHaveAttribute("aria-busy", "true")
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/opt-out")
+    expect(init.method).toBe("POST")
+    expect(JSON.parse(String(init.body))).toEqual({ token: TOKEN_BAJA })
+
+    resolver({ ok: true, status: 200 })
+
+    expect(
+      await screen.findByText(/Listo\. Si este enlace correspondía/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Baja registrada" }),
+    ).toBeDisabled()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    const texto = document.body.textContent ?? ""
+    expect(texto).not.toContain(EMAIL_BAJA)
+    expect(texto).not.toContain(TOKEN_BAJA)
+  })
+
+  it("un 202 one-click se muestra como exito generico (AC-34)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 202 })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<BajaConfirmar token={TOKEN_BAJA} />)
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar baja" }))
+
+    expect(
+      await screen.findByText(/Listo\. Si este enlace correspondía/i),
+    ).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("un error 500 muestra un mensaje generico y permite reintentar (AC-33)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: `fallo ${EMAIL_BAJA} ${TOKEN_BAJA}` }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<BajaConfirmar token={TOKEN_BAJA} />)
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar baja" }))
+
+    expect(
+      await screen.findByText(/No pudimos completar la baja/i),
+    ).toBeInTheDocument()
+    const texto = document.body.textContent ?? ""
+    expect(texto).not.toContain(EMAIL_BAJA)
+    expect(texto).not.toContain(TOKEN_BAJA)
+    expect(
+      screen.getByRole("button", { name: "Confirmar baja" }),
+    ).toBeEnabled()
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar baja" }))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+  })
+
+  it("un 429 muestra el aviso de rate limit sin filtrar datos (AC-33)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 429 })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<BajaConfirmar token={TOKEN_BAJA} />)
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar baja" }))
+
+    expect(
+      await screen.findByText(/demasiadas solicitudes desde tu conexión/i),
+    ).toBeInTheDocument()
+    expect(document.body.textContent ?? "").not.toContain(TOKEN_BAJA)
+    expect(
+      screen.getByRole("button", { name: "Confirmar baja" }),
+    ).toBeEnabled()
+  })
+
+  it("un fallo de red se muestra generico y sin PII (AC-33)", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error(`fallo ${EMAIL_BAJA} ${TOKEN_BAJA}`))
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<BajaConfirmar token={TOKEN_BAJA} />)
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar baja" }))
+
+    expect(
+      await screen.findByText(/No pudimos completar la baja/i),
+    ).toBeInTheDocument()
+    const texto = document.body.textContent ?? ""
+    expect(texto).not.toContain(EMAIL_BAJA)
+    expect(texto).not.toContain(TOKEN_BAJA)
+    expect(
+      screen.getByRole("button", { name: "Confirmar baja" }),
+    ).toBeEnabled()
   })
 })
 

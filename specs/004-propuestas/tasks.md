@@ -201,7 +201,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Cierre: tester (`envios.test.ts`) · reviewer (inmutabilidad, auth, Resend no llamado) · 1 commit.
   - PASS tester+reviewer: 202 tests verdes (85 API + 117 páginas) + 68 de plantillas/envíos, tsc 0 errores; reviewer PASS. Deuda menor: la UI muestra from/reply-to del borrador pero la ruta aprueba con la config actual (alinear); el chequeo de otro APROBADO/ENVIANDO ocurre fuera de la transacción; la supresión se consulta fuera de la transacción; los headers no se persisten y T-18 debe reconstruirlos idénticamente y comparar; duplicación de `motivosConfiguracionAprobacion`; origen devuelve 409 en vez de 403 con URL inválida; branch `NO_CONFIGURADO` inalcanzable; copy interno «T-18»; falta test UI de hash mutado y de secuencia máxima.
 
-- [ ] **T-18 (AC-26, AC-28, AC-29, AC-30, AC-31; RF-43..RF-50) — Envío con Resend, idempotencia y resultado.**
+- [x] **T-18 (AC-26, AC-28, AC-29, AC-30, AC-31; RF-43..RF-50) — Envío con Resend, idempotencia y resultado.**
   - `src/lib/propuestas/resend.ts`: wrapper server-only, `Idempotency-Key`, headers `List-Unsubscribe`/`-Post`, from/reply-to, sin scheduling/adjuntos/tracking; errores sanitizados.
   - `POST /api/propuestas/envios/[id]/enviar`: body `confirmacion: "ENVIAR"`; revalida `puedeEnviar`; reserva cupo; `updateMany(APROBADO -> ENVIANDO)`; llama a Resend; éxito `ENVIADO` + messageId; fallo `FALLIDO` sin retry; actualiza prospecto/`ultimoEnvioEn`.
   - `POST /api/propuestas/envios/[id]/reintentar`: solo FALLIDO; crea `version+1` BORRADOR con el mismo contenido, hash nuevo; requiere edición/aprobación; no llama a Resend.
@@ -212,6 +212,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-17.
   - Tests: una sola llamada con key; doble clic no duplica; error → FALLIDO/código; éxito → messageId; sin aprobación/suprimido/sin email/cupo → 409; `aprobadoHash` o `hashContenido` distintos → 409; reintentar FALLIDO crea versión BORRADOR sin Resend; 21.º envío → 429 sin cola; no scheduler/`scheduledAt` (`secuencia` es numeración manual); rebote/queja suprimen; follow-up exige nueva aprobación.
   - Cierre: tester (`envios.test.ts`, `propuestas-sin-red.test.ts`) · reviewer (idempotencia, PII, cumplimiento) · 1 commit.
+  - PASS tester+reviewer: 306 tests verdes (166 API + 140 páginas), tsc 0 errores; reviewer PASS. Deuda menor: la reconciliación de `ENVIANDO` estancado no tiene botón en la UI; el cupo RESEND se consume ante fallo de red (cuenta el intento); no habilitar el envío real antes de T-19 (baja pública/one-click); faltan tests de 500/404 y del rechazo atómico del 21.º envío; historial/carrera al escribir `resultado`; el upsert de supresión no refresca el motivo; `puedeEnviar` devuelve flags `true` en casos límite; copy doble «ENVIADO + abierto»; el listado limita 100 filas sin paginar.
 
 ---
 

@@ -97,6 +97,9 @@ import PlantillaDetallePage, {
 import BandejaPage, {
   metadata as metadataBandeja,
 } from "@/app/(propuestas)/propuestas/bandeja/page"
+import EnviosPage, {
+  metadata as metadataEnvios,
+} from "@/app/(propuestas)/propuestas/envios/page"
 import { ScoreDesglose } from "@/components/propuestas/score-desglose"
 import { AnalizarProspecto } from "@/components/propuestas/analizar-prospecto-button"
 import { PlantillaForm } from "@/components/propuestas/plantilla-form"
@@ -105,6 +108,10 @@ import {
   GenerarBorrador,
 } from "@/components/propuestas/borrador-editor"
 import { AprobacionPanel } from "@/components/propuestas/aprobacion-panel"
+import {
+  EnvioConfirmacion,
+  EnvioSeguimiento,
+} from "@/components/propuestas/envio-confirmacion"
 import {
   CODIGO_ESQUEMA_NO_APLICADO,
   esErrorTablaFaltante,
@@ -2866,6 +2873,60 @@ describe("panel de borrador en la ficha del prospecto (T-16, AC-22, AC-24)", () 
     ).toBeInTheDocument()
   })
 
+  it("no duplica el generador cuando hay un BORRADOR o APROBADO abierto (AC-22, AC-31)", async () => {
+    mocks.prospectoFindUnique.mockResolvedValue(
+      prospectoDetalleFixture({ campanaOrigen: campanaConPlantilla }),
+    )
+    mocks.plantillaFindMany.mockResolvedValue([
+      { id: "pl_1", nombre: "Primer contacto", version: 1 },
+    ])
+    mocks.envioFindFirst.mockResolvedValue({
+      id: "env_1",
+      estado: "BORRADOR",
+      version: 1,
+      secuencia: 1,
+      asunto: "Una idea para Consultora Alfa",
+      cuerpoTexto: "Hola Ana,\n\nTe escribo.",
+    })
+
+    const borrador = await renderProspecto()
+
+    const panel = screen.getByRole("region", {
+      name: /borrador de propuesta/i,
+    })
+    expect(
+      within(panel).getByRole("button", { name: "Guardar borrador" }),
+    ).toBeInTheDocument()
+    expect(
+      within(panel).queryByRole("button", { name: "Generar borrador" }),
+    ).not.toBeInTheDocument()
+    borrador.unmount()
+
+    mocks.envioFindFirst.mockResolvedValue({
+      id: "env_1",
+      estado: "APROBADO",
+      version: 2,
+      secuencia: 1,
+      asunto: "Una idea para Consultora Alfa",
+      cuerpoTexto: "Hola Ana,\n\nTe escribo.",
+    })
+
+    const aprobado = await renderProspecto()
+
+    const panelAprobado = screen.getByRole("region", {
+      name: /borrador de propuesta/i,
+    })
+    expect(
+      within(panelAprobado).getByRole("button", {
+        name: "Guardar como versión nueva",
+      }),
+    ).toBeInTheDocument()
+    expect(
+      within(panelAprobado).queryByRole("button", { name: "Generar borrador" }),
+    ).not.toBeInTheDocument()
+    aprobado.unmount()
+  })
+
   it("no renderiza datos ni acciones si falta el esquema", async () => {
     mocks.prospectoFindUnique.mockRejectedValue({ code: "P2021" })
 
@@ -2981,6 +3042,99 @@ describe("GenerarBorrador (T-16, AC-22, AC-23)", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       /se necesita un prospecto puntuado/i,
     )
+  })
+
+  it("con estado ENVIADO habilita el follow-up manual y hace POST del borrador nuevo (AC-31)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ envioId: "env_2", secuencia: 2, version: 1 }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <GenerarBorrador
+        prospectoId="pros_1"
+        plantillas={PLANTILLAS}
+        plantillaPorDefectoId={null}
+        tieneEmail
+        estadoProspecto="ENVIADO"
+      />,
+    )
+
+    expect(
+      screen.getByRole("button", { name: "Generar borrador" }),
+    ).toBeEnabled()
+    const aviso = screen.getByRole("status")
+    expect(aviso).toHaveTextContent(/follow-up es\s+manual/i)
+    expect(aviso).toHaveTextContent(
+      /requiere un borrador nuevo y una aprobación nueva/i,
+    )
+    expect(aviso).toHaveTextContent(/máximo de mensajes configurado/i)
+    expect(aviso).toHaveTextContent(
+      /no hay follow-up automático ni envío programado/i,
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "Generar borrador" }))
+
+    const resultado = await screen.findByText(
+      /Borrador creado \(secuencia 2, versión 1\)/i,
+    )
+    expect(resultado).toHaveTextContent(/no se envió ningún email/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/prospectos/pros_1/borrador")
+    expect(url).not.toContain("@")
+    expect(init.method).toBe("POST")
+    expect(JSON.parse(String(init.body))).toEqual({
+      modo: "PLANTILLA",
+      plantillaId: "pl_1",
+    })
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("se deshabilita con ENVIANDO y con un envío abierto, sin generar (AC-31)", () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    const { unmount } = render(
+      <GenerarBorrador
+        prospectoId="pros_1"
+        plantillas={PLANTILLAS}
+        plantillaPorDefectoId={null}
+        tieneEmail
+        estadoProspecto="ENVIANDO"
+      />,
+    )
+    expect(
+      screen.getByRole("button", { name: "Generar borrador" }),
+    ).toBeDisabled()
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /estado\s+ENVIANDO/i,
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Generar borrador" }))
+    unmount()
+
+    render(
+      <GenerarBorrador
+        prospectoId="pros_1"
+        plantillas={PLANTILLAS}
+        plantillaPorDefectoId={null}
+        tieneEmail
+        estadoProspecto="ENVIADO"
+        hayEnvioAbierto
+      />,
+    )
+    expect(
+      screen.getByRole("button", { name: "Generar borrador" }),
+    ).toBeDisabled()
+    expect(
+      screen.getByText(/ya hay un envío abierto o pendiente/i),
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Generar borrador" }))
+
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })
 
@@ -3522,6 +3676,718 @@ describe("BorradorEditor (T-16, AC-22, AC-24)", () => {
       screen.getByRole("button", { name: "Guardar borrador" }),
     ).toBeDisabled()
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* T-18 (AC-26, AC-28..AC-31; RF-43..RF-50): historial, confirmacion,  */
+/* seguimiento y ficha                                                  */
+/* ------------------------------------------------------------------ */
+
+function envioHistorialFixture(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    id: "env_1",
+    estado: "ENVIADO",
+    version: 1,
+    secuencia: 1,
+    destinatario: "ventas@alfa.com.ar",
+    proveedorMessageId: "msg_live_1",
+    error: null,
+    creadoEn: new Date("2026-11-12T17:00:00.000Z"),
+    actualizadoEn: new Date("2026-11-12T18:00:00.000Z"),
+    aprobadoEn: new Date("2026-11-12T17:30:00.000Z"),
+    enviadoEn: new Date("2026-11-12T18:00:00.000Z"),
+    prospecto: { id: "pros_1", nombreNegocio: "Consultora Alfa" },
+    campana: { id: "camp_1", nombre: "Estudios contables Palermo" },
+    ...overrides,
+  }
+}
+
+describe("/propuestas/envios (T-18, AC-26, AC-29; RF-43..RF-49)", () => {
+  it("muestra el historial con destinatario enmascarado, message ID y error saneado", async () => {
+    mocks.envioFindMany.mockResolvedValue([
+      envioHistorialFixture(),
+      envioHistorialFixture({
+        id: "env_2",
+        estado: "FALLIDO",
+        version: 2,
+        secuencia: 2,
+        proveedorMessageId: null,
+        error: "PROVEEDOR: Resend no respondio correctamente.",
+      }),
+    ])
+
+    render(await EnviosPage())
+
+    expect(
+      screen.getByRole("heading", { name: /historial de envíos/i }),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/2 envíos en el historial/i)).toBeInTheDocument()
+    expect(screen.getByText(/1 enviados/i)).toBeInTheDocument()
+    expect(screen.getByText(/1 con fallo o supresión/i)).toBeInTheDocument()
+
+    // El email completo no se muestra: solo la mascara.
+    expect(screen.getAllByText(/v\*\*\*@alfa\.com\.ar/i).length).toBe(2)
+    expect(document.body).not.toHaveTextContent("ventas@alfa.com.ar")
+
+    expect(screen.getByText("msg_live_1")).toBeInTheDocument()
+    expect(screen.getByText("ENVIADO")).toBeInTheDocument()
+    expect(screen.getByText("FALLIDO")).toBeInTheDocument()
+    expect(
+      screen.getByText(/PROVEEDOR: Resend no respondio correctamente/i),
+    ).toBeInTheDocument()
+
+    const ficha = screen.getAllByRole("link", {
+      name: /ver en la ficha del prospecto/i,
+    })
+    expect(ficha[0]).toHaveAttribute("href", "/propuestas/prospectos/pros_1")
+    expect(
+      screen.getAllByRole("link", { name: "Consultora Alfa" })[0],
+    ).toHaveAttribute("href", "/propuestas/prospectos/pros_1")
+    expect(
+      screen.getAllByRole("link", { name: "Estudios contables Palermo" })[0],
+    ).toHaveAttribute("href", "/propuestas/campanas/camp_1")
+
+    expect(screen.getByRole("note")).toHaveTextContent(/solo lectura/i)
+  })
+
+  it("muestra el estado vacio sin acciones", async () => {
+    mocks.envioFindMany.mockResolvedValue([])
+
+    render(await EnviosPage())
+
+    expect(
+      screen.getByRole("heading", { name: /todavía no hay envíos/i }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole("listitem")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button")).not.toBeInTheDocument()
+  })
+
+  it("con esquema faltante muestra EstadoOperativo y no lista envios", async () => {
+    mocks.envioFindMany.mockRejectedValue({ code: "P2021" })
+
+    render(await EnviosPage())
+
+    const estado = screen.getByRole("alert")
+    expect(estado).toHaveAttribute("data-estado", CODIGO_ESQUEMA_NO_APLICADO)
+    expect(screen.queryByRole("listitem")).not.toBeInTheDocument()
+  })
+
+  it("no oculta errores que no son de esquema y publica noindex", async () => {
+    expect(metadataEnvios.robots).toEqual({ index: false, follow: false })
+
+    mocks.envioFindMany.mockRejectedValue(new Error("base caida"))
+
+    await expect(EnviosPage()).rejects.toThrow("base caida")
+  })
+})
+
+describe("EnvioConfirmacion (T-18, AC-26, AC-28, AC-30)", () => {
+  const PROPS = {
+    envioId: "env_1",
+    destinatario: "ventas@alfa.com.ar",
+    asunto: "Una idea para Consultora Alfa",
+    version: 2,
+    secuencia: 1,
+  }
+
+  it("avisa que no hay autoenvio y exige un checkbox separado del de aprobacion", () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<EnvioConfirmacion {...PROPS} />)
+
+    const region = screen.getByRole("region", {
+      name: /confirmación de envío/i,
+    })
+    expect(
+      within(region).getByRole("heading", { name: /enviar la propuesta/i }),
+    ).toBeInTheDocument()
+    expect(within(region).getByText("APROBADO")).toBeInTheDocument()
+    expect(
+      within(region).getByText(/no hay autoenvío, envío por lote, cola ni programación/i),
+    ).toBeInTheDocument()
+    expect(
+      within(region).getByText("ventas@alfa.com.ar"),
+    ).toBeInTheDocument()
+    expect(
+      within(region).getByText("Una idea para Consultora Alfa"),
+    ).toBeInTheDocument()
+    expect(within(region).getByText("v2 · secuencia 1")).toBeInTheDocument()
+    expect(within(region).queryByRole("dialog")).not.toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    fireEvent.click(
+      within(region).getByRole("button", { name: "Enviar email" }),
+    )
+
+    const dialogo = screen.getByRole("dialog", {
+      name: /confirmar envío real/i,
+    })
+    expect(dialogo).toHaveAttribute("aria-modal", "true")
+    const checkbox = within(dialogo).getByRole("checkbox", {
+      name: /entiendo que se enviará un email real/i,
+    })
+    expect(checkbox).not.toBeChecked()
+    expect(
+      within(dialogo).getByRole("button", { name: "Enviar email real" }),
+    ).toBeDisabled()
+
+    fireEvent.click(checkbox)
+
+    expect(
+      within(dialogo).getByRole("button", { name: "Enviar email real" }),
+    ).toBeEnabled()
+  })
+
+  it("con el gate o la configuración incompletos muestra el badge y no abre el diálogo (AC-30)", () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <EnvioConfirmacion
+        {...PROPS}
+        habilitado={false}
+        motivos={[
+          "PROPUESTAS_ENVIO_HABILITADO no esta en true; el envio esta deshabilitado.",
+          "Falta RESEND_API_KEY; el envio esta deshabilitado.",
+        ]}
+      />,
+    )
+
+    const region = screen.getByRole("region", {
+      name: /confirmación de envío/i,
+    })
+    expect(within(region).getByText("ENVÍO DESHABILITADO")).toBeInTheDocument()
+    const estado = within(region).getByRole("status")
+    expect(estado).toHaveTextContent(/deshabilitado en este entorno/i)
+    expect(estado).toHaveTextContent(/PROPUESTAS_ENVIO_HABILITADO/)
+    expect(estado).toHaveTextContent(/RESEND_API_KEY/)
+    expect(estado).toHaveTextContent(/no se envió nada/i)
+
+    const boton = within(region).getByRole("button", {
+      name: "Enviar email",
+    })
+    expect(boton).toBeDisabled()
+    fireEvent.click(boton)
+
+    expect(
+      screen.queryByRole("dialog", { name: /confirmar envío real/i }),
+    ).not.toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("hace POST con { confirmacion: 'ENVIAR' }, una sola vez, y muestra el message ID", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ estado: "ENVIADO", messageId: "msg_live_1" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<EnvioConfirmacion {...PROPS} />)
+    fireEvent.click(screen.getByRole("button", { name: "Enviar email" }))
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: /entiendo que se enviará un email real/i,
+      }),
+    )
+    fireEvent.click(
+      screen.getByRole("button", { name: "Enviar email real" }),
+    )
+
+    const resultado = await screen.findByRole("status")
+    expect(resultado).toHaveTextContent(/Email enviado a Resend/i)
+    expect(resultado).toHaveTextContent(/Message ID: msg_live_1/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/envios/env_1/enviar")
+    expect(url).not.toContain("@")
+    expect(init.method).toBe("POST")
+    expect(JSON.parse(String(init.body))).toEqual({ confirmacion: "ENVIAR" })
+    expect(
+      screen.queryByRole("dialog", { name: /confirmar envío real/i }),
+    ).not.toBeInTheDocument()
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("bloquea el doble clic y no dispara dos envios", async () => {
+    let resolver: (valor: unknown) => void = () => undefined
+    const pendiente = new Promise((resolve) => {
+      resolver = resolve
+    })
+    const fetchMock = vi.fn().mockReturnValue(pendiente)
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<EnvioConfirmacion {...PROPS} />)
+    fireEvent.click(screen.getByRole("button", { name: "Enviar email" }))
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: /entiendo que se enviará un email real/i,
+      }),
+    )
+    const confirmar = screen.getByRole("button", {
+      name: "Enviar email real",
+    })
+    fireEvent.click(confirmar)
+    fireEvent.click(confirmar)
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    expect(
+      screen.getByRole("button", { name: /enviando/i }),
+    ).toBeDisabled()
+
+    resolver({
+      ok: true,
+      status: 200,
+      json: async () => ({ estado: "ENVIADO", messageId: "msg_unico" }),
+    })
+    await screen.findByRole("status")
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("muestra errores accesibles por codigo sin PII y refresca", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      json: async () => ({
+        codigo: "CUPO",
+        motivos: ["Se alcanzo el cupo diario de envios."],
+      }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<EnvioConfirmacion {...PROPS} />)
+    fireEvent.click(screen.getByRole("button", { name: "Enviar email" }))
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: /entiendo que se enviará un email real/i,
+      }),
+    )
+    fireEvent.click(
+      screen.getByRole("button", { name: "Enviar email real" }),
+    )
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/cupo diario de envíos/i)
+    expect(alerta).toHaveTextContent(/no se encola/i)
+    expect(alerta).toHaveTextContent(/Se alcanzo el cupo diario/i)
+    expect(alerta).not.toHaveTextContent("ventas@alfa.com.ar")
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("mapea ESTADO y REVALIDACION sin mostrar el cuerpo del email", async () => {
+    for (const [codigo, texto] of [
+      ["ESTADO", /cambió de estado/i],
+      ["REVALIDACION", /aprobación ya no coincide/i],
+    ] as const) {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 409,
+        json: async () => ({ codigo }),
+      })
+      vi.stubGlobal("fetch", fetchMock)
+
+      const { unmount } = render(<EnvioConfirmacion {...PROPS} />)
+      fireEvent.click(screen.getByRole("button", { name: "Enviar email" }))
+      fireEvent.click(
+        screen.getByRole("checkbox", {
+          name: /entiendo que se enviará un email real/i,
+        }),
+      )
+      fireEvent.click(
+        screen.getByRole("button", { name: "Enviar email real" }),
+      )
+
+      const alerta = await screen.findByRole("alert")
+      expect(alerta).toHaveTextContent(texto)
+      expect(alerta).not.toHaveTextContent("Hola Ana")
+      unmount()
+    }
+  })
+})
+
+describe("EnvioSeguimiento (T-18, AC-28, AC-29, AC-31)", () => {
+  const BASE = {
+    envioId: "env_1",
+    version: 2,
+    secuencia: 1,
+    proveedorMessageId: null as string | null,
+    error: null as string | null,
+    fechaTexto: null as string | null,
+    hayEnvioAbierto: false,
+  }
+
+  it("en ENVIADO muestra message ID, fecha y permite registrar el resultado", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ estado: "REBOTADO", suprimido: true }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <EnvioSeguimiento
+        {...BASE}
+        estado="ENVIADO"
+        proveedorMessageId="msg_live_1"
+        fechaTexto="12 de nov de 2026, 15:00"
+      />,
+    )
+
+    const region = screen.getByRole("region", {
+      name: /seguimiento del envío/i,
+    })
+    expect(within(region).getByText("ENVIADO")).toBeInTheDocument()
+    expect(within(region).getByText("msg_live_1")).toBeInTheDocument()
+    expect(
+      within(region).getByText("12 de nov de 2026, 15:00"),
+    ).toBeInTheDocument()
+    expect(within(region).getByText(/v2 · secuencia 1/)).toBeInTheDocument()
+    expect(
+      within(region).getByText(/no usa webhooks de resend/i),
+    ).toBeInTheDocument()
+
+    fireEvent.change(within(region).getByLabelText("Resultado"), {
+      target: { value: "REBOTE_DURO" },
+    })
+    expect(
+      within(region).getByText(/suprimen el email por hash/i),
+    ).toBeInTheDocument()
+
+    fireEvent.change(within(region).getByLabelText(/detalle \(opcional\)/i), {
+      target: { value: "Rebote verificado en el panel." },
+    })
+    fireEvent.click(
+      within(region).getByRole("button", { name: "Registrar resultado" }),
+    )
+
+    const resultado = await screen.findByRole("status")
+    expect(resultado).toHaveTextContent(/Resultado registrado: Rebote duro/i)
+    expect(resultado).toHaveTextContent(/quedó suprimido/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/envios/env_1/resultado")
+    expect(url).not.toContain("@")
+    expect(init.method).toBe("POST")
+    expect(JSON.parse(String(init.body))).toEqual({
+      tipo: "REBOTE_DURO",
+      detalle: "Rebote verificado en el panel.",
+    })
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("en RESPONDIDO muestra el estado final y no ofrece mas acciones", () => {
+    render(<EnvioSeguimiento {...BASE} estado="RESPONDIDO" />)
+
+    expect(
+      screen.getByText(/el resultado de este envío ya está registrado/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "Registrar resultado" }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /crear versión borrador/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("en ENVIANDO explica la reconciliacion manual sin reintentar", () => {
+    render(<EnvioSeguimiento {...BASE} estado="ENVIANDO" />)
+
+    expect(
+      screen.getByText(/más de 10 minutos sin confirmación/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/no se reintenta solo/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /crear versión borrador/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("en FALLIDO crea una version BORRADOR sin enviar ni reintentar solo", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ envioId: "env_2", version: 3 }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <EnvioSeguimiento
+        {...BASE}
+        estado="FALLIDO"
+        error="PROVEEDOR: Resend no respondio correctamente."
+      />,
+    )
+
+    expect(screen.getByText(/reintento manual/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/un envío fallido no se reintenta solo/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("PROVEEDOR: Resend no respondio correctamente."),
+    ).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /crear versión borrador para reintentar/i,
+      }),
+    )
+
+    const resultado = await screen.findByRole("status")
+    expect(resultado).toHaveTextContent(/Se creó un borrador nuevo \(v3\)/i)
+    expect(resultado).toHaveTextContent(/No se envió nada/i)
+    expect(resultado).toHaveTextContent(/editalo y aprobalo/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/envios/env_1/reintentar")
+    expect(url).not.toContain("/enviar")
+    expect(url).not.toContain("@")
+    expect(init.method).toBe("POST")
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("si ya hay un envio abierto no ofrece otro reintento", () => {
+    render(
+      <EnvioSeguimiento {...BASE} estado="FALLIDO" hayEnvioAbierto />,
+    )
+
+    expect(
+      screen.getByText(/ya hay un borrador o una aprobación pendiente/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /crear versión borrador/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("muestra errores accesibles del resultado sin PII", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ codigo: "ESTADO" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<EnvioSeguimiento {...BASE} estado="ENVIADO" />)
+    fireEvent.click(
+      screen.getByRole("button", { name: "Registrar resultado" }),
+    )
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/cambió de estado/i)
+    expect(alerta).not.toHaveTextContent("Hola Ana")
+  })
+})
+
+describe("ficha del prospecto: envio y seguimiento (T-18, AC-26, AC-29)", () => {
+  function stubEntornoEnvio(): void {
+    for (const [clave, valor] of Object.entries({
+      NEXT_PUBLIC_URL: "https://pixelarch.dev",
+      PROPUESTAS_SECRETO: "secreto-de-pruebas-propuestas-1234567890",
+      PROPUESTAS_TEXTO_LEGAL: "Texto legal de prueba aprobado.",
+      PROPUESTAS_BASE_LEGAL: "Base legal de prueba aprobada.",
+      PROPUESTAS_FROM_EMAIL: "propuestas@pixelarch.dev",
+      PROPUESTAS_REPLY_TO: "hola@pixelarch.dev",
+      PROPUESTAS_FROM_NOMBRE: "PixelArch",
+      PROPUESTAS_ENVIO_HABILITADO: "true",
+      RESEND_API_KEY: "re_test_key_123456789",
+    })) {
+      vi.stubEnv(clave, valor)
+    }
+  }
+
+  function envioAbiertoAprobado(): Record<string, unknown> {
+    return {
+      id: "env_1",
+      estado: "APROBADO",
+      version: 2,
+      secuencia: 1,
+      asunto: "Una idea para Consultora Alfa",
+      cuerpoTexto: "Hola Ana,\n\nTe escribo.",
+      cuerpoHtml: "<p>Hola Ana,</p>",
+      hashContenido: "a".repeat(64),
+      destinatario: "ventas@alfa.com.ar",
+      fromEmail: "propuestas@pixelarch.dev",
+      fromNombre: "PixelArch",
+      replyTo: "hola@pixelarch.dev",
+      plantillaId: "pl_1",
+      plantillaVersion: 1,
+      aprobadoAsunto: "[publicidad] Una idea para Consultora Alfa",
+      aprobadoCuerpoHtml: "<html>HTML aprobado</html>",
+      aprobadoCuerpoTexto: "Cuerpo aprobado",
+      aprobadoPorNombre: "Ana Pérez",
+      aprobadoEn: new Date("2026-11-12T17:30:00.000Z"),
+      tokenBaja: "v1.pros_1." + "a".repeat(64) + "." + "b".repeat(43),
+      aprobadoHash: "c".repeat(64),
+    }
+  }
+
+  function envioSeguimientoFixture(
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      id: "env_1",
+      estado: "ENVIADO",
+      version: 2,
+      secuencia: 1,
+      proveedorMessageId: "msg_live_1",
+      error: null,
+      enviadoEn: new Date("2026-11-12T18:00:00.000Z"),
+      ...overrides,
+    }
+  }
+
+  it("en APROBADO muestra la confirmacion de envio separada del panel de aprobacion", async () => {
+    stubEntornoEnvio()
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+    mocks.prospectoFindUnique.mockResolvedValue(prospectoDetalleFixture())
+    mocks.envioFindFirst.mockImplementation(
+      (args: { where?: { estado?: { in?: string[] } } }) => {
+        if (args.where?.estado?.in?.includes("ENVIANDO")) return null
+        return envioAbiertoAprobado()
+      },
+    )
+
+    await renderProspecto()
+
+    const confirmacion = screen.getByRole("region", {
+      name: /confirmación de envío/i,
+    })
+    expect(
+      within(confirmacion).getByRole("button", { name: "Enviar email" }),
+    ).toBeInTheDocument()
+    expect(
+      within(confirmacion).getByText("[publicidad] Una idea para Consultora Alfa"),
+    ).toBeInTheDocument()
+    expect(within(confirmacion).getByText("v2 · secuencia 1")).toBeInTheDocument()
+    // No se envia nada al solo renderizar la ficha.
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    // Con la configuracion completa el dialogo de confirmacion se abre.
+    fireEvent.click(
+      within(confirmacion).getByRole("button", { name: "Enviar email" }),
+    )
+    const dialogo = screen.getByRole("dialog", {
+      name: /confirmar envío real/i,
+    })
+    expect(
+      within(dialogo).getByRole("checkbox", {
+        name: /entiendo que se enviará un email real/i,
+      }),
+    ).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("con el gate apagado o sin Resend muestra el envío deshabilitado sin abrir el diálogo (AC-30)", async () => {
+    stubEntornoEnvio()
+    vi.stubEnv("PROPUESTAS_ENVIO_HABILITADO", "false")
+    vi.stubEnv("RESEND_API_KEY", "")
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+    mocks.prospectoFindUnique.mockResolvedValue(prospectoDetalleFixture())
+    mocks.envioFindFirst.mockImplementation(
+      (args: { where?: { estado?: { in?: string[] } } }) => {
+        if (args.where?.estado?.in?.includes("ENVIANDO")) return null
+        return envioAbiertoAprobado()
+      },
+    )
+
+    await renderProspecto()
+
+    const confirmacion = screen.getByRole("region", {
+      name: /confirmación de envío/i,
+    })
+    expect(
+      within(confirmacion).getByText("ENVÍO DESHABILITADO"),
+    ).toBeInTheDocument()
+    const estado = within(confirmacion).getByRole("status")
+    expect(estado).toHaveTextContent(/deshabilitado en este entorno/i)
+    expect(estado).toHaveTextContent(/PROPUESTAS_ENVIO_HABILITADO/)
+    expect(estado).toHaveTextContent(/RESEND_API_KEY/)
+
+    const boton = within(confirmacion).getByRole("button", {
+      name: "Enviar email",
+    })
+    expect(boton).toBeDisabled()
+    fireEvent.click(boton)
+
+    expect(
+      screen.queryByRole("dialog", { name: /confirmar envío real/i }),
+    ).not.toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("en ENVIADO muestra el seguimiento con message ID y resultado", async () => {
+    stubEntornoEnvio()
+    mocks.prospectoFindUnique.mockResolvedValue(
+      prospectoDetalleFixture({ estado: "ENVIADO" }),
+    )
+    mocks.envioFindFirst.mockImplementation(
+      (args: { where?: { estado?: { in?: string[] } } }) => {
+        if (args.where?.estado?.in?.includes("ENVIANDO")) {
+          return envioSeguimientoFixture()
+        }
+        return null
+      },
+    )
+
+    await renderProspecto()
+
+    const seguimiento = screen.getByRole("region", {
+      name: /seguimiento del envío/i,
+    })
+    expect(within(seguimiento).getByText("ENVIADO")).toBeInTheDocument()
+    expect(within(seguimiento).getByText("msg_live_1")).toBeInTheDocument()
+    expect(
+      within(seguimiento).getByRole("button", { name: "Registrar resultado" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("region", { name: /confirmación de envío/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("en FALLIDO muestra el error saneado y el reintento manual", async () => {
+    stubEntornoEnvio()
+    mocks.prospectoFindUnique.mockResolvedValue(
+      prospectoDetalleFixture({ estado: "APROBADO" }),
+    )
+    mocks.envioFindFirst.mockImplementation(
+      (args: { where?: { estado?: { in?: string[] } } }) => {
+        if (args.where?.estado?.in?.includes("ENVIANDO")) {
+          return envioSeguimientoFixture({
+            estado: "FALLIDO",
+            proveedorMessageId: null,
+            error: "PROVEEDOR: Resend no respondio correctamente.",
+          })
+        }
+        return null
+      },
+    )
+
+    await renderProspecto()
+
+    const seguimiento = screen.getByRole("region", {
+      name: /seguimiento del envío/i,
+    })
+    expect(within(seguimiento).getByText("FALLIDO")).toBeInTheDocument()
+    expect(
+      within(seguimiento).getByText(
+        "PROVEEDOR: Resend no respondio correctamente.",
+      ),
+    ).toBeInTheDocument()
+    expect(
+      within(seguimiento).getByRole("button", {
+        name: /crear versión borrador para reintentar/i,
+      }),
+    ).toBeInTheDocument()
   })
 })
 

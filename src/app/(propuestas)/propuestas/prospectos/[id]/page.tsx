@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import {
   configPropuestas,
+  estadoEnvio,
   type ConfigPropuestas,
 } from "@/lib/propuestas/config"
 import { verificarHashContenido } from "@/lib/propuestas/envios"
@@ -21,6 +22,10 @@ import {
   GenerarBorrador,
 } from "@/components/propuestas/borrador-editor"
 import { AprobacionPanel } from "@/components/propuestas/aprobacion-panel"
+import {
+  EnvioConfirmacion,
+  EnvioSeguimiento,
+} from "@/components/propuestas/envio-confirmacion"
 import type { PlantillaOpcion } from "@/components/propuestas/campana-form"
 
 export const dynamic = "force-dynamic"
@@ -54,6 +59,11 @@ export const metadata: Metadata = {
  * score, auditoria, version y estado, con aviso "Aprobar no envia" y una
  * confirmacion explicita. En APROBADO se muestra el snapshot inmutable y se
  * recuerda que el envio es otra accion (T-18).
+ *
+ * T-18 (AC-26, AC-31): en APROBADO agrega la confirmacion de envio real; si el
+ * gate/configuracion de Resend esta incompleto, la accion se muestra
+ * deshabilitada con el motivo. Un prospecto ENVIADO puede iniciar un follow-up
+ * manual (nuevo borrador + nueva aprobacion), nunca automatico.
  */
 
 const CLASE_SECCION = "rounded-xl border border-border bg-panel p-5"
@@ -289,6 +299,45 @@ function cargarEnvioAbierto(prospectoId: string): Promise<EnvioAbierto | null> {
   })
 }
 
+interface EnvioSeguimientoBd {
+  id: string
+  estado: string
+  version: number
+  secuencia: number
+  proveedorMessageId: string | null
+  error: string | null
+  enviadoEn: Date | null
+}
+
+/**
+ * T-18: ultimo envio ya salido de la aprobacion (ENVIANDO/ENVIADO/FALLIDO o
+ * terminal). Se muestra aparte del envio abierto para no mezclar el snapshot
+ * aprobado con el resultado real. No hay autoenvio: solo lectura + acciones
+ * manuales en el componente cliente.
+ */
+function cargarEnvioSeguimiento(
+  prospectoId: string,
+): Promise<EnvioSeguimientoBd | null> {
+  return prisma.envioPropuesta.findFirst({
+    where: {
+      prospectoId,
+      estado: {
+        in: ["ENVIANDO", "ENVIADO", "FALLIDO", "REBOTADO", "QUEJA", "RESPONDIDO"],
+      },
+    },
+    orderBy: { actualizadoEn: "desc" },
+    select: {
+      id: true,
+      estado: true,
+      version: true,
+      secuencia: true,
+      proveedorMessageId: true,
+      error: true,
+      enviadoEn: true,
+    },
+  })
+}
+
 /**
  * Motivos visibles para no habilitar la aprobacion en la UI. El servidor
  * revalida todo; esto evita ofrecer un boton que va a fallar. No incluye PII.
@@ -424,14 +473,18 @@ export default async function ProspectoDetallePage({
 
   let plantillas: PlantillaOpcion[] = []
   let envioAbierto: EnvioAbierto | null = null
+  let envioSeguimiento: EnvioSeguimientoBd | null = null
 
   try {
-    const [plantillasCargadas, envioCargado] = await Promise.all([
-      cargarPlantillasActivas(),
-      cargarEnvioAbierto(prospecto.id),
-    ])
+    const [plantillasCargadas, envioCargado, seguimientoCargado] =
+      await Promise.all([
+        cargarPlantillasActivas(),
+        cargarEnvioAbierto(prospecto.id),
+        cargarEnvioSeguimiento(prospecto.id),
+      ])
     plantillas = plantillasCargadas
     envioAbierto = envioCargado
+    envioSeguimiento = seguimientoCargado
   } catch (error) {
     if (esErrorTablaFaltante(error)) {
       return (
@@ -486,13 +539,20 @@ export default async function ProspectoDetallePage({
   // envio: el snapshot es inmutable y el envio (T-18) revalida por su cuenta.
   // Aprobar en seco no depende del gate ni de Resend (T-18): solo exige las
   // piezas con las que se re-renderiza el email final.
+  const config = configPropuestas()
   const bloqueosAprobacion =
     envioAbierto && envioAbierto.estado === "BORRADOR"
       ? [
           ...motivosAprobacion(envioAbierto, prospecto),
-          ...motivosConfiguracionAprobacion(configPropuestas()),
+          ...motivosConfiguracionAprobacion(config),
         ]
       : []
+
+  // T-18: la confirmacion de envio se deshabilita en la UI cuando falta
+  // configuracion o el gate esta apagado. El servidor ya falla cerrado; esto
+  // evita ofrecer un boton que va a terminar en 409.
+  const estadoConfigEnvio = estadoEnvio(config)
+  const hayEnvioEnCurso = envioSeguimiento?.estado === "ENVIANDO"
 
   return (
     <div>
@@ -888,6 +948,7 @@ export default async function ProspectoDetallePage({
             plantillaPorDefectoId={prospecto.campanaOrigen.plantillaId}
             tieneEmail={Boolean(prospecto.email)}
             estadoProspecto={prospecto.estado}
+            hayEnvioAbierto={hayEnvioEnCurso}
           />
         )}
       </section>
@@ -921,6 +982,41 @@ export default async function ProspectoDetallePage({
             }}
             score={prospecto.score}
             auditoriaEstado={auditoriaEstado}
+          />
+        </div>
+      )}
+
+      {envioAbierto && envioAbierto.estado === "APROBADO" && (
+        <div className="mb-8">
+          <EnvioConfirmacion
+            key={`envio-${envioAbierto.id}`}
+            envioId={envioAbierto.id}
+            destinatario={textoDe(envioAbierto.destinatario) ?? ""}
+            asunto={
+              textoDe(envioAbierto.aprobadoAsunto) ??
+              textoDe(envioAbierto.asunto) ??
+              ""
+            }
+            version={envioAbierto.version}
+            secuencia={envioAbierto.secuencia}
+            habilitado={estadoConfigEnvio.ok}
+            motivos={estadoConfigEnvio.ok ? [] : estadoConfigEnvio.motivos}
+          />
+        </div>
+      )}
+
+      {envioSeguimiento && (
+        <div className="mb-8">
+          <EnvioSeguimiento
+            key={`seguimiento-${envioSeguimiento.id}`}
+            envioId={envioSeguimiento.id}
+            estado={envioSeguimiento.estado}
+            version={envioSeguimiento.version}
+            secuencia={envioSeguimiento.secuencia}
+            proveedorMessageId={textoDe(envioSeguimiento.proveedorMessageId)}
+            error={textoDe(envioSeguimiento.error)}
+            fechaTexto={fechaHora(envioSeguimiento.enviadoEn)}
+            hayEnvioAbierto={envioAbierto !== null}
           />
         </div>
       )}

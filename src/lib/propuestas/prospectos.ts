@@ -110,7 +110,7 @@ export function requiereFuenteDeEmail(
 }
 
 export interface EntradaHistorialProspecto {
-  accion: "CREACION" | "CORRECCION" | "DESCARTE"
+  accion: "CREACION" | "CORRECCION" | "DESCARTE" | "RESULTADO_ENVIO"
   por: string
   en: string
   /** Solo nombres de campos, nunca valores (sin PII). */

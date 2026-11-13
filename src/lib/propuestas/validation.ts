@@ -416,3 +416,55 @@ export const envioEdicionSchema = z.object({
 })
 
 export type EnvioEdicionInput = z.infer<typeof envioEdicionSchema>
+
+/* ------------------------------------------------------------------ */
+/* T-18 (AC-26, AC-28..AC-31; RF-43..RF-50): envio, resultado y        */
+/* reconciliacion manual                                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * `POST /api/propuestas/envios/[id]/enviar`. Contrato exacto: solo la segunda
+ * confirmacion explicita del admin. Cualquier otro campo o valor se rechaza con
+ * 400 y no se llama a Resend.
+ */
+export const envioEnviarSchema = z
+  .object({
+    confirmacion: z.literal("ENVIAR"),
+  })
+  .strict()
+
+export type EnvioEnviarInput = z.infer<typeof envioEnviarSchema>
+
+export const ENVIO_RESULTADOS = [
+  "RESPONDIDO",
+  "REBOTE_DURO",
+  "QUEJA",
+] as const
+
+export const ENVIO_DETALLE_MAX = 500
+
+/**
+ * `POST /api/propuestas/envios/[id]/resultado`: registro manual del resultado.
+ * No hay webhook de Resend en v1; un rebote duro o una queja suprimen el email.
+ */
+export const envioResultadoSchema = z
+  .object({
+    tipo: z.enum(ENVIO_RESULTADOS, "El resultado no es valido."),
+    detalle: textoOpcional(ENVIO_DETALLE_MAX, "El detalle"),
+  })
+  .strict()
+
+export type EnvioResultadoInput = z.infer<typeof envioResultadoSchema>
+
+/**
+ * `POST /api/propuestas/envios/[id]/reconciliar`: solo para desbloquear un
+ * envio que quedo ENVIANDO. Exige la nota del admin que verifico el estado en
+ * Resend; no consulta al proveedor ni reintenta.
+ */
+export const envioReconciliarSchema = z
+  .object({
+    nota: motivoSchema,
+  })
+  .strict()
+
+export type EnvioReconciliarInput = z.infer<typeof envioReconciliarSchema>

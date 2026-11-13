@@ -12,6 +12,11 @@
  *   anterior y no envía nada.
  * - Todo se refresca con `router.refresh()`; no hay auto-refresh ni envío.
  * - Los errores se muestran saneados por código y el foco va al mensaje.
+ *
+ * T-18 (AC-31; RF-50): un prospecto `ENVIADO` puede iniciar un follow-up
+ * **manual**. El servidor acepta `ENVIADO -> BORRADOR` y valida el máximo de
+ * mensajes; acá solo se habilita el generador con un aviso de que exige un
+ * borrador nuevo y una aprobación nueva. Nunca hay follow-up automático.
  */
 
 import {
@@ -42,6 +47,8 @@ interface GenerarBorradorProps {
   plantillaPorDefectoId: string | null
   tieneEmail: boolean
   estadoProspecto: string
+  /** Hay un envío en curso: no se ofrece otro borrador hasta resolverlo. */
+  hayEnvioAbierto?: boolean
 }
 
 interface BorradorEditorProps {
@@ -73,6 +80,17 @@ const CLASE_TEXTAREA =
   "flex min-h-[220px] w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text font-mono placeholder:text-text-faint focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
 const CLASE_SELECT =
   "flex h-10 w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
+
+/**
+ * Estados del prospecto desde los que se puede iniciar un borrador nuevo.
+ * `ENVIADO` habilita el follow-up manual (el servidor valida la transición y
+ * el máximo de mensajes); `BORRADOR` cubre un borrador previo cancelado.
+ */
+const ESTADOS_GENERAR_BORRADOR = new Set<string>([
+  "PUNTUADO",
+  "BORRADOR",
+  "ENVIADO",
+])
 
 function textoDe(valor: unknown): string | undefined {
   return typeof valor === "string" ? valor : undefined
@@ -133,6 +151,7 @@ export function GenerarBorrador({
   plantillaPorDefectoId,
   tieneEmail,
   estadoProspecto,
+  hayEnvioAbierto = false,
 }: GenerarBorradorProps) {
   const router = useRouter()
   const [plantillaId, setPlantillaId] = useState(() => {
@@ -153,8 +172,8 @@ export function GenerarBorrador({
     if (mensaje !== null) mensajeRef.current?.focus()
   }, [mensaje])
 
-  const estadoPermitido =
-    estadoProspecto === "PUNTUADO" || estadoProspecto === "BORRADOR"
+  const estadoPermitido = ESTADOS_GENERAR_BORRADOR.has(estadoProspecto)
+  const esFollowUp = estadoProspecto === "ENVIADO"
   const plantillaEfectiva = plantillas.some(
     (plantilla) => plantilla.id === plantillaId,
   )
@@ -164,6 +183,7 @@ export function GenerarBorrador({
     tieneEmail &&
     plantillas.length > 0 &&
     estadoPermitido &&
+    !hayEnvioAbierto &&
     plantillaEfectiva.length > 0 &&
     !enviando
 
@@ -270,6 +290,29 @@ export function GenerarBorrador({
         >
           El prospecto no tiene email de contacto. Completalo con fuente y
           analizá el sitio: sin email no se puede aprobar ni enviar.
+        </p>
+      )}
+
+      {hayEnvioAbierto && (
+        <p
+          role="status"
+          className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm leading-6 text-text"
+        >
+          Ya hay un envío abierto o pendiente para este prospecto. Resolvelo
+          (editá el borrador o esperá el resultado del envío) antes de generar
+          otro mensaje.
+        </p>
+      )}
+
+      {plantillas.length > 0 && estadoPermitido && esFollowUp && (
+        <p
+          role="status"
+          className="mt-4 rounded-lg border border-violet/30 bg-violet-soft p-3 text-sm leading-6 text-text"
+        >
+          Este prospecto ya recibió un mensaje. Un follow-up es{" "}
+          <strong>manual</strong>: requiere un borrador nuevo y una aprobación
+          nueva, y respeta el máximo de mensajes configurado. No hay follow-up
+          automático ni envío programado.
         </p>
       )}
 

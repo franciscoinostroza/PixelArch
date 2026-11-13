@@ -145,7 +145,10 @@ const TRANSICIONES_PROSPECTO: Record<
   PUNTUADO: ["BORRADOR", "DESCARTADO", "SUPRIMIDO"],
   BORRADOR: ["APROBADO", "DESCARTADO", "SUPRIMIDO"],
   APROBADO: ["ENVIADO", "DESCARTADO", "SUPRIMIDO"],
-  ENVIADO: ["RESPONDIO", "DESCARTADO", "SUPRIMIDO"],
+  // ENVIADO -> BORRADOR habilita el follow-up manual, no automatico: cada
+  // mensaje nuevo exige su propio borrador y aprobacion; el maximo de mensajes
+  // y la nueva aprobacion se validan en T-07/T-16/T-18.
+  ENVIADO: ["BORRADOR", "RESPONDIO", "DESCARTADO", "SUPRIMIDO"],
   RESPONDIO: ["DESCARTADO", "SUPRIMIDO"],
   DESCARTADO: [],
   SUPRIMIDO: [],

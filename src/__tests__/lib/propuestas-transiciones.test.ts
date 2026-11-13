@@ -765,6 +765,59 @@ describe("T-07: mapas de transiciones (AC-27, AC-31)", () => {
   })
 })
 
+describe("T-18: follow-up manual tras ENVIADO (AC-31; RF-50)", () => {
+  it("ENVIADO -> BORRADOR habilita un segundo mensaje manual", () => {
+    expect(transicionProspectoPermitida("ENVIADO", "BORRADOR")).toBe(true)
+    expect(transicionProspectoPermitida("ENVIADO", "RESPONDIO")).toBe(true)
+    // Un follow-up no puede saltarse el borrador ni la aprobacion.
+    expect(transicionProspectoPermitida("ENVIADO", "APROBADO")).toBe(false)
+    expect(transicionProspectoPermitida("ENVIADO", "ENVIADO")).toBe(false)
+  })
+
+  it("permite el segundo mensaje y bloquea el tercero por maximo", () => {
+    const segundo = evaluarNuevoMensaje({ secuencias: [1], maximo: 2 })
+    expect(segundo).toEqual({ ok: true, secuencia: 2 })
+
+    const tercero = evaluarNuevoMensaje({ secuencias: [1, 2], maximo: 2 })
+    expect(tercero.ok).toBe(false)
+    if (tercero.ok) return
+    expect(tercero.secuencia).toBe(3)
+    expect(tercero.motivos.join(" ")).toMatch(/máximo|maximo/i)
+  })
+
+  it("el follow-up exige un borrador nuevo y una aprobacion nueva", () => {
+    // El prospecto ya contactado puede volver a BORRADOR, pero el envio nuevo
+    // arranca en BORRADOR: no se envia hasta aprobarlo explicitamente.
+    expect(
+      puedeAprobar(
+        aprobacionValida({
+          prospectoEstado: "ENVIADO",
+          secuencia: { numero: 2, maximo: 2 },
+        }),
+      ),
+    ).toEqual({ ok: true })
+
+    const sinAprobar = puedeEnviar(
+      envioValido({
+        estadoEnvio: "BORRADOR",
+        hashContenido: OTRO_HASH,
+        hashContenidoActual: OTRO_HASH,
+      }),
+    )
+    expect(sinAprobar.ok).toBe(false)
+    expect(incluye(sinAprobar, "APROBADO")).toBe(true)
+  })
+
+  it("no hay automatismo: la secuencia es solo numeracion manual", () => {
+    const resultado = evaluarNuevoMensaje({ secuencias: [1], maximo: 2 })
+
+    expect(Object.keys(resultado).sort()).toEqual(["ok", "secuencia"])
+    expect(JSON.stringify(resultado)).not.toMatch(
+      /scheduled|cron|queue|cola|automatico|automático/i,
+    )
+  })
+})
+
 describe("T-07: transiciones puras sin red, Prisma ni entorno (AC-27, AC-41)", () => {
   const FUENTE = "src/lib/propuestas/transiciones.ts"
 

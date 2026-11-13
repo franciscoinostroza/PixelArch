@@ -591,3 +591,58 @@ export const supresionFormSchema = z
   })
 
 export type SupresionFormValues = z.infer<typeof supresionFormSchema>
+
+/* ------------------------------------------------------------------ */
+/* T-22 (AC-37, AC-40; RF-30, RF-65): retención y ARCO                 */
+/* ------------------------------------------------------------------ */
+
+export const ARCO_TIPOS = ["EXPORTAR", "ELIMINAR", "RECTIFICAR"] as const
+export const ARCO_CAMBIOS_MAX = 20
+
+/**
+ * `POST /api/propuestas/arco/[prospectoId]`.
+ *
+ * - EXPORTAR no necesita más datos: devuelve la descarga JSON.
+ * - ELIMINAR puede llevar `motivo` y una confirmación explícita (`confirmado`).
+ *   La supresión `SOLICITUD_ARCO` se crea en el servidor si hay email.
+ * - RECTIFICAR exige `cambios` no vacío y `motivo`. Los campos se revalidan
+ *   con `prospectoPatchSchema` para reutilizar las reglas de T-14.
+ */
+export const arcoAccionSchema = z
+  .object({
+    tipo: z.enum(ARCO_TIPOS, "El tipo de solicitud no es válido."),
+    cambios: z
+      .record(
+        z.string().max(40),
+        z.string().max(PROSPECTO_URL_MAX),
+      )
+      .refine(
+        (valor) => Object.keys(valor).length <= ARCO_CAMBIOS_MAX,
+        `No se pueden rectificar más de ${ARCO_CAMBIOS_MAX} campos.`,
+      )
+      .optional(),
+    motivo: textoOpcional(PROSPECTO_MOTIVO_MAX, "El motivo"),
+    confirmado: z.literal(true).optional(),
+  })
+  .strict()
+  .superRefine((valor, ctx) => {
+    if (valor.tipo !== "RECTIFICAR") return
+
+    if (!valor.cambios || Object.keys(valor.cambios).length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["cambios"],
+        message: "Indicá al menos un dato para rectificar.",
+      })
+    }
+
+    if (!valor.motivo) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["motivo"],
+        message: "El motivo es obligatorio.",
+      })
+    }
+  })
+
+export type ArcoAccionInput = z.infer<typeof arcoAccionSchema>

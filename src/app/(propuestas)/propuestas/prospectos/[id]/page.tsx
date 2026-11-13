@@ -29,6 +29,7 @@ import {
   GenerarBorrador,
 } from "@/components/propuestas/borrador-editor"
 import { AprobacionPanel } from "@/components/propuestas/aprobacion-panel"
+import { ArcoPanel } from "@/components/propuestas/arco-panel"
 import {
   EnvioConfirmacion,
   EnvioSeguimiento,
@@ -1081,9 +1082,14 @@ export default async function ProspectoDetallePage({
         </div>
       )}
 
-      <section aria-label="Corrección del prospecto">
+      <section aria-label="Corrección del prospecto" className="mb-8">
         <ProspectoFicha prospecto={editable} />
       </section>
+
+      <ArcoPanel
+        prospecto={editable}
+        campanaId={prospecto.campanaOrigen.id}
+      />
     </div>
   )
 }

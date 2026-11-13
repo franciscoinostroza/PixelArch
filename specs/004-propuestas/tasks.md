@@ -248,7 +248,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Cierre: tester (`propuestas-consumo.test.ts`) · reviewer (exactitud de contadores, UX) · 1 commit.
   - PASS tester+reviewer: 290 tests verdes (consumo + páginas), tsc 0 errores; reviewer PASS. Deuda menor: restante acotado vs global; cap 0 bloqueado/configurado; Places en total acotado; Places 0/20 en ficha (no se registra por prospecto); banner operativo duplicado; doble lectura mensual/índice `[fecha]`; medidor en shell pendiente; aria-label/`aria-valuetext`; cupo REDACTOR no reservado; paginación.
 
-- [ ] **T-22 (AC-37, AC-40; RF-30, RF-65) — Retención 12 meses y ARCO.**
+- [x] **T-22 (AC-37, AC-40; RF-30, RF-65) — Retención 12 meses y ARCO.**
   - `retencion.ts`: selección por `ultimaInteraccionEn < now-12m`, borrado en lotes de 100 con `onDelete: Cascade`, `pg_try_advisory_lock`, supresión intacta; cron `GET /api/cron/propuestas-retencion` con `CRON_SECRET`; `POST /api/propuestas/retencion` para admin.
   - `arco.ts` + `POST /api/propuestas/arco/[prospectoId]`: EXPORTAR (JSON con datos/fuentes/auditoría/envíos, sin tokens/hashes), ELIMINAR (crea supresión SOLICITUD_ARCO si hay email, luego borra; conserva supresión), RECTIFICAR (PATCH + historial).
   - UI `arco-panel.tsx` en la ficha.
@@ -256,6 +256,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-06, T-18.
   - Tests: corte 12 meses; cascada borra borradores/envíos; supresión permanece; lock evita solapamiento; exportar sin tokens; eliminar conserva supresión; acción registrada; cron 401 sin secreto.
   - Cierre: tester (`propuestas-retencion.test.ts`, `arco.test.ts`) · reviewer (privacidad, borrado, evidencia) · 1 commit.
+  - PASS tester+reviewer: 250 tests verdes (retención + ARCO + páginas), tsc 0 errores; reviewer PASS. Deuda menor: `motivoHash` SHA-256 sin secreto (evaluar HMAC); `crearSupresion reactivar:false + registroArco` no agrega entrada (latente); `updateMany` activo sin `activa:true`; concurrencia de historial/`arcoHistorial`; cron usa Bearer vs `x-cron-secret` (documentar en T-24); export no incluye `EXPORTACION` recién registrada; `aria-controls`; schedule Railway pendiente T-24; prueba de cascada real en T-26.
 
 - [ ] **T-23 (AC-41, AC-44; RF-59, RF-60, RF-61) — Privacidad, redacción, guard de red y cobertura.**
   - `redact.ts`: códigos/mensajes sanitizados; logs solo con ids/estado/código/duración; Sentry sin PII y con redacción de URLs `/propuestas/baja/` y `/api/opt-out`.

@@ -40,6 +40,7 @@ const mocks = vi.hoisted(() => ({
   consumoUpsert: vi.fn(),
   pathname: "/propuestas",
   refresh: vi.fn(),
+  push: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND")
   }),
@@ -71,7 +72,7 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("next/navigation", () => ({
   usePathname: () => mocks.pathname,
-  useRouter: () => ({ refresh: mocks.refresh }),
+  useRouter: () => ({ refresh: mocks.refresh, push: mocks.push }),
   notFound: mocks.notFound,
 }))
 
@@ -130,6 +131,7 @@ import {
   GenerarBorrador,
 } from "@/components/propuestas/borrador-editor"
 import { AprobacionPanel } from "@/components/propuestas/aprobacion-panel"
+import { ArcoPanel, type ProspectoArco } from "@/components/propuestas/arco-panel"
 import {
   EnvioConfirmacion,
   EnvioSeguimiento,
@@ -6454,5 +6456,440 @@ describe("T-21: cupos sin mutaciones ni auto-refresh (AC-38, AC-39)", () => {
       )
     },
   )
+})
+
+/* ------------------------------------------------------------------ */
+/* T-22: panel ARCO de la ficha                                        */
+/* ------------------------------------------------------------------ */
+
+describe("ArcoPanel (T-22, AC-37; RF-30, RF-65)", () => {
+  interface DescargaFake {
+    create: ReturnType<typeof vi.fn>
+    revoke: ReturnType<typeof vi.fn>
+    click: ReturnType<typeof vi.spyOn>
+    cleanup: () => void
+  }
+
+  let descargaActiva: DescargaFake | null = null
+
+  function instalarDescargaFake(): DescargaFake {
+    const descriptorCreate = Object.getOwnPropertyDescriptor(
+      URL,
+      "createObjectURL",
+    )
+    const descriptorRevoke = Object.getOwnPropertyDescriptor(
+      URL,
+      "revokeObjectURL",
+    )
+
+    const create = vi.fn(() => "blob:arco")
+    const revoke = vi.fn()
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      writable: true,
+      value: create,
+    })
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      writable: true,
+      value: revoke,
+    })
+
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined)
+
+    const fake: DescargaFake = {
+      create,
+      revoke,
+      click,
+      cleanup: () => {
+        click.mockRestore()
+        if (descriptorCreate) {
+          Object.defineProperty(URL, "createObjectURL", descriptorCreate)
+        } else {
+          Reflect.deleteProperty(URL, "createObjectURL")
+        }
+        if (descriptorRevoke) {
+          Object.defineProperty(URL, "revokeObjectURL", descriptorRevoke)
+        } else {
+          Reflect.deleteProperty(URL, "revokeObjectURL")
+        }
+      },
+    }
+
+    descargaActiva = fake
+    return fake
+  }
+
+  function fixtureArco(
+    overrides: Partial<ProspectoArco> = {},
+  ): ProspectoArco {
+    return {
+      id: "pros_1",
+      nombreNegocio: "Consultora Alfa",
+      sitioWeb: "https://alfa.com.ar/",
+      email: "ventas@alfa.com.ar",
+      telefono: "+541155551234",
+      ciudad: "CABA",
+      rubro: "Consultoría",
+      contactoNombre: "Ana",
+      contactoCargo: "Socia",
+      fuenteUrl: "https://alfa.com.ar/contacto",
+      emailFuenteUrl: "https://alfa.com.ar/contacto",
+      estado: "PUNTUADO",
+      ...overrides,
+    }
+  }
+
+  afterEach(() => {
+    descargaActiva?.cleanup()
+    descargaActiva = null
+    vi.restoreAllMocks()
+  })
+
+  it("AC-37: muestra las acciones ARCO sin hacer red al montar", () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<ArcoPanel prospecto={fixtureArco()} campanaId="camp_1" />)
+
+    const region = screen.getByRole("region", { name: "Derechos ARCO" })
+    expect(region).toHaveAttribute("aria-busy", "false")
+    expect(
+      within(region).getByRole("button", { name: "Exportar datos" }),
+    ).toBeEnabled()
+    expect(
+      within(region).getByRole("button", { name: "Rectificar" }),
+    ).toBeEnabled()
+    expect(
+      within(region).getByRole("button", { name: "Eliminar" }),
+    ).toBeEnabled()
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    const rectificar = within(region).getByRole("button", {
+      name: "Rectificar",
+    })
+    expect(rectificar).toHaveAttribute("aria-expanded", "false")
+    fireEvent.click(rectificar)
+    expect(rectificar).toHaveAttribute("aria-expanded", "true")
+    expect(
+      within(region).getByLabelText(/motivo de la rectificación/i),
+    ).toBeInTheDocument()
+  })
+
+  it("AC-37: exportar hace POST al id interno, descarga el JSON y no pone PII en la URL", async () => {
+    const descarga = instalarDescargaFake()
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({
+        "content-disposition": 'attachment; filename="arco-pros_1.json"',
+      }),
+      blob: async () => ({ size: 2, type: "application/json" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<ArcoPanel prospecto={fixtureArco()} campanaId="camp_1" />)
+    fireEvent.click(
+      screen.getByRole("button", { name: "Exportar datos" }),
+    )
+
+    const mensaje = await screen.findByRole("status")
+    expect(mensaje).toHaveTextContent(/Exportación descargada/i)
+    expect(mensaje).toHaveTextContent(/no incluye tokens, hashes/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/arco/pros_1")
+    expect(url).not.toContain("ventas@alfa.com.ar")
+    expect(url).not.toContain("Consultora")
+    expect(init.method).toBe("POST")
+    expect(JSON.parse(String(init.body))).toEqual({ tipo: "EXPORTAR" })
+
+    expect(descarga.create).toHaveBeenCalledTimes(1)
+    expect(descarga.click).toHaveBeenCalledTimes(1)
+    expect(descarga.revoke).toHaveBeenCalledTimes(1)
+    expect(mocks.push).not.toHaveBeenCalled()
+  })
+
+  it("AC-37: un error de exportación se muestra accesible y no descarga", async () => {
+    const descarga = instalarDescargaFake()
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ codigo: "NO_CONFIGURADO" }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<ArcoPanel prospecto={fixtureArco()} campanaId="camp_1" />)
+    fireEvent.click(
+      screen.getByRole("button", { name: "Exportar datos" }),
+    )
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/PROPUESTAS_SECRETO/i)
+    expect(descarga.create).not.toHaveBeenCalled()
+    expect(descarga.click).not.toHaveBeenCalled()
+  })
+
+  it("AC-37: rectificar envía solo los campos cambiados con el motivo y refresca", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ rectificado: true, campos: ["telefono"] }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<ArcoPanel prospecto={fixtureArco()} campanaId="camp_1" />)
+    fireEvent.click(screen.getByRole("button", { name: "Rectificar" }))
+    fireEvent.change(screen.getByLabelText(/teléfono comercial/i), {
+      target: { value: "+5491100001111" },
+    })
+    fireEvent.change(screen.getByLabelText(/motivo de la rectificación/i), {
+      target: { value: "Pedido ARCO del titular" },
+    })
+    fireEvent.click(
+      screen.getByRole("button", { name: "Guardar rectificación" }),
+    )
+
+    const mensaje = await screen.findByRole("status")
+    expect(mensaje).toHaveTextContent(/Rectificación guardada/i)
+    expect(mensaje).toHaveTextContent(/no se envió ningún email/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/arco/pros_1")
+    expect(JSON.parse(String(init.body))).toEqual({
+      tipo: "RECTIFICAR",
+      cambios: { telefono: "+5491100001111" },
+      motivo: "Pedido ARCO del titular",
+    })
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("AC-37: el motivo es obligatorio y el error queda asociado al campo", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<ArcoPanel prospecto={fixtureArco()} campanaId="camp_1" />)
+    fireEvent.click(screen.getByRole("button", { name: "Rectificar" }))
+    fireEvent.change(screen.getByLabelText(/teléfono comercial/i), {
+      target: { value: "+5491100001111" },
+    })
+    fireEvent.click(
+      screen.getByRole("button", { name: "Guardar rectificación" }),
+    )
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/motivo es obligatorio/i)
+    const motivo = screen.getByLabelText(/motivo de la rectificación/i)
+    expect(motivo).toHaveAttribute("aria-invalid", "true")
+    expect(motivo.getAttribute("aria-describedby")).toMatch(
+      /motivo-rectificar-error/,
+    )
+    expect(screen.getByText("El motivo es obligatorio.")).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("AC-37: cambiar el email sin fuente se bloquea en el cliente", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <ArcoPanel
+        prospecto={fixtureArco({ emailFuenteUrl: null, fuenteUrl: null })}
+        campanaId="camp_1"
+      />,
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Rectificar" }))
+    fireEvent.change(screen.getByLabelText(/email de contacto/i), {
+      target: { value: "nuevo@alfa.com.ar" },
+    })
+    fireEvent.change(screen.getByLabelText(/motivo de la rectificación/i), {
+      target: { value: "Correo actualizado" },
+    })
+    fireEvent.click(
+      screen.getByRole("button", { name: "Guardar rectificación" }),
+    )
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/Falta la fuente del email nuevo/i)
+    expect(
+      screen.getByText(/Para cambiar el email indicá la fuente/i),
+    ).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("AC-37: un prospecto suprimido no ofrece rectificar", () => {
+    render(
+      <ArcoPanel
+        prospecto={fixtureArco({ estado: "SUPRIMIDO" })}
+        campanaId="camp_1"
+      />,
+    )
+
+    const rectificar = screen.getByRole("button", { name: "Rectificar" })
+    expect(rectificar).toBeDisabled()
+    expect(rectificar.getAttribute("title")).toContain("suprimido")
+    fireEvent.click(rectificar)
+    expect(
+      screen.queryByLabelText(/motivo de la rectificación/i),
+    ).not.toBeInTheDocument()
+  })
+
+  it("AC-37: eliminar exige confirmación y avisa que la supresión se conserva", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        eliminado: true,
+        supresion: { id: "sup_1", creada: true, reactivada: false },
+      }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<ArcoPanel prospecto={fixtureArco()} campanaId="camp_1" />)
+    fireEvent.click(screen.getByRole("button", { name: "Eliminar" }))
+
+    const region = screen.getByRole("region", { name: "Derechos ARCO" })
+    const aviso = within(region).getByRole("note")
+    expect(aviso).toHaveTextContent(/borradores, snapshots y envíos/i)
+    expect(aviso).toHaveTextContent(/SOLICITUD_ARCO/)
+    expect(aviso).toHaveTextContent(/No se toca el CRM/i)
+
+    const submit = within(region).getByRole("button", {
+      name: "Eliminar prospecto",
+    })
+    expect(submit).toBeDisabled()
+
+    // Enviar el formulario sin marcar la confirmación no hace ninguna request.
+    const form = submit.closest("form")
+    expect(form).not.toBeNull()
+    fireEvent.submit(form as HTMLFormElement)
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    const checkbox = within(region).getByRole("checkbox", {
+      name: /Confirmo la eliminación/i,
+    })
+    fireEvent.click(checkbox)
+    expect(submit).toBeEnabled()
+    fireEvent.click(submit)
+
+    const mensaje = await screen.findByRole("status")
+    expect(mensaje).toHaveTextContent(/Prospecto eliminado/i)
+    expect(mensaje).toHaveTextContent(/supresión SOLICITUD_ARCO quedó registrada/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/arco/pros_1")
+    expect(url).not.toContain("ventas@alfa.com.ar")
+    expect(JSON.parse(String(init.body))).toEqual({
+      tipo: "ELIMINAR",
+      confirmado: true,
+    })
+    await waitFor(() =>
+      expect(mocks.push).toHaveBeenCalledWith("/propuestas/campanas/camp_1"),
+    )
+  })
+
+  it("AC-37: sin email avisa que no se crea supresión", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ eliminado: true, supresion: null }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <ArcoPanel
+        prospecto={fixtureArco({ email: null })}
+        campanaId="camp_1"
+      />,
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Eliminar" }))
+
+    const region = screen.getByRole("region", { name: "Derechos ARCO" })
+    const aviso = within(region).getByRole("note")
+    expect(aviso).toHaveTextContent(/no tiene email/i)
+    expect(aviso).toHaveTextContent(/sin crear una supresión/i)
+
+    fireEvent.click(
+      within(region).getByRole("checkbox", {
+        name: /Confirmo la eliminación/i,
+      }),
+    )
+    fireEvent.click(
+      within(region).getByRole("button", { name: "Eliminar prospecto" }),
+    )
+
+    const mensaje = await screen.findByRole("status")
+    expect(mensaje).toHaveTextContent(/No tenía email/i)
+    expect(mensaje).toHaveTextContent(/no se creó una supresión/i)
+  })
+
+  it("AC-37: cerrar o cambiar de panel descarta la confirmación y el motivo de eliminar", () => {
+    render(<ArcoPanel prospecto={fixtureArco()} campanaId="camp_1" />)
+
+    const region = screen.getByRole("region", { name: "Derechos ARCO" })
+    const botonEliminar = within(region).getByRole("button", {
+      name: "Eliminar",
+    })
+
+    fireEvent.click(botonEliminar)
+    fireEvent.change(within(region).getByLabelText(/motivo o referencia/i), {
+      target: { value: "Solicitud del titular" },
+    })
+    const checkbox = within(region).getByRole("checkbox", {
+      name: /Confirmo la eliminación/i,
+    })
+    fireEvent.click(checkbox)
+    expect(checkbox).toBeChecked()
+    expect(
+      within(region).getByRole("button", { name: "Eliminar prospecto" }),
+    ).toBeEnabled()
+
+    // Cancelar cierra el panel y descarta el estado armado.
+    fireEvent.click(within(region).getByRole("button", { name: "Cancelar" }))
+    expect(
+      within(region).queryByLabelText(/motivo o referencia/i),
+    ).not.toBeInTheDocument()
+    expect(botonEliminar).toHaveAttribute("aria-expanded", "false")
+
+    // Reabrir no deja la confirmación ni el motivo previos.
+    fireEvent.click(botonEliminar)
+    const motivoReabierto = within(region).getByLabelText(/motivo o referencia/i)
+    expect(motivoReabierto).toHaveValue("")
+    const checkboxReabierto = within(region).getByRole("checkbox", {
+      name: /Confirmo la eliminación/i,
+    })
+    expect(checkboxReabierto).not.toBeChecked()
+    expect(
+      within(region).getByRole("button", { name: "Eliminar prospecto" }),
+    ).toBeDisabled()
+
+    // Cambiar a rectificar y volver a eliminar también resetea el panel.
+    fireEvent.change(motivoReabierto, {
+      target: { value: "Otra referencia" },
+    })
+    fireEvent.click(checkboxReabierto)
+    expect(checkboxReabierto).toBeChecked()
+
+    fireEvent.click(within(region).getByRole("button", { name: "Rectificar" }))
+    expect(
+      within(region).queryByLabelText(/motivo o referencia/i),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(botonEliminar)
+    expect(within(region).getByLabelText(/motivo o referencia/i)).toHaveValue("")
+    expect(
+      within(region).getByRole("checkbox", {
+        name: /Confirmo la eliminación/i,
+      }),
+    ).not.toBeChecked()
+    expect(
+      within(region).getByRole("button", { name: "Eliminar prospecto" }),
+    ).toBeDisabled()
+  })
 })
 

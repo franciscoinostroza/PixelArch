@@ -15,7 +15,10 @@
  * - La clave unica hace la creacion idempotente. Repetir el alta reactiva una
  *   supresion revocada, pero conserva el motivo/origen/creador/fecha
  *   originales y agrega una entrada `REACTIVADA` al historial. Una fila ya
- *   activa no se reescribe. `reactivar: false` evita la reactivacion.
+ *   activa no se reescribe, salvo que se pase `registroArco`: en ese caso solo
+ *   se agrega la entrada `SOLICITUD_ARCO` al historial (evidencia durable de
+ *   una solicitud ARCO), sin tocar los demas campos. `reactivar: false` evita
+ *   la reactivacion.
  * - `aplicarSupresionAProspectos` cancela los envios BORRADOR/APROBADO y marca
  *   SUPRIMIDO con historial sin PII. Para EMAIL solo afecta al prospecto cuyo
  *   email normalizado actual coincide con el suprimido. Para DOMINIO afecta a
@@ -87,6 +90,21 @@ export interface OpcionesCrearSupresion extends OpcionesCliente {
    * `reactivada: false` sin escribir. Default `true`.
    */
   reactivar?: boolean
+  /**
+   * Evidencia durable de una solicitud ARCO. Si se pasa, agrega una entrada
+   * `SOLICITUD_ARCO` al historial de la supresion, incluso cuando la fila ya
+   * existia activa. Solo contiene hash/longitud del motivo, autor y fecha:
+   * nunca el texto libre ni datos de contacto.
+   */
+  registroArco?: RegistroSolicitudArco
+}
+
+export interface RegistroSolicitudArco {
+  /** SHA-256 del motivo; `null` si la solicitud no trajo motivo. */
+  motivoHash: string | null
+  motivoLongitud: number
+  por: string
+  en?: Date
 }
 
 interface DatosSupresion {
@@ -101,6 +119,41 @@ function normalizarNotas(notas: string | null | undefined): string | null {
   if (typeof notas !== "string") return null
   const limpio = notas.trim()
   return limpio.length > 0 ? limpio.slice(0, MAX_NOTAS) : null
+}
+
+function esObjeto(valor: unknown): valor is Record<string, unknown> {
+  return typeof valor === "object" && valor !== null && !Array.isArray(valor)
+}
+
+/**
+ * Entrada de historial de una solicitud ARCO. No guarda el motivo libre ni
+ * datos de contacto: solo su hash SHA-256, la longitud, quien la atendio y
+ * cuando. Se usa tanto al crear la supresion como al agregarla a una fila
+ * existente.
+ */
+function entradaSolicitudArco(
+  registro: RegistroSolicitudArco,
+  ahora: Date,
+): Record<string, unknown> {
+  return {
+    accion: "SOLICITUD_ARCO",
+    motivoHash: registro.motivoHash,
+    motivoLongitud: registro.motivoLongitud,
+    por: registro.por,
+    en: (registro.en ?? ahora).toISOString(),
+  }
+}
+
+/**
+ * Agrega una entrada a un historial JSON arbitrario conservando las anteriores
+ * y acotando el tamaño. Descarta valores que no sean objetos.
+ */
+function agregarEntradaJson(
+  actual: unknown,
+  entrada: Record<string, unknown>,
+): Record<string, unknown>[] {
+  const previas = Array.isArray(actual) ? actual.filter(esObjeto) : []
+  return [...previas, entrada].slice(-MAX_HISTORIAL_PROSPECTO)
 }
 
 function prepararDatos(entrada: EntradaCrearSupresion): DatosSupresion {
@@ -140,8 +193,10 @@ function prepararDatos(entrada: EntradaCrearSupresion): DatosSupresion {
  * Crea o reactiva una supresion de forma idempotente por `clave`.
  *
  * - No devuelve ni loguea el email en claro.
- * - Si la clave ya existe activa, no escribe: `creada: false`,
- *   `reactivada: false`.
+ * - Si la clave ya existe activa, no reescribe sus datos: `creada: false`,
+ *   `reactivada: false`. Con `registroArco` solo agrega la entrada
+ *   `SOLICITUD_ARCO` al historial existente, para que la atencion ARCO quede
+ *   registrada de forma durable sin tocar motivo/origen/creador/fecha.
  * - Si la clave existe revocada y `reactivar` es `true` (default), vuelve a
  *   dejarla activa, limpia los campos de revocacion y agrega una entrada
  *   `REACTIVADA` al historial con `por`, `en` y motivo. No pisa el motivo,
@@ -156,6 +211,10 @@ export async function crearSupresion(
   const datos = prepararDatos(entrada)
   const reactivar = opciones.reactivar ?? true
   const ahora = new Date()
+  const registroArco = opciones.registroArco
+  const entradaArco = registroArco
+    ? entradaSolicitudArco(registroArco, ahora)
+    : null
 
   const existente = await cliente.supresionProspecto.findUnique({
     where: { clave: datos.clave },
@@ -174,6 +233,21 @@ export async function crearSupresion(
   // Alta idempotente: una fila activa no se reescribe. Con `reactivar: false`
   // una fila revocada tampoco se reactiva ni se modifica.
   if (existente !== null && (existente.activa || !reactivar)) {
+    // La solicitud ARCO debe quedar registrada aunque la supresion ya
+    // estuviera activa. El update solo agrega historial: no pisa motivo,
+    // origen, creadaPor ni creadaEn.
+    if (existente.activa && entradaArco !== null) {
+      await cliente.supresionProspecto.updateMany({
+        where: { id: existente.id },
+        data: {
+          historial: agregarEntradaJson(
+            existente.historial,
+            entradaArco,
+          ) as unknown as Prisma.InputJsonValue,
+        },
+      })
+    }
+
     return {
       id: existente.id,
       clave: datos.clave,
@@ -182,7 +256,7 @@ export async function crearSupresion(
     }
   }
 
-  const historialCreacion: Prisma.InputJsonValue = [
+  const historialCreacion = [
     {
       accion: "CREADA",
       por: entrada.creadaPor,
@@ -190,7 +264,8 @@ export async function crearSupresion(
       motivo: entrada.motivo,
       origen: entrada.origen,
     },
-  ]
+    ...(entradaArco !== null ? [entradaArco] : []),
+  ] as unknown as Prisma.InputJsonValue
 
   const datosCreacion: Prisma.SupresionProspectoCreateInput = {
     ambito: datos.ambito,
@@ -226,12 +301,17 @@ export async function crearSupresion(
   }
 
   // Fila revocada: se reactiva conservando sus datos originales.
-  const historial = agregarEntradaHistorial(existente.historial, {
+  const historialReactivacion = agregarEntradaHistorial(existente.historial, {
     accion: "REACTIVADA",
     por: entrada.creadaPor,
     en: ahora.toISOString(),
     motivo: entrada.motivo,
   })
+
+  const historial =
+    entradaArco !== null
+      ? agregarEntradaJson(historialReactivacion, entradaArco)
+      : historialReactivacion
 
   const fila = await cliente.supresionProspecto.upsert({
     where: { clave: datos.clave },

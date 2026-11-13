@@ -1,5 +1,10 @@
 import type { Metadata } from "next"
 import { prisma } from "@/lib/prisma"
+import { configPropuestas } from "@/lib/propuestas/config"
+import {
+  estadoCupos,
+  type EstadoCupos,
+} from "@/lib/propuestas/consumo"
 import {
   CODIGO_ESQUEMA_NO_APLICADO,
   esErrorTablaFaltante,
@@ -8,6 +13,7 @@ import {
   EstadoOperativo,
   EstadoVacio,
 } from "@/components/propuestas/estado-vacio"
+import { CupoDia } from "@/components/propuestas/cupo-dia"
 
 export const dynamic = "force-dynamic"
 
@@ -19,9 +25,10 @@ export const metadata: Metadata = {
 /**
  * T-02 (AC-1, AC-3, AC-6; RF-1, RF-4): dashboard vacio del portal.
  *
- * Antes de mostrar cualquier accion comprueba que el esquema aditivo este
- * aplicado. Si falta la tabla, falla cerrado con un estado operativo y no
- * renderiza formularios ni datos.
+ * T-21 (AC-38, AC-39; RF-57, RF-58): agrega los cupos globales del dia
+ * (`estadoCupos`) con costo, aviso 80% y bloqueo 100%. Solo lectura: no
+ * reserva, no encola y no llama a proveedores. Si el esquema falta, se
+ * conserva el estado operativo y no se muestran datos ni formularios.
  */
 async function esquemaDisponible(): Promise<boolean> {
   try {
@@ -47,6 +54,25 @@ export default async function PropuestasDashboardPage() {
     )
   }
 
+  let cupos: EstadoCupos
+  try {
+    cupos = await estadoCupos(new Date(), { cliente: prisma })
+  } catch (error) {
+    if (esErrorTablaFaltante(error)) {
+      return (
+        <EstadoOperativo
+          codigo={CODIGO_ESQUEMA_NO_APLICADO}
+          titulo="Esquema no aplicado"
+          descripcion="El portal queda deshabilitado hasta que se aplique el esquema de propuestas. No se muestran datos ni formularios."
+          fecha={new Date()}
+        />
+      )
+    }
+    throw error
+  }
+
+  const config = configPropuestas()
+
   return (
     <div>
       <header className="mb-8 max-w-[65ch]">
@@ -61,6 +87,17 @@ export default async function PropuestasDashboardPage() {
           portal está separado del CRM.
         </p>
       </header>
+
+      <div className="mb-8">
+        <CupoDia
+          estado={cupos}
+          disponibilidad={{
+            places: config.places.disponible,
+            resend: config.resend.disponible,
+            secreto: config.secreto !== null,
+          }}
+        />
+      </div>
 
       <EstadoVacio
         titulo="Todavía no hay campañas"

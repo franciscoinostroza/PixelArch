@@ -239,13 +239,14 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Cierre: tester (`supresiones.test.ts`, `envios.test.ts`) · reviewer (cumplimiento, PII, idempotencia) · 1 commit.
   - PASS tester+reviewer: 379 tests verdes (supresiones + envíos + páginas), tsc 0 errores; reviewer PASS. Deuda menor: `notas` libres sin redacción; lista 200 sin paginar; email pegado en ámbito DOMINIO suprime el dominio; schema de purga reutilizado; UI no muestra historial/revocadaPor; accesibilidad aria-describedby/aria-expanded; carreras de `creada`/reactivación; repetición final devuelve `suprimido:true` tras revocar; límites de notas 500/1000.
 
-- [ ] **T-21 (AC-38, AC-39; RF-57, RF-58) — Consumo, cupos y alertas en UI.**
+- [x] **T-21 (AC-38, AC-39; RF-57, RF-58) — Consumo, cupos y alertas en UI.**
   - Dashboard, detalle de campaña y ficha de prospecto: `estadoCupos(fecha)` por proveedor, enviados hoy/cap, restante, costo estimado si está configurado, aviso 80% y bloqueo 100%; consumo por campaña y por prospecto; sin cola.
   - Componente `cupo-dia.tsx`; enlace a supresiones; estado operativo si falta Places/Resend/secreto.
   - Archivos: `src/lib/propuestas/consumo.ts` (ampliar); `src/components/propuestas/cupo-dia.tsx`; `src/app/(propuestas)/propuestas/page.tsx`; `src/app/(propuestas)/propuestas/campanas/[id]/page.tsx`; test `propuestas-consumo.test.ts`.
   - Depende: T-11, T-18.
   - Tests: agregados por proveedor/día; fila por campaña/prospecto; 80% aviso; 100% bloqueo; costo 0 → "sin costo estimado"; configuración faltante → estado operativo.
   - Cierre: tester (`propuestas-consumo.test.ts`) · reviewer (exactitud de contadores, UX) · 1 commit.
+  - PASS tester+reviewer: 290 tests verdes (consumo + páginas), tsc 0 errores; reviewer PASS. Deuda menor: restante acotado vs global; cap 0 bloqueado/configurado; Places en total acotado; Places 0/20 en ficha (no se registra por prospecto); banner operativo duplicado; doble lectura mensual/índice `[fecha]`; medidor en shell pendiente; aria-label/`aria-valuetext`; cupo REDACTOR no reservado; paginación.
 
 - [ ] **T-22 (AC-37, AC-40; RF-30, RF-65) — Retención 12 meses y ARCO.**
   - `retencion.ts`: selección por `ultimaInteraccionEn < now-12m`, borrado en lotes de 100 con `onDelete: Cascade`, `pg_try_advisory_lock`, supresión intacta; cron `GET /api/cron/propuestas-retencion` con `CRON_SECRET`; `POST /api/propuestas/retencion` para admin.

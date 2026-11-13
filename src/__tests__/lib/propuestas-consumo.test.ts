@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import path from "node:path"
 
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import type { ConfigConsumo } from "@/lib/propuestas/consumo"
 import {
@@ -12,6 +12,8 @@ import {
   claveLockCupo,
   claveLockPresupuesto,
   esErrorCupo,
+  estadoConsumoCampana,
+  estadoConsumoProspecto,
   estadoCupos,
   evaluarCupo,
   fechaISOUTC,
@@ -390,6 +392,8 @@ interface EstadoFake {
 interface ArgsFindMany {
   where: {
     proveedor?: ProveedorConsumoCupo
+    campanaId?: string
+    prospectoId?: string
     fecha: Date | { gte: Date; lt: Date }
   }
   select?: unknown
@@ -1749,9 +1753,26 @@ function crearClienteEstado(filas: FilaConsumoFake[]): ClienteEstadoFake {
       findMany: async (args: ArgsFindMany) => {
         llamadas.push(args)
 
+        const coincideAmbito = (fila: FilaConsumoFake): boolean => {
+          if (
+            args.where.campanaId !== undefined &&
+            fila.campanaId !== args.where.campanaId
+          ) {
+            return false
+          }
+          if (
+            args.where.prospectoId !== undefined &&
+            fila.prospectoId !== args.where.prospectoId
+          ) {
+            return false
+          }
+          return true
+        }
+
         if (args.where.fecha instanceof Date) {
           return filas
             .filter((fila) => coincidenDia(fila, args.where))
+            .filter(coincideAmbito)
             .map((fila) => ({
               proveedor: fila.proveedor,
               unidades: fila.unidades,
@@ -2123,6 +2144,706 @@ describe("T-11 estadoCupos: agregados de solo lectura (AC-38, AC-39)", () => {
       expect(error.codigo).toBe("LIMITE")
       expect(error.ambito).toBe("CONFIGURACION")
     }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// T-21: consumo acotado por campana/prospecto
+// ---------------------------------------------------------------------------
+
+function filasPorAmbito(): FilaConsumoFake[] {
+  return [
+    crearFila({
+      campanaId: "camp-1",
+      proveedor: "GOOGLE_PLACES",
+      unidades: 16,
+      llamadas: 16,
+      costoCentavos: 160,
+    }),
+    crearFila({
+      campanaId: "camp-2",
+      proveedor: "GOOGLE_PLACES",
+      unidades: 10,
+      llamadas: 10,
+      costoCentavos: 100,
+    }),
+    crearFila({
+      campanaId: "camp-1",
+      prospectoId: "pros-1",
+      proveedor: "WEB_FETCH",
+      unidades: 5,
+      llamadas: 5,
+      costoCentavos: 0,
+    }),
+    crearFila({
+      campanaId: "camp-1",
+      prospectoId: "pros-1",
+      proveedor: "AUDITORIA",
+      unidades: 1,
+      llamadas: 1,
+      costoCentavos: 0,
+    }),
+    crearFila({
+      campanaId: "camp-1",
+      prospectoId: "pros-2",
+      proveedor: "RESEND",
+      unidades: 2,
+      llamadas: 2,
+      costoCentavos: 200,
+    }),
+  ]
+}
+
+describe("T-21 estadoConsumoCampana: consumo por campaña (AC-38, AC-39)", () => {
+  it("AC-38: filtra por campaña/día, agrega por proveedor y el presupuesto mensual sigue siendo global", async () => {
+    const { cliente, llamadas } = crearClienteEstado(filasPorAmbito())
+
+    const estado = await estadoConsumoCampana("camp-1", DIA_CON_HORA, {
+      cliente,
+      config: CONFIG,
+      presupuestoMensualCentavos: 1_000,
+    })
+
+    expect(estado.fecha).toEqual(DIA)
+    expect(llamadas).toHaveLength(2)
+
+    // La consulta del dia se acota; la del mes no (presupuesto global).
+    expect(llamadas[0]?.where).toEqual({ fecha: DIA, campanaId: "camp-1" })
+    expect(llamadas[1]?.where).toMatchObject({
+      fecha: {
+        gte: new Date("2026-11-01T00:00:00.000Z"),
+        lt: new Date("2026-12-01T00:00:00.000Z"),
+      },
+    })
+    expect(llamadas[1]?.where).not.toHaveProperty("campanaId")
+
+    const places = estado.proveedores.find(
+      (fila) => fila.proveedor === "GOOGLE_PLACES",
+    )
+    expect(places).toMatchObject({
+      usado: 16,
+      cap: 20,
+      restante: 4,
+      alerta: true,
+      bloqueado: false,
+      costoCentavos: 160,
+    })
+
+    const resend = estado.proveedores.find(
+      (fila) => fila.proveedor === "RESEND",
+    )
+    expect(resend).toMatchObject({ usado: 2, costoCentavos: 200 })
+
+    // Solo el consumo de camp-1 en el dia; el gasto del mes suma todo.
+    expect(estado.totalCostoCentavos).toBe(360)
+    expect(estado.presupuestoMensualCentavos).toBe(1_000)
+    expect(estado.gastadoMesCentavos).toBe(460)
+    expect(estado.restanteMesCentavos).toBe(540)
+    expect(estado.alertaPresupuesto).toBe(false)
+    expect(estado.presupuestoBloqueado).toBe(false)
+  })
+
+  it("AC-39: 80% avisa, 100% bloquea y cap 0 no alerta ni inventa cupo", async () => {
+    const { cliente } = crearClienteEstado([
+      crearFila({
+        campanaId: "camp-1",
+        proveedor: "WEB_FETCH",
+        unidades: 100,
+        llamadas: 100,
+        costoCentavos: 0,
+      }),
+      crearFila({
+        campanaId: "camp-1",
+        proveedor: "AUDITORIA",
+        unidades: 16,
+        llamadas: 16,
+        costoCentavos: 0,
+      }),
+      crearFila({
+        campanaId: "camp-1",
+        proveedor: "REDACTOR",
+        unidades: 3,
+        llamadas: 3,
+        costoCentavos: 0,
+      }),
+    ])
+    const config: ConfigConsumo = {
+      ...CONFIG,
+      cupos: { ...CONFIG.cupos, borradoresDia: 0 },
+    }
+
+    const estado = await estadoConsumoCampana("camp-1", DIA, {
+      cliente,
+      config,
+    })
+
+    const web = estado.proveedores.find((fila) => fila.proveedor === "WEB_FETCH")
+    expect(web).toMatchObject({
+      usado: 100,
+      cap: 100,
+      restante: 0,
+      alerta: true,
+      bloqueado: true,
+    })
+
+    const auditoria = estado.proveedores.find(
+      (fila) => fila.proveedor === "AUDITORIA",
+    )
+    expect(auditoria).toMatchObject({
+      usado: 16,
+      cap: 20,
+      restante: 4,
+      alerta: true,
+      bloqueado: false,
+    })
+
+    const redactor = estado.proveedores.find(
+      (fila) => fila.proveedor === "REDACTOR",
+    )
+    expect(redactor).toMatchObject({
+      usado: 3,
+      cap: 0,
+      restante: 0,
+      alerta: false,
+      bloqueado: false,
+    })
+  })
+
+  it("AC-39: el tope duro del presupuesto se refleja como bloqueado aunque no haya cupo de proveedor agotado", async () => {
+    const { cliente } = crearClienteEstado(filasPorAmbito())
+
+    const estado = await estadoConsumoCampana("camp-1", DIA, {
+      cliente,
+      config: CONFIG,
+      presupuestoMensualCentavos: 300,
+    })
+
+    expect(estado.gastadoMesCentavos).toBe(460)
+    expect(estado.restanteMesCentavos).toBe(0)
+    expect(estado.alertaPresupuesto).toBe(true)
+    expect(estado.presupuestoBloqueado).toBe(true)
+  })
+
+  it("AC-38: ids inválidos fallan cerrado antes de consultar y no hay escrituras", async () => {
+    for (const id of ["", "   ", "camp:1", "a".repeat(129)]) {
+      const { cliente, llamadas } = crearClienteEstado(filasPorAmbito())
+
+      const error = await capturarErrorCupo(
+        estadoConsumoCampana(id, DIA, { cliente, config: CONFIG }),
+      )
+
+      expect(error.ambito).toBe("VALIDACION")
+      expect(llamadas).toHaveLength(0)
+    }
+  })
+})
+
+describe("T-21 estadoConsumoProspecto: consumo por prospecto (AC-38, AC-39)", () => {
+  it("AC-38: filtra por prospecto/día y agrega fetches, auditoría y borrador sin Places global", async () => {
+    const { cliente, llamadas } = crearClienteEstado(filasPorAmbito())
+
+    const estado = await estadoConsumoProspecto("pros-1", DIA_CON_HORA, {
+      cliente,
+      config: CONFIG,
+    })
+
+    expect(llamadas).toHaveLength(1)
+    expect(llamadas[0]?.where).toEqual({
+      fecha: DIA,
+      prospectoId: "pros-1",
+    })
+
+    const usados = estado.proveedores
+      .filter((fila) => fila.usado > 0)
+      .map((fila) => [fila.proveedor, fila.usado])
+    expect(usados).toEqual([
+      ["WEB_FETCH", 5],
+      ["AUDITORIA", 1],
+    ])
+    expect(estado.totalCostoCentavos).toBe(0)
+    expect(estado.presupuestoMensualCentavos).toBe(0)
+    expect(estado.gastadoMesCentavos).toBeNull()
+  })
+
+  it("AC-39: el 100% del prospecto se marca bloqueado con restante 0", async () => {
+    const { cliente } = crearClienteEstado([
+      crearFila({
+        campanaId: "camp-1",
+        prospectoId: "pros-1",
+        proveedor: "WEB_FETCH",
+        unidades: 100,
+        llamadas: 100,
+        costoCentavos: 0,
+      }),
+    ])
+
+    const estado = await estadoConsumoProspecto("pros-1", DIA, {
+      cliente,
+      config: CONFIG,
+    })
+
+    const web = estado.proveedores.find((fila) => fila.proveedor === "WEB_FETCH")
+    expect(web).toMatchObject({
+      usado: 100,
+      cap: 100,
+      restante: 0,
+      alerta: true,
+      bloqueado: true,
+    })
+  })
+
+  it("AC-38: ids inválidos fallan cerrado antes de consultar y no hay escrituras", async () => {
+    for (const id of ["", "   ", "pros:1", "a".repeat(129)]) {
+      const { cliente, llamadas } = crearClienteEstado(filasPorAmbito())
+
+      const error = await capturarErrorCupo(
+        estadoConsumoProspecto(id, DIA, { cliente, config: CONFIG }),
+      )
+
+      expect(error.ambito).toBe("VALIDACION")
+      expect(llamadas).toHaveLength(0)
+    }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// T-21: helpers de estado acotado (lectura pura, sin locks ni escrituras)
+// ---------------------------------------------------------------------------
+
+/**
+ * Cliente inyectado de solo lectura. `findMany` reproduce el filtro por día y
+ * el rango mensual; `upsert` y `$queryRaw` fallan si el helper intenta escribir
+ * o tomar locks. Devuelve las espías para verificar llamadas exactas.
+ */
+function crearClienteSoloLectura(filas: FilaConsumoFake[]) {
+  const findMany = vi.fn(async (args: ArgsFindMany) => {
+    const where = args.where
+
+    if (where.fecha instanceof Date) {
+      return filas
+        .filter((fila) => coincidenDia(fila, where))
+        .filter(
+          (fila) =>
+            where.campanaId === undefined ||
+            fila.campanaId === where.campanaId,
+        )
+        .filter(
+          (fila) =>
+            where.prospectoId === undefined ||
+            fila.prospectoId === where.prospectoId,
+        )
+        .map((fila) => ({
+          proveedor: fila.proveedor,
+          unidades: fila.unidades,
+          llamadas: fila.llamadas,
+          costoCentavos: fila.costoCentavos,
+        }))
+    }
+
+    return filas
+      .filter((fila) =>
+        coincidenMes(fila, where.fecha as { gte: Date; lt: Date }),
+      )
+      .map((fila) => ({ costoCentavos: fila.costoCentavos }))
+  })
+
+  const upsert = vi.fn(async () => {
+    throw new Error("El estado de consumo no debe escribir.")
+  })
+  const queryRaw = vi.fn(async () => {
+    throw new Error("El estado de consumo no debe tomar locks.")
+  })
+
+  const cliente = {
+    $queryRaw: queryRaw,
+    consumoProveedor: { findMany, upsert },
+  } as unknown as NonNullable<OpcionesEstadoCupos["cliente"]>
+
+  return { cliente, findMany, upsert, queryRaw }
+}
+
+describe("T-21 helpers de consumo: agregados acotados y solo lectura (AC-38, AC-39)", () => {
+  it("AC-38/AC-39: campaña agrega por proveedor/día, respeta el tope y no escribe", async () => {
+    const filas = [
+      crearFila({
+        campanaId: "camp-1",
+        proveedor: "GOOGLE_PLACES",
+        unidades: 16,
+        llamadas: 14,
+        costoCentavos: 160,
+      }),
+      crearFila({
+        campanaId: "camp-2",
+        proveedor: "GOOGLE_PLACES",
+        unidades: 99,
+        llamadas: 99,
+        costoCentavos: 990,
+      }),
+      crearFila({
+        campanaId: "camp-1",
+        proveedor: "WEB_FETCH",
+        unidades: 99,
+        llamadas: 99,
+        costoCentavos: 0,
+      }),
+      crearFila({
+        campanaId: "camp-1",
+        proveedor: "AUDITORIA",
+        unidades: 1,
+        llamadas: 1,
+        costoCentavos: 0,
+      }),
+      crearFila({
+        campanaId: "camp-1",
+        proveedor: "REDACTOR",
+        unidades: 20,
+        llamadas: 20,
+        costoCentavos: 0,
+      }),
+      crearFila({
+        campanaId: "camp-1",
+        proveedor: "RESEND",
+        unidades: 2,
+        llamadas: 2,
+        costoCentavos: 200,
+      }),
+      // Mes anterior: no debe entrar ni en el día ni en el presupuesto mensual.
+      crearFila({
+        campanaId: "camp-1",
+        proveedor: "GOOGLE_PLACES",
+        unidades: 999,
+        llamadas: 999,
+        costoCentavos: 9_999,
+        fecha: new Date("2026-10-31T00:00:00.000Z"),
+      }),
+    ]
+    const { cliente, findMany, upsert, queryRaw } =
+      crearClienteSoloLectura(filas)
+
+    const estado = await estadoConsumoCampana("camp-1", DIA_CON_HORA, {
+      cliente,
+      config: CONFIG,
+      presupuestoMensualCentavos: 1_000,
+    })
+
+    // Una consulta del día acotada + una del mes global; sin locks ni upsert.
+    expect(findMany).toHaveBeenCalledTimes(2)
+    const llamadaDia = findMany.mock.calls[0]?.[0]
+    const llamadaMes = findMany.mock.calls[1]?.[0]
+    expect(llamadaDia?.where).toEqual({ fecha: DIA, campanaId: "camp-1" })
+    expect(llamadaMes?.where).toMatchObject({
+      fecha: {
+        gte: new Date("2026-11-01T00:00:00.000Z"),
+        lt: new Date("2026-12-01T00:00:00.000Z"),
+      },
+    })
+    expect(llamadaMes?.where).not.toHaveProperty("campanaId")
+    expect(upsert).not.toHaveBeenCalled()
+    expect(queryRaw).not.toHaveBeenCalled()
+
+    expect(estado.fecha).toEqual(DIA)
+    expect(estado.proveedores.map((fila) => fila.proveedor)).toEqual([
+      ...PROVEEDORES_CONSUMO,
+    ])
+
+    const places = estado.proveedores.find(
+      (fila) => fila.proveedor === "GOOGLE_PLACES",
+    )
+    expect(places).toMatchObject({
+      usado: 16,
+      cap: 20,
+      restante: 4,
+      alerta: true,
+      bloqueado: false,
+      llamadas: 14,
+      costoCentavos: 160,
+    })
+
+    const web = estado.proveedores.find(
+      (fila) => fila.proveedor === "WEB_FETCH",
+    )
+    expect(web).toMatchObject({
+      usado: 99,
+      cap: 100,
+      restante: 1,
+      alerta: true,
+      bloqueado: false,
+      costoCentavos: 0,
+    })
+
+    // Justo en el 100%: bloqueado sin depender de la UI.
+    const redactor = estado.proveedores.find(
+      (fila) => fila.proveedor === "REDACTOR",
+    )
+    expect(redactor).toMatchObject({
+      usado: 20,
+      cap: 20,
+      restante: 0,
+      alerta: true,
+      bloqueado: true,
+    })
+
+    // Sin sobreconsumo silencioso: restante = max(0, cap - usado) siempre.
+    for (const fila of estado.proveedores) {
+      expect(fila.restante).toBe(Math.max(0, fila.cap - fila.usado))
+      expect(fila.restante).toBeGreaterThanOrEqual(0)
+    }
+
+    expect(estado.totalCostoCentavos).toBe(360)
+    expect(estado.presupuestoMensualCentavos).toBe(1_000)
+    // El mes suma todas las campañas (camp-1 + camp-2) y excluye octubre.
+    expect(estado.gastadoMesCentavos).toBe(1_350)
+    expect(estado.restanteMesCentavos).toBe(0)
+    expect(estado.alertaPresupuesto).toBe(true)
+    expect(estado.presupuestoBloqueado).toBe(true)
+  })
+
+  it("AC-38/AC-39: prospecto agrega solo su consumo y reporta el exceso sin negativos", async () => {
+    const filas = [
+      crearFila({
+        campanaId: "camp-1",
+        prospectoId: "pros-1",
+        proveedor: "WEB_FETCH",
+        unidades: 60,
+        llamadas: 60,
+        costoCentavos: 0,
+      }),
+      // Mismo prospecto en otra campaña (dato anómalo): se agrega igual.
+      crearFila({
+        campanaId: "camp-2",
+        prospectoId: "pros-1",
+        proveedor: "WEB_FETCH",
+        unidades: 45,
+        llamadas: 45,
+        costoCentavos: 0,
+      }),
+      // Otro prospecto: no debe sumarse al ámbito pedido.
+      crearFila({
+        campanaId: "camp-1",
+        prospectoId: "pros-2",
+        proveedor: "WEB_FETCH",
+        unidades: 999,
+        llamadas: 999,
+        costoCentavos: 999,
+      }),
+      crearFila({
+        campanaId: "camp-1",
+        prospectoId: "pros-1",
+        proveedor: "AUDITORIA",
+        unidades: 20,
+        llamadas: 20,
+        costoCentavos: 0,
+      }),
+      crearFila({
+        campanaId: "camp-1",
+        prospectoId: "pros-1",
+        proveedor: "RESEND",
+        unidades: 1,
+        llamadas: 1,
+        costoCentavos: 100,
+      }),
+    ]
+    const { cliente, findMany, upsert, queryRaw } =
+      crearClienteSoloLectura(filas)
+
+    const estado = await estadoConsumoProspecto("pros-1", DIA_CON_HORA, {
+      cliente,
+      config: CONFIG,
+    })
+
+    // Sin presupuesto configurado solo se consulta el día acotado.
+    expect(findMany).toHaveBeenCalledTimes(1)
+    expect(findMany.mock.calls[0]?.[0]?.where).toEqual({
+      fecha: DIA,
+      prospectoId: "pros-1",
+    })
+    expect(upsert).not.toHaveBeenCalled()
+    expect(queryRaw).not.toHaveBeenCalled()
+
+    const web = estado.proveedores.find(
+      (fila) => fila.proveedor === "WEB_FETCH",
+    )
+    expect(web).toMatchObject({
+      usado: 105,
+      cap: 100,
+      restante: 0,
+      alerta: true,
+      bloqueado: true,
+      llamadas: 105,
+      costoCentavos: 0,
+    })
+
+    const auditoria = estado.proveedores.find(
+      (fila) => fila.proveedor === "AUDITORIA",
+    )
+    expect(auditoria).toMatchObject({
+      usado: 20,
+      cap: 20,
+      restante: 0,
+      alerta: true,
+      bloqueado: true,
+    })
+
+    const resend = estado.proveedores.find(
+      (fila) => fila.proveedor === "RESEND",
+    )
+    expect(resend).toMatchObject({
+      usado: 1,
+      cap: 20,
+      restante: 19,
+      alerta: false,
+      bloqueado: false,
+      costoCentavos: 100,
+    })
+
+    expect(estado.totalCostoCentavos).toBe(100)
+    expect(estado.presupuestoMensualCentavos).toBe(0)
+    expect(estado.gastadoMesCentavos).toBeNull()
+    expect(estado.restanteMesCentavos).toBeNull()
+    expect(estado.presupuestoBloqueado).toBe(false)
+  })
+
+  it("AC-38/AC-39: el presupuesto mensual es global aunque el ámbito no haya gastado", async () => {
+    const filas = [
+      crearFila({
+        campanaId: "camp-2",
+        proveedor: "RESEND",
+        unidades: 1,
+        llamadas: 1,
+        costoCentavos: 1_000,
+      }),
+      crearFila({
+        campanaId: "camp-1",
+        proveedor: "WEB_FETCH",
+        unidades: 1,
+        llamadas: 1,
+        costoCentavos: 0,
+      }),
+    ]
+    const { cliente, findMany } = crearClienteSoloLectura(filas)
+
+    const estado = await estadoConsumoCampana("camp-1", DIA, {
+      cliente,
+      config: CONFIG,
+      presupuestoMensualCentavos: 1_000,
+    })
+
+    expect(findMany).toHaveBeenCalledTimes(2)
+    // La campaña no gastó, pero el presupuesto global ya está agotado.
+    expect(estado.totalCostoCentavos).toBe(0)
+    expect(estado.gastadoMesCentavos).toBe(1_000)
+    expect(estado.restanteMesCentavos).toBe(0)
+    expect(estado.alertaPresupuesto).toBe(true)
+    expect(estado.presupuestoBloqueado).toBe(true)
+  })
+
+  it("AC-38: ids invalidos (incluido cero) fallan cerrado antes de consultar", async () => {
+    const idsInvalidos = [
+      0,
+      null,
+      undefined,
+      "",
+      "   ",
+      "a".repeat(129),
+    ] as const
+
+    for (const id of idsInvalidos) {
+      const { cliente, findMany } = crearClienteSoloLectura(filasPorAmbito())
+
+      const error = await capturarErrorCupo(
+        estadoConsumoCampana(id as unknown as string, DIA, {
+          cliente,
+          config: CONFIG,
+        }),
+      )
+
+      expect(error.codigo).toBe("LIMITE")
+      expect(error.ambito).toBe("VALIDACION")
+      expect(findMany).not.toHaveBeenCalled()
+    }
+
+    for (const id of [0, null, undefined, "", "   ", "p:1"] as const) {
+      const { cliente, findMany } = crearClienteSoloLectura(filasPorAmbito())
+
+      const error = await capturarErrorCupo(
+        estadoConsumoProspecto(id as unknown as string, DIA, {
+          cliente,
+          config: CONFIG,
+        }),
+      )
+
+      expect(error.codigo).toBe("LIMITE")
+      expect(error.ambito).toBe("VALIDACION")
+      expect(findMany).not.toHaveBeenCalled()
+    }
+  })
+
+  it.each([-1, 1.5, Number.NaN])(
+    "AC-39: presupuesto invalido (%j) falla cerrado sin consultar",
+    async (presupuesto) => {
+      const { cliente, findMany } = crearClienteSoloLectura([])
+
+      const error = await capturarErrorCupo(
+        estadoConsumoCampana("camp-1", DIA, {
+          cliente,
+          config: CONFIG,
+          presupuestoMensualCentavos: presupuesto,
+        }),
+      )
+
+      expect(error.codigo).toBe("LIMITE")
+      expect(error.ambito).toBe("CONFIGURACION")
+      expect(findMany).not.toHaveBeenCalled()
+    },
+  )
+
+  it("AC-38: usa el cliente inyectado y no escribe ni toma locks", async () => {
+    const { cliente, findMany, upsert, queryRaw } =
+      crearClienteSoloLectura([])
+
+    const estado = await estadoConsumoProspecto("pros-1", DIA, {
+      cliente,
+      config: CONFIG,
+    })
+
+    expect(findMany).toHaveBeenCalledTimes(1)
+    expect(upsert).not.toHaveBeenCalled()
+    expect(queryRaw).not.toHaveBeenCalled()
+    expect(estado.proveedores).toHaveLength(PROVEEDORES_CONSUMO.length)
+    expect(estado.proveedores.every((fila) => fila.usado === 0)).toBe(true)
+  })
+
+  it("AC-38: cap <= 0 se informa sin inventar cupo, restante ni alerta", async () => {
+    const config: ConfigConsumo = {
+      ...CONFIG,
+      cupos: { ...CONFIG.cupos, fetchesDia: 0 },
+    }
+    const { cliente } = crearClienteSoloLectura([
+      crearFila({
+        campanaId: "camp-1",
+        prospectoId: "pros-1",
+        proveedor: "WEB_FETCH",
+        unidades: 5,
+        llamadas: 5,
+        costoCentavos: 0,
+      }),
+    ])
+
+    const estado = await estadoConsumoProspecto("pros-1", DIA, {
+      cliente,
+      config,
+    })
+
+    const web = estado.proveedores.find(
+      (fila) => fila.proveedor === "WEB_FETCH",
+    )
+    expect(web).toMatchObject({
+      usado: 5,
+      cap: 0,
+      restante: 0,
+      alerta: false,
+      bloqueado: false,
+    })
   })
 })
 

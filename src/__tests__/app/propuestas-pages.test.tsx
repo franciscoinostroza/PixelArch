@@ -36,6 +36,8 @@ const mocks = vi.hoisted(() => ({
   envioFindFirst: vi.fn(),
   envioFindMany: vi.fn(),
   supresionFindMany: vi.fn(),
+  consumoFindMany: vi.fn(),
+  consumoUpsert: vi.fn(),
   pathname: "/propuestas",
   refresh: vi.fn(),
   notFound: vi.fn(() => {
@@ -60,6 +62,10 @@ vi.mock("@/lib/prisma", () => ({
       findMany: mocks.envioFindMany,
     },
     supresionProspecto: { findMany: mocks.supresionFindMany },
+    consumoProveedor: {
+      findMany: mocks.consumoFindMany,
+      upsert: mocks.consumoUpsert,
+    },
   },
 }))
 
@@ -138,6 +144,11 @@ import {
   formatearFechaPortal,
 } from "@/lib/propuestas/fechas"
 import { PortalShell } from "@/components/propuestas/portal-shell"
+import {
+  CupoDia,
+  type EstadoCupoDia,
+  type FilaCupoDia,
+} from "@/components/propuestas/cupo-dia"
 import { CampanaForm } from "@/components/propuestas/campana-form"
 import { CampanaAcciones } from "@/components/propuestas/campana-acciones"
 import {
@@ -175,12 +186,89 @@ beforeEach(() => {
   mocks.envioFindFirst.mockResolvedValue(null)
   mocks.envioFindMany.mockResolvedValue([])
   mocks.supresionFindMany.mockResolvedValue([])
+  mocks.consumoFindMany.mockResolvedValue([])
 })
 
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.unstubAllEnvs()
 })
+
+/* ------------------------------------------------------------------ */
+/* T-21: datos de consumo inyectados en Prisma (día/mes y ámbito)      */
+/* ------------------------------------------------------------------ */
+
+interface ConsumoFilaMock {
+  campanaId: string
+  prospectoId: string | null
+  proveedor: string
+  fecha: Date
+  unidades: number
+  llamadas: number
+  costoCentavos: number
+}
+
+interface WhereConsumoMock {
+  fecha: Date | { gte: Date; lt: Date }
+  campanaId?: string
+  prospectoId?: string
+}
+
+/**
+ * Implementación de `consumoProveedor.findMany` que respeta el `where` real:
+ * filtra por día y por campaña/prospecto, o suma costos del rango mensual. Sin
+ * esto las páginas verían el mismo agregado para el ámbito acotado y el global.
+ */
+function consumoFindManyPorFilas(filas: readonly ConsumoFilaMock[]) {
+  return (args: { where: WhereConsumoMock }) => {
+    const { where } = args
+    const fecha = where.fecha
+
+    if (fecha instanceof Date) {
+      const dia = fecha.getTime()
+
+      return filas
+        .filter((fila) => fila.fecha.getTime() === dia)
+        .filter(
+          (fila) =>
+            where.campanaId === undefined ||
+            fila.campanaId === where.campanaId,
+        )
+        .filter(
+          (fila) =>
+            where.prospectoId === undefined ||
+            (fila.prospectoId ?? null) === where.prospectoId,
+        )
+        .map((fila) => ({
+          proveedor: fila.proveedor,
+          unidades: fila.unidades,
+          llamadas: fila.llamadas,
+          costoCentavos: fila.costoCentavos,
+        }))
+    }
+
+    return filas
+      .filter(
+        (fila) =>
+          fila.fecha.getTime() >= fecha.gte.getTime() &&
+          fila.fecha.getTime() < fecha.lt.getTime(),
+      )
+      .map((fila) => ({ costoCentavos: fila.costoCentavos }))
+  }
+}
+
+function diaUTCDe(fecha: Date): Date {
+  return new Date(
+    Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
+  )
+}
+
+/** Piezas mínimas para que `CupoDia` muestre contadores en vez de no configurado. */
+function stubConsumoConfigurado(): void {
+  vi.stubEnv("PROPUESTAS_PLACES_API_KEY", "places-key")
+  vi.stubEnv("RESEND_API_KEY", "resend-key")
+  vi.stubEnv("PROPUESTAS_SECRETO", "s".repeat(32))
+}
 
 describe("dashboard vacio del portal (AC-3, AC-5)", () => {
   it("muestra el estado vacio cuando el esquema esta aplicado", async () => {
@@ -230,6 +318,70 @@ describe("dashboard vacio del portal (AC-3, AC-5)", () => {
 
   it("publica metadata noindex/nofollow (AC-5)", () => {
     expect(metadata.robots).toEqual({ index: false, follow: false })
+  })
+
+  it("T-21: muestra cupos globales con alerta 80%, bloqueo 100% y costo", async () => {
+    vi.stubEnv("PROPUESTAS_PLACES_API_KEY", "places-key")
+    vi.stubEnv("RESEND_API_KEY", "resend-key")
+    vi.stubEnv("PROPUESTAS_SECRETO", "s".repeat(32))
+    mocks.queryRaw.mockResolvedValue([])
+    mocks.consumoFindMany.mockResolvedValue([
+      {
+        proveedor: "GOOGLE_PLACES",
+        unidades: 16,
+        llamadas: 16,
+        costoCentavos: 150,
+      },
+      {
+        proveedor: "RESEND",
+        unidades: 20,
+        llamadas: 20,
+        costoCentavos: 200,
+      },
+      {
+        proveedor: "WEB_FETCH",
+        unidades: 1,
+        llamadas: 1,
+        costoCentavos: 0,
+      },
+    ])
+
+    render(await PropuestasDashboardPage())
+
+    const cupos = screen.getByRole("region", { name: /cupos del día/i })
+    expect(within(cupos).getByText("Google Places")).toBeInTheDocument()
+    expect(within(cupos).getByText("Aviso 80%")).toBeInTheDocument()
+    expect(within(cupos).getByText("Bloqueado al 100%")).toBeInTheDocument()
+    expect(within(cupos).getAllByText(/US\$\s?1,50/).length).toBeGreaterThan(0)
+    expect(
+      within(cupos).getAllByText(/sin costo estimado/i).length,
+    ).toBeGreaterThan(0)
+    expect(
+      within(cupos).getByRole("link", { name: /ver supresiones/i }),
+    ).toHaveAttribute("href", "/propuestas/supresiones")
+    expect(
+      within(cupos).getByText(/no hay cola automática ni sobreconsumo/i),
+    ).toBeInTheDocument()
+  })
+
+  it("T-21: si falta configuración muestra estado operativo y no inventa números", async () => {
+    mocks.queryRaw.mockResolvedValue([])
+
+    render(await PropuestasDashboardPage())
+
+    const cupos = screen.getByRole("region", { name: /cupos del día/i })
+    expect(
+      within(cupos).getByText("Estado operativo: no configurado"),
+    ).toBeInTheDocument()
+    expect(
+      within(cupos).getAllByText("No configurado").length,
+    ).toBeGreaterThan(0)
+    expect(
+      within(cupos).getAllByText(/falta PROPUESTAS_PLACES_API_KEY/i).length,
+    ).toBeGreaterThan(0)
+    expect(
+      within(cupos).getAllByText(/falta PROPUESTAS_SECRETO/i).length,
+    ).toBeGreaterThan(0)
   })
 })
 
@@ -5425,5 +5577,882 @@ describe("SupresionPurgarForm: purga manual (T-20, AC-15..AC-18, AC-27)", () => 
     ).toBeInTheDocument()
     expect(fetchMock).not.toHaveBeenCalled()
   })
+})
+
+/* ------------------------------------------------------------------ */
+/* T-21 (AC-38, AC-39; RF-57, RF-58): cupos, consumo y alertas        */
+/* ------------------------------------------------------------------ */
+
+function filaCupoDia(overrides: Partial<FilaCupoDia> = {}): FilaCupoDia {
+  return {
+    proveedor: "GOOGLE_PLACES",
+    usado: 0,
+    cap: 20,
+    restante: 20,
+    alerta: false,
+    costoCentavos: 0,
+    ...overrides,
+  }
+}
+
+function estadoCupoDia(
+  overrides: Partial<EstadoCupoDia> = {},
+): EstadoCupoDia {
+  return {
+    fecha: new Date("2026-11-12T00:00:00.000Z"),
+    proveedores: [
+      filaCupoDia(),
+      filaCupoDia({ proveedor: "WEB_FETCH", cap: 100, restante: 100 }),
+      filaCupoDia({ proveedor: "AUDITORIA" }),
+      filaCupoDia({ proveedor: "REDACTOR" }),
+      filaCupoDia({ proveedor: "RESEND" }),
+    ],
+    totalCostoCentavos: 0,
+    presupuestoMensualCentavos: 0,
+    gastadoMesCentavos: null,
+    restanteMesCentavos: null,
+    alertaPresupuesto: false,
+    ...overrides,
+  }
+}
+
+describe("CupoDia (T-21, AC-38, AC-39; RF-57, RF-58)", () => {
+  it("AC-38: variante completo muestra usado/cap/restante/alerta y costo", () => {
+    render(
+      <CupoDia
+        estado={estadoCupoDia({
+          proveedores: [
+            filaCupoDia({
+              usado: 16,
+              restante: 4,
+              alerta: true,
+              costoCentavos: 150,
+            }),
+            filaCupoDia({
+              proveedor: "WEB_FETCH",
+              usado: 0,
+              cap: 100,
+              restante: 100,
+              costoCentavos: 0,
+            }),
+            filaCupoDia({
+              proveedor: "RESEND",
+              usado: 2,
+              restante: 18,
+              costoCentavos: 200,
+            }),
+          ],
+          totalCostoCentavos: 350,
+          presupuestoMensualCentavos: 1_000,
+          gastadoMesCentavos: 350,
+          restanteMesCentavos: 650,
+        })}
+        disponibilidad={{ places: true, resend: true, secreto: true }}
+      />,
+    )
+
+    const region = screen.getByRole("region", { name: "Cupos del día" })
+    expect(region).toHaveAttribute("data-variante", "completo")
+    expect(
+      within(region).getByRole("heading", { level: 2, name: "Cupos del día" }),
+    ).toBeInTheDocument()
+    expect(within(region).getByText(/solo lectura/i)).toBeInTheDocument()
+    expect(within(region).getByText(/12 de nov de 2026/)).toBeInTheDocument()
+    expect(
+      within(region).getAllByText(/US\$\s?3,50/).length,
+    ).toBeGreaterThan(0)
+
+    const places = within(region).getByRole("listitem", {
+      name: /google places: 16 de 20 búsquedas/i,
+    })
+    expect(places).toHaveAttribute("data-estado", "ALERTA")
+    expect(within(places).getByText("16 / 20")).toBeInTheDocument()
+    expect(within(places).getByText("4")).toBeInTheDocument()
+    expect(within(places).getByText(/US\$\s?1,50/)).toBeInTheDocument()
+    expect(within(places).getByText("Aviso 80%")).toBeInTheDocument()
+
+    const barra = within(places).getByRole("progressbar", {
+      name: /uso de google places/i,
+    })
+    expect(barra).toHaveAttribute("aria-valuemin", "0")
+    expect(barra).toHaveAttribute("aria-valuemax", "20")
+    expect(barra).toHaveAttribute("aria-valuenow", "16")
+    expect(barra).toHaveAttribute("aria-valuetext", "16 de 20 usados")
+
+    const web = within(region).getByRole("listitem", {
+      name: /fetch web: 0 de 100 páginas/i,
+    })
+    expect(within(web).getByText("Dentro del cupo")).toBeInTheDocument()
+    expect(within(web).getByText(/sin costo estimado/i)).toBeInTheDocument()
+
+    const resend = within(region).getByRole("listitem", {
+      name: /resend: 2 de 20 envíos/i,
+    })
+    expect(within(resend).getByText(/US\$\s?2,00/)).toBeInTheDocument()
+
+    const presupuesto = within(region)
+      .getByText("Presupuesto mensual global")
+      .closest("[data-estado]") as HTMLElement
+    expect(presupuesto).toHaveAttribute("data-estado", "OK")
+    expect(presupuesto).toHaveTextContent(
+      /Gastado US\$\s?3,50 de US\$\s?10,00/i,
+    )
+    expect(presupuesto).toHaveTextContent(/restante US\$\s?6,50/i)
+    expect(
+      within(presupuesto).getByRole("progressbar", {
+        name: /uso de presupuesto mensual/i,
+      }),
+    ).toHaveAttribute("aria-valuemax", "1000")
+
+    expect(
+      within(region).getByRole("link", { name: /ver supresiones/i }),
+    ).toHaveAttribute("href", "/propuestas/supresiones")
+    expect(
+      within(region).getByText(/no hay cola automática ni sobreconsumo/i),
+    ).toBeInTheDocument()
+  })
+
+  it("AC-39: al 100% de cupo y de presupuesto se bloquea, sin cola", () => {
+    render(
+      <CupoDia
+        estado={estadoCupoDia({
+          proveedores: [
+            filaCupoDia({
+              proveedor: "RESEND",
+              usado: 20,
+              restante: 0,
+              alerta: true,
+              costoCentavos: 200,
+            }),
+          ],
+          totalCostoCentavos: 200,
+          presupuestoMensualCentavos: 1_000,
+          gastadoMesCentavos: 1_000,
+          restanteMesCentavos: 0,
+          alertaPresupuesto: true,
+          presupuestoBloqueado: true,
+        })}
+      />,
+    )
+
+    const region = screen.getByRole("region", { name: "Cupos del día" })
+    const resend = within(region).getByRole("listitem", {
+      name: /resend: 20 de 20 envíos/i,
+    })
+    expect(resend).toHaveAttribute("data-estado", "BLOQUEADO")
+    expect(within(resend).getByText("Bloqueado al 100%")).toBeInTheDocument()
+    expect(within(resend).getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "20",
+    )
+
+    const presupuesto = within(region)
+      .getByText("Presupuesto mensual global")
+      .closest("[data-estado]") as HTMLElement
+    expect(presupuesto).toHaveAttribute("data-estado", "BLOQUEADO")
+    expect(
+      within(presupuesto).getByText("Bloqueado al 100%"),
+    ).toBeInTheDocument()
+    expect(within(region).getAllByText("Bloqueado al 100%")).toHaveLength(2)
+    expect(
+      within(region).getByText(/no hay cola automática ni sobreconsumo/i),
+    ).toBeInTheDocument()
+  })
+
+  it("AC-38: la variante compacta excluye Places y no repite presupuesto ni pie", () => {
+    render(
+      <CupoDia
+        titulo="Consumo de la campaña (hoy)"
+        variante="compacto"
+        estado={estadoCupoDia({
+          proveedores: [
+            filaCupoDia({ usado: 5, restante: 15 }),
+            filaCupoDia({
+              proveedor: "WEB_FETCH",
+              usado: 3,
+              cap: 100,
+              restante: 97,
+            }),
+          ],
+        })}
+        excluir={["GOOGLE_PLACES"]}
+        mostrarPresupuesto={false}
+        mostrarPie={false}
+      />,
+    )
+
+    const region = screen.getByRole("region", {
+      name: "Consumo de la campaña (hoy)",
+    })
+    expect(region).toHaveAttribute("data-variante", "compacto")
+    expect(
+      within(region).getByRole("heading", {
+        level: 3,
+        name: "Consumo de la campaña (hoy)",
+      }),
+    ).toBeInTheDocument()
+    expect(within(region).queryByText("Google Places")).not.toBeInTheDocument()
+    expect(
+      within(region).getByRole("listitem", {
+        name: /fetch web: 3 de 100 páginas/i,
+      }),
+    ).toBeInTheDocument()
+    expect(
+      within(region).queryByText("Presupuesto mensual global"),
+    ).not.toBeInTheDocument()
+    expect(
+      within(region).queryByRole("link", { name: /ver supresiones/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(region).queryByText(/no hay cola automática/i),
+    ).not.toBeInTheDocument()
+  })
+
+  it("AC-38/AC-39: cap <= 0 y configuración faltante muestran no configurado", () => {
+    render(
+      <CupoDia
+        estado={estadoCupoDia({
+          proveedores: [
+            filaCupoDia({ usado: 3, restante: 17 }),
+            filaCupoDia({ proveedor: "RESEND", usado: 0, restante: 20 }),
+            filaCupoDia({
+              proveedor: "REDACTOR",
+              usado: 3,
+              cap: 0,
+              restante: 0,
+            }),
+            filaCupoDia({
+              proveedor: "WEB_FETCH",
+              usado: 0,
+              cap: 100,
+              restante: 100,
+              costoCentavos: 0,
+            }),
+          ],
+          totalCostoCentavos: 0,
+        })}
+        disponibilidad={{ places: false, resend: false, secreto: false }}
+      />,
+    )
+
+    const region = screen.getByRole("region", { name: "Cupos del día" })
+    const estadoOperativo = within(region).getByRole("status", {
+      name: /configuración de cupos/i,
+    })
+    expect(estadoOperativo).toHaveAttribute("data-estado", "NO_CONFIGURADO")
+    expect(
+      within(estadoOperativo).getByText("Estado operativo: no configurado"),
+    ).toBeInTheDocument()
+    expect(
+      within(estadoOperativo).getByText(/falta PROPUESTAS_PLACES_API_KEY/i),
+    ).toBeInTheDocument()
+    expect(
+      within(estadoOperativo).getByText(/falta RESEND_API_KEY/i),
+    ).toBeInTheDocument()
+    expect(
+      within(estadoOperativo).getByText(/falta PROPUESTAS_SECRETO/i),
+    ).toBeInTheDocument()
+
+    const places = within(region).getByRole("listitem", {
+      name: /google places: no configurado/i,
+    })
+    expect(places).toHaveAttribute("data-estado", "NO_CONFIGURADO")
+    expect(
+      within(places).getByText(/falta PROPUESTAS_PLACES_API_KEY/i),
+    ).toBeInTheDocument()
+    // No se inventan números para una pieza sin configurar.
+    expect(within(places).queryByText("3 / 20")).not.toBeInTheDocument()
+
+    const resend = within(region).getByRole("listitem", {
+      name: /resend: no configurado/i,
+    })
+    expect(within(resend).getByText(/falta RESEND_API_KEY/i)).toBeInTheDocument()
+
+    const redactor = within(region).getByRole("listitem", {
+      name: /redactor: no configurado/i,
+    })
+    expect(
+      within(redactor).getByText(/el cupo diario es 0 o invalido/i),
+    ).toBeInTheDocument()
+
+    // Lo que sí está configurado sigue mostrando costo 0 explícito.
+    const web = within(region).getByRole("listitem", {
+      name: /fetch web: 0 de 100 páginas/i,
+    })
+    expect(within(web).getByText(/sin costo estimado/i)).toBeInTheDocument()
+    expect(within(region).getAllByRole("progressbar")).toHaveLength(1)
+  })
+
+  it("AC-38: sin proveedores muestra estado vacío y no inventa medidores", () => {
+    render(
+      <CupoDia
+        estado={estadoCupoDia({
+          proveedores: [],
+          totalCostoCentavos: 0,
+          presupuestoMensualCentavos: 0,
+          gastadoMesCentavos: null,
+          restanteMesCentavos: null,
+        })}
+      />,
+    )
+
+    const region = screen.getByRole("region", { name: "Cupos del día" })
+    expect(within(region).getByRole("status")).toHaveTextContent(
+      /no hay proveedores para mostrar en este ámbito/i,
+    )
+    expect(
+      within(region).getByText(/sin presupuesto mensual configurado/i),
+    ).toBeInTheDocument()
+    expect(within(region).getByText(/sin costo estimado/i)).toBeInTheDocument()
+    expect(within(region).queryAllByRole("progressbar")).toHaveLength(0)
+  })
+
+  it("AC-39: presupuesto al 80% avisa sin bloquear", () => {
+    render(
+      <CupoDia
+        estado={estadoCupoDia({
+          proveedores: [filaCupoDia({ usado: 1, restante: 19 })],
+          totalCostoCentavos: 800,
+          presupuestoMensualCentavos: 1_000,
+          gastadoMesCentavos: 800,
+          restanteMesCentavos: 200,
+          alertaPresupuesto: true,
+          presupuestoBloqueado: false,
+        })}
+      />,
+    )
+
+    const region = screen.getByRole("region", { name: "Cupos del día" })
+    const presupuesto = within(region)
+      .getByText("Presupuesto mensual global")
+      .closest("[data-estado]") as HTMLElement
+    expect(presupuesto).toHaveAttribute("data-estado", "ALERTA")
+    expect(within(presupuesto).getByText("Aviso 80%")).toBeInTheDocument()
+    expect(presupuesto).toHaveTextContent(/restante US\$\s?2,00/i)
+
+    const barra = within(presupuesto).getByRole("progressbar")
+    expect(barra).toHaveAttribute("aria-valuenow", "800")
+    expect(barra).toHaveAttribute("aria-valuemax", "1000")
+    expect(barra).toHaveAttribute("aria-valuetext", "800 de 1000 usados")
+  })
+
+  it("AC-38: presupuesto configurado sin dato de gasto no inventa números", () => {
+    render(
+      <CupoDia
+        estado={estadoCupoDia({
+          presupuestoMensualCentavos: 1_000,
+          gastadoMesCentavos: null,
+          restanteMesCentavos: null,
+        })}
+      />,
+    )
+
+    const region = screen.getByRole("region", { name: "Cupos del día" })
+    expect(
+      within(region).getByText(/no hay dato de gasto del mes/i),
+    ).toBeInTheDocument()
+    expect(within(region).queryByText(/Gastado US\$/)).not.toBeInTheDocument()
+  })
+
+  it("AC-38: todos los medidores exponen progressbar accesible", () => {
+    render(
+      <CupoDia
+        estado={estadoCupoDia({
+          proveedores: [
+            filaCupoDia({ usado: 16, restante: 4, alerta: true }),
+            filaCupoDia({ proveedor: "RESEND", usado: 2, restante: 18 }),
+          ],
+          presupuestoMensualCentavos: 1_000,
+          gastadoMesCentavos: 800,
+          restanteMesCentavos: 200,
+          alertaPresupuesto: true,
+        })}
+      />,
+    )
+
+    const barras = screen.getAllByRole("progressbar")
+    expect(barras).toHaveLength(3)
+    for (const barra of barras) {
+      expect(barra).toHaveAttribute("aria-label")
+      expect(barra).toHaveAttribute("aria-valuemin", "0")
+      expect(barra).toHaveAttribute("aria-valuetext")
+      const maximo = Number(barra.getAttribute("aria-valuemax"))
+      const actual = Number(barra.getAttribute("aria-valuenow"))
+      expect(maximo).toBeGreaterThan(0)
+      expect(actual).toBeGreaterThanOrEqual(0)
+      expect(actual).toBeLessThanOrEqual(maximo)
+    }
+  })
+})
+
+describe("T-21: cupos en dashboard, campaña y ficha", () => {
+  it("AC-38: el dashboard muestra la tarjeta global, conserva el estado vacío y no muta", async () => {
+    vi.stubEnv("PROPUESTAS_PLACES_API_KEY", "places-key")
+    vi.stubEnv("RESEND_API_KEY", "resend-key")
+    vi.stubEnv("PROPUESTAS_SECRETO", "s".repeat(32))
+    mocks.queryRaw.mockResolvedValue([])
+    mocks.consumoFindMany.mockResolvedValue([
+      {
+        proveedor: "GOOGLE_PLACES",
+        unidades: 16,
+        llamadas: 16,
+        costoCentavos: 150,
+        // Campos que no pertenecen al agregado: no deben filtrarse a la UI.
+        email: "fuga@example.com",
+        nombreNegocio: "Cliente Secreto",
+      },
+    ])
+
+    render(await PropuestasDashboardPage())
+
+    const region = screen.getByRole("region", { name: "Cupos del día" })
+    expect(within(region).getByText("Google Places")).toBeInTheDocument()
+    expect(within(region).getByText("Aviso 80%")).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: /todavía no hay campañas/i }),
+    ).toBeInTheDocument()
+
+    // Sin PII: el medidor solo usa los contadores del agregado.
+    expect(document.body).not.toHaveTextContent("fuga@example.com")
+    expect(document.body).not.toHaveTextContent("Cliente Secreto")
+    expect(mocks.consumoUpsert).not.toHaveBeenCalled()
+    expect(mocks.refresh).not.toHaveBeenCalled()
+  })
+
+  it("AC-39: el dashboard lee el presupuesto mensual global y avisa al 80%", async () => {
+    vi.stubEnv("PROPUESTAS_PRESUPUESTO_MENSUAL_CENTAVOS", "1000")
+    mocks.queryRaw.mockResolvedValue([])
+    mocks.consumoFindMany.mockResolvedValue([
+      { proveedor: "RESEND", unidades: 1, llamadas: 1, costoCentavos: 800 },
+    ])
+
+    render(await PropuestasDashboardPage())
+
+    const region = screen.getByRole("region", { name: "Cupos del día" })
+    const presupuesto = within(region)
+      .getByText("Presupuesto mensual global")
+      .closest("[data-estado]") as HTMLElement
+    expect(presupuesto).toHaveAttribute("data-estado", "ALERTA")
+    expect(presupuesto).toHaveTextContent(
+      /Gastado US\$\s?8,00 de US\$\s?10,00/i,
+    )
+    expect(presupuesto).toHaveTextContent(/restante US\$\s?2,00/i)
+
+    // Día + mes: el gasto mensual sale del agregado global.
+    expect(mocks.consumoFindMany).toHaveBeenCalledTimes(2)
+    expect(mocks.consumoUpsert).not.toHaveBeenCalled()
+  })
+
+  it("AC-6/AC-38: sin esquema no consulta consumo ni muestra cupos", async () => {
+    mocks.queryRaw.mockRejectedValue({ code: "P2021" })
+
+    render(await PropuestasDashboardPage())
+
+    expect(screen.getByRole("alert")).toHaveAttribute(
+      "data-estado",
+      CODIGO_ESQUEMA_NO_APLICADO,
+    )
+    expect(
+      screen.queryByRole("region", { name: "Cupos del día" }),
+    ).not.toBeInTheDocument()
+    expect(mocks.consumoFindMany).not.toHaveBeenCalled()
+    expect(mocks.consumoUpsert).not.toHaveBeenCalled()
+  })
+
+  it("AC-6/AC-38: si falla la consulta de consumo por esquema, falla cerrado", async () => {
+    mocks.queryRaw.mockResolvedValue([])
+    mocks.consumoFindMany.mockRejectedValue({ code: "P2021" })
+
+    render(await PropuestasDashboardPage())
+
+    expect(screen.getByRole("alert")).toHaveAttribute(
+      "data-estado",
+      CODIGO_ESQUEMA_NO_APLICADO,
+    )
+    expect(
+      screen.queryByRole("region", { name: "Cupos del día" }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("AC-38: la campaña acota su consumo y no duplica Places del global", async () => {
+    stubConsumoConfigurado()
+    const dia = diaUTCDe(new Date())
+    mocks.campanaFindUnique.mockResolvedValue(
+      campanaDetalleFixture({
+        consumos: [
+          {
+            id: "consumo_1",
+            fecha: dia,
+            llamadas: 5,
+            unidades: 5,
+            costoCentavos: 50,
+          },
+        ],
+      }),
+    )
+    mocks.consumoFindMany.mockImplementation(
+      consumoFindManyPorFilas([
+        {
+          campanaId: "camp_1",
+          prospectoId: null,
+          proveedor: "GOOGLE_PLACES",
+          fecha: dia,
+          unidades: 5,
+          llamadas: 5,
+          costoCentavos: 50,
+        },
+        {
+          campanaId: "camp_1",
+          prospectoId: "pros_1",
+          proveedor: "WEB_FETCH",
+          fecha: dia,
+          unidades: 3,
+          llamadas: 3,
+          costoCentavos: 0,
+        },
+        {
+          campanaId: "camp_1",
+          prospectoId: "pros_1",
+          proveedor: "AUDITORIA",
+          fecha: dia,
+          unidades: 1,
+          llamadas: 1,
+          costoCentavos: 0,
+        },
+        {
+          campanaId: "camp_2",
+          prospectoId: null,
+          proveedor: "GOOGLE_PLACES",
+          fecha: dia,
+          unidades: 12,
+          llamadas: 12,
+          costoCentavos: 120,
+        },
+      ]),
+    )
+
+    await renderDetalle()
+
+    const campana = screen.getByRole("region", {
+      name: "Consumo de la campaña (hoy)",
+    })
+    expect(campana).toHaveAttribute("data-variante", "compacto")
+    // Places se detalla abajo: no se repite su fila en el consumo acotado.
+    expect(within(campana).queryByText("Google Places")).not.toBeInTheDocument()
+    expect(
+      within(campana).getByRole("listitem", {
+        name: /fetch web: 3 de 100 páginas/i,
+      }),
+    ).toBeInTheDocument()
+    expect(
+      within(campana).getByRole("listitem", {
+        name: /auditoría: 1 de 20 auditorías/i,
+      }),
+    ).toBeInTheDocument()
+    expect(
+      within(campana).queryByText("Presupuesto mensual global"),
+    ).not.toBeInTheDocument()
+    expect(
+      within(campana).getAllByText(/US\$\s?0,50/).length,
+    ).toBeGreaterThan(0)
+
+    const global = screen.getByRole("region", {
+      name: "Cupos globales del día",
+    })
+    const placesGlobal = within(global).getByRole("listitem", {
+      name: /google places: 17 de 20 búsquedas/i,
+    })
+    expect(within(placesGlobal).getByText("17 / 20")).toBeInTheDocument()
+    expect(
+      within(global).getAllByText(/US\$\s?1,70/).length,
+    ).toBeGreaterThan(0)
+
+    // El detalle de Places conserva su propia sección y tabla.
+    expect(
+      screen.getByRole("region", { name: "Consumo de Google Places" }),
+    ).toBeInTheDocument()
+    expect(mocks.consumoUpsert).not.toHaveBeenCalled()
+    expect(mocks.refresh).not.toHaveBeenCalled()
+
+    const llamadas = mocks.consumoFindMany.mock.calls.map(
+      ([args]) => args as { where: WhereConsumoMock },
+    )
+    expect(
+      llamadas.some(
+        (args) =>
+          args.where.campanaId === "camp_1" &&
+          args.where.fecha instanceof Date,
+      ),
+    ).toBe(true)
+    expect(
+      llamadas.some(
+        (args) =>
+          args.where.campanaId === undefined &&
+          args.where.prospectoId === undefined &&
+          args.where.fecha instanceof Date,
+      ),
+    ).toBe(true)
+  })
+
+  it("AC-6/AC-38: si falla el consumo de la campaña por esquema, no muestra cupos", async () => {
+    mocks.campanaFindUnique.mockResolvedValue(campanaDetalleFixture())
+    mocks.consumoFindMany.mockRejectedValue({ code: "P2021" })
+
+    await renderDetalle()
+
+    expect(screen.getByRole("alert")).toHaveAttribute(
+      "data-estado",
+      CODIGO_ESQUEMA_NO_APLICADO,
+    )
+    expect(
+      screen.queryByRole("region", { name: "Consumo de la campaña (hoy)" }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("region", { name: "Cupos globales del día" }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("AC-38/AC-39: la ficha muestra el consumo acotado del prospecto sin PII", async () => {
+    stubConsumoConfigurado()
+    const dia = diaUTCDe(new Date())
+    mocks.prospectoFindUnique.mockResolvedValue(prospectoDetalleFixture())
+    mocks.consumoFindMany.mockImplementation(
+      consumoFindManyPorFilas([
+        {
+          campanaId: "camp_1",
+          prospectoId: "pros_1",
+          proveedor: "WEB_FETCH",
+          fecha: dia,
+          unidades: 5,
+          llamadas: 5,
+          costoCentavos: 0,
+        },
+        {
+          campanaId: "camp_1",
+          prospectoId: "pros_1",
+          proveedor: "AUDITORIA",
+          fecha: dia,
+          unidades: 20,
+          llamadas: 20,
+          costoCentavos: 0,
+        },
+        {
+          campanaId: "camp_1",
+          prospectoId: "pros_1",
+          proveedor: "RESEND",
+          fecha: dia,
+          unidades: 2,
+          llamadas: 2,
+          costoCentavos: 200,
+        },
+        {
+          campanaId: "camp_1",
+          prospectoId: "pros_2",
+          proveedor: "WEB_FETCH",
+          fecha: dia,
+          unidades: 90,
+          llamadas: 90,
+          costoCentavos: 0,
+        },
+      ]),
+    )
+
+    await renderProspecto()
+
+    const prospecto = screen.getByRole("region", {
+      name: "Consumo del prospecto (hoy)",
+    })
+    expect(prospecto).toHaveAttribute("data-variante", "compacto")
+
+    const web = within(prospecto).getByRole("listitem", {
+      name: /fetch web: 5 de 100 páginas/i,
+    })
+    expect(within(web).getByText("5 / 100")).toBeInTheDocument()
+    // El consumo del otro prospecto no se suma al ámbito acotado.
+    expect(within(web).getByText("95")).toBeInTheDocument()
+
+    const auditoria = within(prospecto).getByRole("listitem", {
+      name: /auditoría: 20 de 20 auditorías/i,
+    })
+    expect(auditoria).toHaveAttribute("data-estado", "BLOQUEADO")
+    expect(
+      within(auditoria).getByText("Bloqueado al 100%"),
+    ).toBeInTheDocument()
+
+    const resend = within(prospecto).getByRole("listitem", {
+      name: /resend: 2 de 20 envíos/i,
+    })
+    expect(within(resend).getByText(/US\$\s?2,00/)).toBeInTheDocument()
+
+    // Sin PII en el medidor (ni siquiera en atributos).
+    expect(prospecto.innerHTML).not.toContain("ventas@alfa.com.ar")
+    expect(prospecto.innerHTML).not.toContain("+541155551234")
+
+    // El global sí suma ambos prospectos y avisa al 95%.
+    const global = screen.getByRole("region", {
+      name: "Cupos globales del día",
+    })
+    expect(
+      within(global).getByRole("listitem", {
+        name: /fetch web: 95 de 100 páginas/i,
+      }),
+    ).toBeInTheDocument()
+    expect(within(global).getByText("Aviso 80%")).toBeInTheDocument()
+    expect(global.innerHTML).not.toContain("ventas@alfa.com.ar")
+
+    expect(mocks.consumoUpsert).not.toHaveBeenCalled()
+    expect(mocks.refresh).not.toHaveBeenCalled()
+
+    const llamadas = mocks.consumoFindMany.mock.calls.map(
+      ([args]) => args as { where: WhereConsumoMock },
+    )
+    expect(
+      llamadas.some(
+        (args) =>
+          args.where.prospectoId === "pros_1" &&
+          args.where.fecha instanceof Date,
+      ),
+    ).toBe(true)
+    expect(
+      llamadas.some(
+        (args) =>
+          args.where.prospectoId === undefined &&
+          args.where.campanaId === undefined &&
+          args.where.fecha instanceof Date,
+      ),
+    ).toBe(true)
+  })
+
+  it("AC-39: el presupuesto global bloqueado se muestra en la ficha sin tocar el consumo acotado", async () => {
+    stubConsumoConfigurado()
+    vi.stubEnv("PROPUESTAS_PRESUPUESTO_MENSUAL_CENTAVOS", "100")
+    const dia = diaUTCDe(new Date())
+    mocks.prospectoFindUnique.mockResolvedValue(prospectoDetalleFixture())
+    mocks.consumoFindMany.mockImplementation(
+      consumoFindManyPorFilas([
+        {
+          campanaId: "camp_1",
+          prospectoId: "pros_1",
+          proveedor: "RESEND",
+          fecha: dia,
+          unidades: 1,
+          llamadas: 1,
+          costoCentavos: 200,
+        },
+      ]),
+    )
+
+    await renderProspecto()
+
+    const global = screen.getByRole("region", {
+      name: "Cupos globales del día",
+    })
+    const presupuesto = within(global)
+      .getByText("Presupuesto mensual global")
+      .closest("[data-estado]") as HTMLElement
+    expect(presupuesto).toHaveAttribute("data-estado", "BLOQUEADO")
+    expect(presupuesto).toHaveTextContent(/Bloqueado al 100%/)
+
+    const prospecto = screen.getByRole("region", {
+      name: "Consumo del prospecto (hoy)",
+    })
+    expect(
+      within(prospecto).queryByText("Presupuesto mensual global"),
+    ).not.toBeInTheDocument()
+    expect(
+      within(prospecto).getByRole("listitem", {
+        name: /resend: 1 de 20 envíos/i,
+      }),
+    ).not.toHaveAttribute("data-estado", "BLOQUEADO")
+    expect(mocks.consumoUpsert).not.toHaveBeenCalled()
+  })
+
+  it("AC-6/AC-38: si falla el consumo del prospecto por esquema, falla cerrado", async () => {
+    mocks.prospectoFindUnique.mockResolvedValue(prospectoDetalleFixture())
+    mocks.consumoFindMany.mockRejectedValue({ code: "P2021" })
+
+    await renderProspecto()
+
+    expect(screen.getByRole("alert")).toHaveAttribute(
+      "data-estado",
+      CODIGO_ESQUEMA_NO_APLICADO,
+    )
+    expect(
+      screen.queryByRole("region", { name: "Consumo del prospecto (hoy)" }),
+    ).not.toBeInTheDocument()
+  })
+})
+
+describe("T-21: cupos sin mutaciones ni auto-refresh (AC-38, AC-39)", () => {
+  const RAIZ = process.cwd()
+  const ARCHIVOS = [
+    [
+      "CupoDia",
+      path.join(RAIZ, "src", "components", "propuestas", "cupo-dia.tsx"),
+    ],
+    [
+      "dashboard",
+      path.join(RAIZ, "src", "app", "(propuestas)", "propuestas", "page.tsx"),
+    ],
+    [
+      "campaña",
+      path.join(
+        RAIZ,
+        "src",
+        "app",
+        "(propuestas)",
+        "propuestas",
+        "campanas",
+        "[id]",
+        "page.tsx",
+      ),
+    ],
+    [
+      "ficha",
+      path.join(
+        RAIZ,
+        "src",
+        "app",
+        "(propuestas)",
+        "propuestas",
+        "prospectos",
+        "[id]",
+        "page.tsx",
+      ),
+    ],
+  ] as const
+
+  it.each(ARCHIVOS)(
+    "AC-38: %s no usa polling, timers, fetch ni efectos",
+    (_nombre, archivo) => {
+      const codigo = readFileSync(archivo, "utf8")
+      expect(codigo).not.toMatch(
+        /\bsetInterval\b|\bsetTimeout\b|\buseEffect\b|\bfetch\s*\(/,
+      )
+    },
+  )
+
+  it("AC-38: CupoDia es presentacional, sin Prisma, red ni mutaciones", () => {
+    const codigo = readFileSync(
+      path.join(RAIZ, "src", "components", "propuestas", "cupo-dia.tsx"),
+      "utf8",
+    )
+    expect(codigo).not.toMatch(/@\/lib\/prisma|@prisma\/client/)
+    expect(codigo).not.toMatch(/\bprisma\s*\./)
+    expect(codigo).not.toMatch(
+      /\.(create|createMany|update|updateMany|upsert|delete|deleteMany)\s*\(/,
+    )
+    expect(codigo).not.toMatch(/["']use client["']/)
+  })
+
+  it.each(ARCHIVOS.filter(([nombre]) => nombre !== "CupoDia"))(
+    "AC-38: %s solo lee datos (sin mutaciones Prisma)",
+    (_nombre, archivo) => {
+      const codigo = readFileSync(archivo, "utf8")
+      expect(codigo).not.toMatch(
+        /\.(create|createMany|update|updateMany|upsert|delete|deleteMany)\s*\(/,
+      )
+    },
+  )
 })
 

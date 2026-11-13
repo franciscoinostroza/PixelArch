@@ -7,6 +7,12 @@ import {
   estadoEnvio,
   type ConfigPropuestas,
 } from "@/lib/propuestas/config"
+import {
+  estadoConsumoProspecto,
+  estadoCupos,
+  type EstadoConsumo,
+  type EstadoCupos,
+} from "@/lib/propuestas/consumo"
 import { verificarHashContenido } from "@/lib/propuestas/envios"
 import {
   CODIGO_ESQUEMA_NO_APLICADO,
@@ -14,6 +20,7 @@ import {
 } from "@/lib/propuestas/errores"
 import { formatearFechaHoraPortal } from "@/lib/propuestas/fechas"
 import { EstadoOperativo } from "@/components/propuestas/estado-vacio"
+import { CupoDia } from "@/components/propuestas/cupo-dia"
 import { ProspectoFicha } from "@/components/propuestas/prospecto-ficha"
 import { ScoreDesglose } from "@/components/propuestas/score-desglose"
 import { AnalizarProspecto } from "@/components/propuestas/analizar-prospecto-button"
@@ -499,6 +506,37 @@ export default async function ProspectoDetallePage({
     throw error
   }
 
+  let consumoProspecto: EstadoConsumo
+  let cuposGlobales: EstadoCupos
+  try {
+    const hoy = new Date()
+    const [consumo, cupos] = await Promise.all([
+      estadoConsumoProspecto(prospecto.id, hoy, { cliente: prisma }),
+      estadoCupos(hoy, { cliente: prisma }),
+    ])
+    consumoProspecto = consumo
+    cuposGlobales = cupos
+  } catch (error) {
+    if (esErrorTablaFaltante(error)) {
+      return (
+        <EstadoOperativo
+          codigo={CODIGO_ESQUEMA_NO_APLICADO}
+          titulo="Esquema no aplicado"
+          descripcion="El portal queda deshabilitado hasta que se aplique el esquema de propuestas. No se muestran datos ni acciones."
+          fecha={new Date()}
+        />
+      )
+    }
+    throw error
+  }
+
+  const config = configPropuestas()
+  const disponibilidadConsumo = {
+    places: config.places.disponible,
+    resend: config.resend.disponible,
+    secreto: config.secreto !== null,
+  }
+
   const resumen = esObjeto(prospecto.auditoriaResumen)
     ? prospecto.auditoriaResumen
     : null
@@ -539,7 +577,6 @@ export default async function ProspectoDetallePage({
   // envio: el snapshot es inmutable y el envio (T-18) revalida por su cuenta.
   // Aprobar en seco no depende del gate ni de Resend (T-18): solo exige las
   // piezas con las que se re-renderiza el email final.
-  const config = configPropuestas()
   const bloqueosAprobacion =
     envioAbierto && envioAbierto.estado === "BORRADOR"
       ? [
@@ -660,6 +697,29 @@ export default async function ProspectoDetallePage({
             </dd>
           </div>
         </dl>
+      </section>
+
+      <section aria-label="Consumo del prospecto" className="mb-8">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <CupoDia
+            estado={consumoProspecto}
+            titulo="Consumo del prospecto (hoy)"
+            variante="compacto"
+            disponibilidad={disponibilidadConsumo}
+            mostrarPresupuesto={false}
+            mostrarPie={false}
+          />
+          <CupoDia
+            estado={cuposGlobales}
+            titulo="Cupos globales del día"
+            variante="compacto"
+            disponibilidad={disponibilidadConsumo}
+          />
+        </div>
+        <p className="mt-2 text-xs leading-5 text-text-dim">
+          Fetches, auditoría y borradores se registran por prospecto y por día.
+          No se muestran datos personales en este medidor.
+        </p>
       </section>
 
       <section

@@ -1,6 +1,13 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
+import { configPropuestas } from "@/lib/propuestas/config"
+import {
+  estadoConsumoCampana,
+  estadoCupos,
+  type EstadoConsumo,
+  type EstadoCupos,
+} from "@/lib/propuestas/consumo"
 import {
   CODIGO_ESQUEMA_NO_APLICADO,
   esErrorTablaFaltante,
@@ -12,6 +19,7 @@ import {
 } from "@/lib/propuestas/fechas"
 import { formatearMonto } from "@/lib/pagos"
 import { EstadoOperativo } from "@/components/propuestas/estado-vacio"
+import { CupoDia } from "@/components/propuestas/cupo-dia"
 import {
   CampanaTabla,
   type ProspectoFila,
@@ -138,6 +146,37 @@ export default async function CampanaDetallePage({
   }
 
   if (!campana) notFound()
+
+  let consumoCampana: EstadoConsumo
+  let cuposGlobales: EstadoCupos
+  try {
+    const hoy = new Date()
+    const [consumo, cupos] = await Promise.all([
+      estadoConsumoCampana(campana.id, hoy, { cliente: prisma }),
+      estadoCupos(hoy, { cliente: prisma }),
+    ])
+    consumoCampana = consumo
+    cuposGlobales = cupos
+  } catch (error) {
+    if (esErrorTablaFaltante(error)) {
+      return (
+        <EstadoOperativo
+          codigo={CODIGO_ESQUEMA_NO_APLICADO}
+          titulo="Esquema no aplicado"
+          descripcion="El portal queda deshabilitado hasta que se aplique el esquema de propuestas. No se muestran datos ni acciones."
+          fecha={new Date()}
+        />
+      )
+    }
+    throw error
+  }
+
+  const config = configPropuestas()
+  const disponibilidad = {
+    places: config.places.disponible,
+    resend: config.resend.disponible,
+    secreto: config.secreto !== null,
+  }
 
   const prospectos: ProspectoFila[] = campana.prospectos
   const totalProspectos = prospectos.length
@@ -316,6 +355,30 @@ export default async function CampanaDetallePage({
           <AltaProspecto campanaId={campana.id} />
         </div>
         <CampanaTabla prospectos={prospectos} />
+      </section>
+
+      <section aria-label="Cupos y consumo" className="mb-8">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <CupoDia
+            estado={consumoCampana}
+            titulo="Consumo de la campaña (hoy)"
+            variante="compacto"
+            disponibilidad={disponibilidad}
+            excluir={["GOOGLE_PLACES"]}
+            mostrarPresupuesto={false}
+            mostrarPie={false}
+          />
+          <CupoDia
+            estado={cuposGlobales}
+            titulo="Cupos globales del día"
+            variante="compacto"
+            disponibilidad={disponibilidad}
+          />
+        </div>
+        <p className="mt-2 text-xs leading-5 text-text-dim">
+          El consumo de Google Places de la campaña se detalla abajo para no
+          duplicar sus contadores.
+        </p>
       </section>
 
       <section

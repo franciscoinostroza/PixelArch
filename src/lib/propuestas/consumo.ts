@@ -29,6 +29,13 @@
  * - Los costos se guardan en centavos. Sin configuracion de costo se registra
  *   0; no se estima un valor que no exista.
  *
+ * T-21 (AC-38, AC-39): `estadoConsumoCampana` y `estadoConsumoProspecto`
+ * reutilizan el mismo agregado de `estadoCupos` (una consulta del dia acotada
+ * por campaña o prospecto) y agregan `bloqueado` (100%) por proveedor. La
+ * lectura del presupuesto mensual sigue siendo global y solo se hace si hay
+ * presupuesto configurado. Son helpers de solo lectura: no reservan, no
+ * escriben, no llaman a proveedores y no encolan.
+ *
  * Modulo server-only. No importa el cliente de Prisma en tiempo de carga:
  * recibe un cliente o transaccion inyectable (`Pick<Prisma.TransactionClient,
  * ...>`) y solo usa un import dinamico del singleton si no se inyecta cliente.
@@ -727,6 +734,33 @@ export interface OpcionesEstadoCupos {
   umbral?: number
 }
 
+/**
+ * Fila por proveedor de un consumo acotado (campaña o prospecto). Conserva
+ * todos los campos de `EstadoCupoProveedor` y agrega `bloqueado` para que la UI
+ * no tenga que reinterpretar el 100%: `cap > 0 && usado >= cap`.
+ */
+export interface EstadoConsumoProveedor extends EstadoCupoProveedor {
+  /** `true` cuando el cupo esta agotado: la accion se bloquea, sin cola. */
+  bloqueado: boolean
+}
+
+/**
+ * Agregado de solo lectura para una campaña, un prospecto o el portal.
+ * `gastadoMesCentavos`/`restanteMesCentavos`/`presupuestoMensualCentavos` son
+ * siempre del presupuesto mensual **global** (la config no define presupuestos
+ * por campaña/prospecto); el resto de las filas esta acotado al ámbito pedido.
+ */
+export interface EstadoConsumo extends Omit<EstadoCupos, "proveedores"> {
+  proveedores: EstadoConsumoProveedor[]
+  /** `true` cuando el gasto del mes alcanzo el presupuesto (100%, tope duro). */
+  presupuestoBloqueado: boolean
+}
+
+interface FiltroEstadoCupos {
+  campanaId?: string
+  prospectoId?: string
+}
+
 async function resolverClienteEstado(
   opciones: OpcionesEstadoCupos,
 ): Promise<Pick<Prisma.TransactionClient, "consumoProveedor">> {
@@ -742,11 +776,14 @@ async function resolverClienteEstado(
  * mas el estado del presupuesto mensual. Solo lectura; no reserva ni escribe.
  *
  * `fecha` es opcional para conveniencia del llamador, pero siempre se normaliza
- * a UTC. El cliente Prisma se puede inyectar para testear sin base.
+ * a UTC. El cliente Prisma se puede inyectar para testear sin base. El `filtro`
+ * interno acota la consulta del dia a una campaña o un prospecto; la lectura
+ * mensual del presupuesto sigue siendo global.
  */
-export async function estadoCupos(
+async function calcularEstadoCupos(
   fecha: Date = new Date(),
   opciones: OpcionesEstadoCupos = {},
+  filtro: FiltroEstadoCupos | null = null,
 ): Promise<EstadoCupos> {
   const fechaDia = normalizarFechaUTC(fecha)
   const cliente = await resolverClienteEstado(opciones)
@@ -764,8 +801,17 @@ export async function estadoCupos(
     opciones.presupuestoMensualCentavos,
   )
 
+  const where: {
+    fecha: Date
+    campanaId?: string
+    prospectoId?: string
+  } = { fecha: fechaDia }
+
+  if (filtro?.campanaId !== undefined) where.campanaId = filtro.campanaId
+  if (filtro?.prospectoId !== undefined) where.prospectoId = filtro.prospectoId
+
   const filas = await cliente.consumoProveedor.findMany({
-    where: { fecha: fechaDia },
+    where,
     select: {
       proveedor: true,
       unidades: true,
@@ -868,4 +914,70 @@ export async function estadoCupos(
     restanteMesCentavos,
     alertaPresupuesto,
   }
+}
+
+/**
+ * Estado global del dia para el dashboard y los cupos del portal. Solo lectura.
+ * Mantiene el contrato de T-11; para una campaña o prospecto usar
+ * `estadoConsumoCampana`/`estadoConsumoProspecto`.
+ */
+export async function estadoCupos(
+  fecha: Date = new Date(),
+  opciones: OpcionesEstadoCupos = {},
+): Promise<EstadoCupos> {
+  return calcularEstadoCupos(fecha, opciones)
+}
+
+/**
+ * Calcula el consumo de un ambito (campaña o prospecto) reutilizando el mismo
+ * agregado de `estadoCupos`: la consulta del dia se acota con el filtro, el
+ * presupuesto mensual sigue siendo global y no hay escrituras. Agrega
+ * `bloqueado` por proveedor (100%) y `presupuestoBloqueado` para la UI.
+ */
+async function calcularEstadoConsumoAcotado(
+  filtro: FiltroEstadoCupos,
+  fecha: Date,
+  opciones: OpcionesEstadoCupos,
+): Promise<EstadoConsumo> {
+  const estado = await calcularEstadoCupos(fecha, opciones, filtro)
+
+  return {
+    ...estado,
+    proveedores: estado.proveedores.map((fila) => ({
+      ...fila,
+      bloqueado: fila.cap > 0 && fila.usado >= fila.cap,
+    })),
+    presupuestoBloqueado:
+      estado.presupuestoMensualCentavos > 0 &&
+      estado.gastadoMesCentavos !== null &&
+      estado.gastadoMesCentavos >= estado.presupuestoMensualCentavos,
+  }
+}
+
+/**
+ * Consumo del dia de una campaña, por proveedor (usado/cap/restante/alerta 80%
+ * y costo) mas el total y el presupuesto mensual global si esta configurado.
+ * Solo lectura: no reserva, no escribe, no llama a proveedores ni encola.
+ */
+export async function estadoConsumoCampana(
+  campanaId: string,
+  fecha: Date = new Date(),
+  opciones: OpcionesEstadoCupos = {},
+): Promise<EstadoConsumo> {
+  const id = validarIdentificador(campanaId, "campanaId")
+  return calcularEstadoConsumoAcotado({ campanaId: id }, fecha, opciones)
+}
+
+/**
+ * Consumo del dia de un prospecto, por proveedor (fetches, auditoria, borrador
+ * y envios) mas el total y el presupuesto mensual global si esta configurado.
+ * Solo lectura: no reserva, no escribe, no llama a proveedores ni encola.
+ */
+export async function estadoConsumoProspecto(
+  prospectoId: string,
+  fecha: Date = new Date(),
+  opciones: OpcionesEstadoCupos = {},
+): Promise<EstadoConsumo> {
+  const id = validarIdentificador(prospectoId, "prospectoId")
+  return calcularEstadoConsumoAcotado({ prospectoId: id }, fecha, opciones)
 }

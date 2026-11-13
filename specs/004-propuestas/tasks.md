@@ -258,7 +258,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Cierre: tester (`propuestas-retencion.test.ts`, `arco.test.ts`) · reviewer (privacidad, borrado, evidencia) · 1 commit.
   - PASS tester+reviewer: 250 tests verdes (retención + ARCO + páginas), tsc 0 errores; reviewer PASS. Deuda menor: `motivoHash` SHA-256 sin secreto (evaluar HMAC); `crearSupresion reactivar:false + registroArco` no agrega entrada (latente); `updateMany` activo sin `activa:true`; concurrencia de historial/`arcoHistorial`; cron usa Bearer vs `x-cron-secret` (documentar en T-24); export no incluye `EXPORTACION` recién registrada; `aria-controls`; schedule Railway pendiente T-24; prueba de cascada real en T-26.
 
-- [ ] **T-23 (AC-41, AC-44; RF-59, RF-60, RF-61) — Privacidad, redacción, guard de red y cobertura.**
+- [x] **T-23 (AC-41, AC-44; RF-59, RF-60, RF-61) — Privacidad, redacción, guard de red y cobertura.**
   - `redact.ts`: códigos/mensajes sanitizados; logs solo con ids/estado/código/duración; Sentry sin PII y con redacción de URLs `/propuestas/baja/` y `/api/opt-out`.
   - `guard-propuestas-red.ts` en `setup.ts`: bloquea Places, Resend y LLM; mensaje accionable.
   - `propuestas-cobertura.test.ts`: matriz AC-1..AC-45 → archivo de test; `propuestas-sin-red.test.ts`: sin config no hay red.
@@ -266,6 +266,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-19, T-20, T-21, T-22.
   - Tests: spies de logger/Sentry sin email/nombre/teléfono/cuerpo/HTML/token/secreto; guard bloquea hosts; cobertura de todos los AC; sin llamadas reales.
   - Cierre: tester (`propuestas-privacidad.test.ts`, `propuestas-sin-red.test.ts`, `propuestas-cobertura.test.ts`) · reviewer (PII, Sentry, cobertura) · 1 commit.
+  - PASS tester+reviewer: 44 tests verdes (privacidad/sin red/cobertura), suite completa 3031/3031, tsc 0 errores; reviewer PASS. AC-45 queda delegado a T-25 (verificación final). Deuda menor: cobertura puntual de secreto/Authorization en texto libre separar tests; multilínea de cuerpo documentada; caller real adicional para otras rutas; test runtime de Sentry cliente; `redactarMetaPropuestas` no usado por logger productivo; guard LLM con lista fija y no intercepta `node:https`.
 
 ---
 

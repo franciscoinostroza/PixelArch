@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/nextjs"
-import { redactSentryEvent } from "./lib/paypal/redact"
+import { redactSentryEventPropuestas } from "./lib/propuestas/redact"
 
 const dsn = process.env.SENTRY_DSN
 
@@ -17,7 +17,9 @@ Sentry.init({
   // Redacta claves sensibles en extras, contextos, breadcrumbs, request data,
   // user/tags/exception, message, transaction y sdkProcessingMetadata sin
   // descartar informacion util no sensible (ids, montos, estado, etc.).
+  // Compone PayPal + portal de propuestas: tambien oculta el token de
+  // `/propuestas/baja/<token>` y el `token` de `/api/opt-out`.
   beforeSend(event) {
-    return redactSentryEvent(event)
+    return redactSentryEventPropuestas(event)
   },
 })

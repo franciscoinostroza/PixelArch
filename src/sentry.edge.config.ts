@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/nextjs"
-import { redactSentryEvent } from "./lib/paypal/redact"
+import { redactSentryEventPropuestas } from "./lib/propuestas/redact"
 
 const dsn = process.env.SENTRY_DSN
 
@@ -15,8 +15,9 @@ Sentry.init({
   includeLocalVariables: false,
 
   // Misma redaccion que el runtime server (extras, request, message,
-  // transaction, sdkProcessingMetadata, etc.).
+  // transaction, sdkProcessingMetadata, etc.), incluidos los tokens de baja y
+  // opt-out del portal de propuestas.
   beforeSend(event) {
-    return redactSentryEvent(event)
+    return redactSentryEventPropuestas(event)
   },
 })

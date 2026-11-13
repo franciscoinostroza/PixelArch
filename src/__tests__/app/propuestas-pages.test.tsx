@@ -35,6 +35,7 @@ const mocks = vi.hoisted(() => ({
   prospectoFindFirst: vi.fn(),
   envioFindFirst: vi.fn(),
   envioFindMany: vi.fn(),
+  supresionFindMany: vi.fn(),
   pathname: "/propuestas",
   refresh: vi.fn(),
   notFound: vi.fn(() => {
@@ -58,6 +59,7 @@ vi.mock("@/lib/prisma", () => ({
       findFirst: mocks.envioFindFirst,
       findMany: mocks.envioFindMany,
     },
+    supresionProspecto: { findMany: mocks.supresionFindMany },
   },
 }))
 
@@ -105,6 +107,15 @@ import BandejaPage, {
 import EnviosPage, {
   metadata as metadataEnvios,
 } from "@/app/(propuestas)/propuestas/envios/page"
+import SupresionesPage, {
+  dynamic as dynamicSupresiones,
+  metadata as metadataSupresiones,
+} from "@/app/(propuestas)/propuestas/supresiones/page"
+import {
+  SupresionForm,
+  SupresionPurgarForm,
+  SupresionRevocarForm,
+} from "@/components/propuestas/supresion-form"
 import { ScoreDesglose } from "@/components/propuestas/score-desglose"
 import { AnalizarProspecto } from "@/components/propuestas/analizar-prospecto-button"
 import { PlantillaForm } from "@/components/propuestas/plantilla-form"
@@ -163,6 +174,7 @@ beforeEach(() => {
   mocks.prospectoFindFirst.mockResolvedValue(null)
   mocks.envioFindFirst.mockResolvedValue(null)
   mocks.envioFindMany.mockResolvedValue([])
+  mocks.supresionFindMany.mockResolvedValue([])
 })
 
 afterEach(() => {
@@ -4672,6 +4684,746 @@ describe("BajaConfirmar (T-19, AC-33, AC-34; RF-51, RF-52)", () => {
     expect(
       screen.getByRole("button", { name: "Confirmar baja" }),
     ).toBeEnabled()
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* T-20 (AC-15..AC-18, AC-27, AC-36; RF-23..RF-28, RF-56)             */
+/* Supresiones: pagina, alta manual y revocacion excepcional           */
+/* ------------------------------------------------------------------ */
+
+const SECRETO_SUPRESIONES = "secreto-de-pruebas-t20-supresiones-0123456789"
+const EMAIL_SUPRIMIDO = "ventas@alfa.com.ar"
+const HASH_SUPRIMIDO = hashEmail(EMAIL_SUPRIMIDO, SECRETO_SUPRESIONES)
+const CLAVE_SUPRIMIDA = `EMAIL:${HASH_SUPRIMIDO}`
+
+function filaSupresion(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    id: "sup_1",
+    ambito: "EMAIL",
+    clave: CLAVE_SUPRIMIDA,
+    emailEnmascarado: "v***@alfa.com.ar",
+    dominioNegocio: null,
+    motivo: "REBOTE_DURO",
+    origen: "MANUAL",
+    activa: true,
+    creadaPorNombre: "Ana Pérez",
+    creadaEn: new Date("2026-11-12T15:00:00.000Z"),
+    revocadaEn: null,
+    motivoRevocacion: null,
+    ...overrides,
+  }
+}
+
+function filaDeSupresion(nombre: RegExp): HTMLElement {
+  return screen.getByRole("heading", { name: nombre }).closest("li") as HTMLElement
+}
+
+function formularioSupresion(): HTMLFormElement {
+  return screen
+    .getByRole("button", { name: "Registrar supresión" })
+    .closest("form") as HTMLFormElement
+}
+
+function completarAltaEmail(): void {
+  fireEvent.change(screen.getByLabelText(/email a suprimir/i), {
+    target: { value: "Ventas@Alfa.com.ar" },
+  })
+}
+
+describe("/propuestas/supresiones: lista (T-20, AC-15, AC-18)", () => {
+  it("lista hash, email enmascarado, dominio, motivo, fecha, origen y estado sin PII completa", async () => {
+    mocks.supresionFindMany.mockResolvedValue([
+      filaSupresion(),
+      filaSupresion({
+        id: "sup_dom",
+        ambito: "DOMINIO",
+        clave: "DOMINIO:alfa.com.ar",
+        emailEnmascarado: null,
+        dominioNegocio: "alfa.com.ar",
+        motivo: "MANUAL",
+      }),
+      filaSupresion({
+        id: "sup_revocada",
+        clave: `EMAIL:${"b".repeat(64)}`,
+        emailEnmascarado: "j***@beta.com",
+        activa: false,
+        revocadaEn: new Date("2026-11-13T10:30:00.000Z"),
+        motivoRevocacion: "Autorización expresa del titular",
+      }),
+    ])
+
+    render(await SupresionesPage())
+
+    expect(
+      screen.getByRole("heading", { name: "Supresiones" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/2 activas · 2 por email · 1 por dominio/i),
+    ).toBeInTheDocument()
+
+    const email = filaDeSupresion(/v\*\*\*@alfa\.com\.ar/i)
+    expect(within(email).getByText(/^EMAIL:/)).toBeInTheDocument()
+    expect(within(email).getByText("v***@alfa.com.ar")).toBeInTheDocument()
+    expect(within(email).getByText("Rebote duro")).toBeInTheDocument()
+    expect(within(email).getByText("MANUAL")).toBeInTheDocument()
+    expect(
+      within(email).getByText(
+        formatearFechaHoraPortal(new Date("2026-11-12T15:00:00.000Z")),
+      ),
+    ).toBeInTheDocument()
+    expect(within(email).getByText("Activa")).toBeInTheDocument()
+    expect(within(email).getByText(/registrada por ana pérez/i)).toBeInTheDocument()
+
+    const dominio = filaDeSupresion(/^alfa\.com\.ar$/)
+    expect(within(dominio).getByText("DOMINIO:alfa.com.ar")).toBeInTheDocument()
+    expect(within(dominio).getByText("DOMINIO")).toBeInTheDocument()
+    expect(within(dominio).getByText("Manual")).toBeInTheDocument()
+
+    const revocada = filaDeSupresion(/j\*\*\*@beta\.com/i)
+    expect(within(revocada).getByText("Revocada")).toBeInTheDocument()
+    expect(
+      within(revocada).getByText(/Autorización expresa del titular/i),
+    ).toBeInTheDocument()
+
+    // No se muestra el email completo ni datos del CRM.
+    const texto = document.body.textContent ?? ""
+    expect(texto).not.toContain(EMAIL_SUPRIMIDO)
+    expect(texto).not.toContain("beta@")
+
+    // La supresion sigue siendo global/permanente hasta una excepcion. La
+    // purga manual existe solo sobre revocadas; no hay acciones masivas.
+    expect(screen.getAllByText(/global y permanente/i).length).toBeGreaterThan(0)
+    expect(
+      screen.getByText(/la purga es una excepción administrativa/i),
+    ).toBeInTheDocument()
+    // La purga no guarda el texto libre del motivo (puede contener PII).
+    expect(
+      screen.getByText(/el texto del motivo de la purga no se guarda/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/no hay acciones masivas desde esta página/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: /revocar todas|purgar todas|eliminar todas|borrar todas/i,
+      }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getAllByRole("button", { name: /revocar la supresión de/i }),
+    ).toHaveLength(2)
+
+    // "Purgar" solo aparece en la fila revocada; las activas solo se revocan.
+    expect(
+      within(email).queryByRole("button", { name: /purgar/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(dominio).queryByRole("button", { name: /purgar/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(revocada).getByRole("button", {
+        name: /purgar la supresión de j\*\*\*@beta\.com/i,
+      }),
+    ).toHaveAttribute("aria-expanded", "false")
+    expect(
+      within(revocada).queryByRole("button", {
+        name: /revocar la supresión de/i,
+      }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getAllByRole("button", { name: /purgar la supresión de/i }),
+    ).toHaveLength(1)
+  })
+
+  it("muestra el estado vacio y mantiene el alta manual disponible", async () => {
+    mocks.supresionFindMany.mockResolvedValue([])
+
+    render(await SupresionesPage())
+
+    expect(
+      screen.getByRole("heading", { name: /todavía no hay supresiones/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: /nueva supresión/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Registrar supresión" }),
+    ).toBeInTheDocument()
+  })
+
+  it("si falta el esquema falla cerrado sin datos ni formularios (AC-6)", async () => {
+    mocks.supresionFindMany.mockRejectedValue({ code: "P2021" })
+
+    render(await SupresionesPage())
+
+    const estado = screen.getByRole("alert")
+    expect(estado).toHaveAttribute("data-estado", CODIGO_ESQUEMA_NO_APLICADO)
+    expect(
+      screen.queryByRole("form", { name: /alta manual de supresión/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("heading", { name: /nueva supresión/i }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole("list")).not.toBeInTheDocument()
+  })
+
+  it("publica metadata noindex/nofollow y render dinamico (AC-5)", () => {
+    expect(metadataSupresiones.robots).toEqual({
+      index: false,
+      follow: false,
+    })
+    expect(dynamicSupresiones).toBe("force-dynamic")
+  })
+})
+
+describe("SupresionForm: alta manual (T-20, AC-15, AC-18)", () => {
+  it("envia EMAIL normalizado por el servidor, sin auto-submit y sin mostrar el email completo", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        id: "sup_1",
+        clave: CLAVE_SUPRIMIDA,
+        creada: true,
+        reactivada: false,
+      }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<SupresionForm />)
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(screen.getByLabelText(/email a suprimir/i)).toBeInTheDocument()
+    expect(
+      screen.queryByLabelText(/dominio de negocio a suprimir/i),
+    ).not.toBeInTheDocument()
+
+    completarAltaEmail()
+    fireEvent.change(screen.getByLabelText("Motivo"), {
+      target: { value: "OPT_OUT" },
+    })
+    fireEvent.submit(formularioSupresion())
+
+    const resultado = await screen.findByRole("status", {
+      name: /resultado del alta de supresión/i,
+    })
+    expect(resultado).toHaveTextContent(/supresión creada/i)
+    expect(resultado).toHaveTextContent(/el contacto quedó suprimido/i)
+    expect(resultado).toHaveTextContent(CLAVE_SUPRIMIDA)
+    expect(resultado).toHaveTextContent(/no se envió ningún email/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/supresiones")
+    expect(url).not.toContain("Ventas")
+    expect(init.method).toBe("POST")
+    expect(JSON.parse(String(init.body))).toEqual({
+      ambito: "EMAIL",
+      email: "Ventas@Alfa.com.ar",
+      motivo: "OPT_OUT",
+    })
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+
+    // El alta no reemplaza el email por una version en claro en la UI.
+    expect(document.body.textContent ?? "").not.toContain("Ventas@Alfa.com.ar")
+  })
+
+  it("un alta idempotente (200, creada:false, reactivada:false) muestra que la clave ya existia", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: "sup_1",
+          clave: CLAVE_SUPRIMIDA,
+          creada: false,
+          reactivada: false,
+        }),
+      }),
+    )
+
+    render(<SupresionForm />)
+    completarAltaEmail()
+    fireEvent.submit(formularioSupresion())
+
+    const resultado = await screen.findByRole("status", {
+      name: /resultado del alta de supresión/i,
+    })
+    expect(resultado).toHaveTextContent(/supresión existente/i)
+    expect(resultado).toHaveTextContent(/la clave ya estaba suprimida/i)
+    expect(resultado).toHaveTextContent(CLAVE_SUPRIMIDA)
+  })
+
+  it("distingue la reactivacion (200, creada:false, reactivada:true) de una fila revocada", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        id: "sup_revocada",
+        clave: CLAVE_SUPRIMIDA,
+        creada: false,
+        reactivada: true,
+      }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<SupresionForm />)
+    completarAltaEmail()
+    fireEvent.submit(formularioSupresion())
+
+    const resultado = await screen.findByRole("status", {
+      name: /resultado del alta de supresión/i,
+    })
+    expect(resultado).toHaveTextContent(/supresión reactivada/i)
+    expect(resultado).toHaveTextContent(
+      /la supresión revocada volvió a quedar activa/i,
+    )
+    // Conserva los datos originales y no reabre prospectos ni envios.
+    expect(resultado).toHaveTextContent(
+      /se conservaron el motivo, el origen y la fecha de creación originales/i,
+    )
+    expect(resultado).toHaveTextContent(
+      /no se reabrieron prospectos ni envíos/i,
+    )
+    expect(resultado).toHaveTextContent(CLAVE_SUPRIMIDA)
+    expect(resultado).not.toHaveTextContent(/el contacto quedó suprimido/i)
+    expect(resultado).not.toHaveTextContent(/la clave ya estaba suprimida/i)
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+  })
+
+  it("permite cambiar a DOMINIO y envia solo el dominio de negocio", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        id: "sup_dom",
+        clave: "DOMINIO:alfa.com.ar",
+        creada: true,
+        reactivada: false,
+      }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<SupresionForm />)
+
+    fireEvent.change(screen.getByLabelText("Ámbito"), {
+      target: { value: "DOMINIO" },
+    })
+    expect(
+      screen.queryByLabelText(/email a suprimir/i),
+    ).not.toBeInTheDocument()
+
+    fireEvent.change(
+      screen.getByLabelText(/dominio de negocio a suprimir/i),
+      { target: { value: "alfa.com.ar" } },
+    )
+    fireEvent.submit(formularioSupresion())
+
+    expect(
+      await screen.findByRole("status", {
+        name: /resultado del alta de supresión/i,
+      }),
+    ).toHaveTextContent("DOMINIO:alfa.com.ar")
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(JSON.parse(String(init.body))).toEqual({
+      ambito: "DOMINIO",
+      dominioNegocio: "alfa.com.ar",
+      motivo: "MANUAL",
+    })
+  })
+
+  it("valida en el cliente sin llamar a la API", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(<SupresionForm />)
+    fireEvent.submit(formularioSupresion())
+
+    expect(await screen.findByText("El email es obligatorio.")).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(formularioSupresion()).toHaveAttribute("aria-busy", "false")
+  })
+
+  it.each([
+    ["VALIDACION", /revisá el email o el dominio y el motivo/i],
+    ["NO_CONFIGURADO", /falta PROPUESTAS_SECRETO/i],
+    ["RATE_LIMIT", /demasiadas solicitudes/i],
+  ])("muestra el error %s de forma accesible", async (codigo, mensaje) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: codigo === "RATE_LIMIT" ? 429 : 400,
+        json: async () => ({ codigo }),
+      }),
+    )
+
+    render(<SupresionForm />)
+    completarAltaEmail()
+    fireEvent.submit(formularioSupresion())
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(mensaje)
+    expect(alerta).not.toHaveTextContent("Ventas@Alfa.com.ar")
+  })
+
+  it("un error de red se muestra generico y sin PII", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("fallo con Ventas@Alfa.com.ar")),
+    )
+
+    render(<SupresionForm />)
+    completarAltaEmail()
+    fireEvent.submit(formularioSupresion())
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/error de red/i)
+    expect(alerta).not.toHaveTextContent("Ventas@Alfa.com.ar")
+  })
+})
+
+describe("SupresionRevocarForm: excepcion con motivo (T-20, AC-18)", () => {
+  it("exige motivo y confirmacion antes de llamar a la API", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <SupresionRevocarForm id="sup_1" etiqueta="v***@alfa.com.ar" />,
+    )
+
+    const abrir = screen.getByRole("button", {
+      name: /revocar la supresión de v\*\*\*@alfa\.com\.ar/i,
+    })
+    expect(abrir).toHaveAttribute("aria-expanded", "false")
+    fireEvent.click(abrir)
+
+    expect(
+      screen.getByText(/no reabre prospectos ni reactiva envíos/i),
+    ).toBeInTheDocument()
+    fireEvent.submit(
+      screen
+        .getByRole("button", { name: "Confirmar revocación" })
+        .closest("form") as HTMLFormElement,
+    )
+    expect(
+      await screen.findByText(/indicá el motivo de la excepción/i),
+    ).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByLabelText(/motivo de la excepción/i), {
+      target: { value: "Autorización del titular" },
+    })
+    fireEvent.submit(
+      screen
+        .getByRole("button", { name: "Confirmar revocación" })
+        .closest("form") as HTMLFormElement,
+    )
+    expect(
+      await screen.findByText(/confirmá que la revocación es una excepción/i),
+    ).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("revoca con confirmacion explicita y avisa que no reabre prospectos", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: "sup_1", activa: false }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <SupresionRevocarForm id="sup_1" etiqueta="v***@alfa.com.ar" />,
+    )
+    fireEvent.click(
+      screen.getByRole("button", { name: /revocar la supresión de/i }),
+    )
+    fireEvent.change(screen.getByLabelText(/motivo de la excepción/i), {
+      target: { value: "Autorización expresa del titular" },
+    })
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: /confirmo que la revocación es una excepción/i,
+      }),
+    )
+    fireEvent.submit(
+      screen
+        .getByRole("button", { name: "Confirmar revocación" })
+        .closest("form") as HTMLFormElement,
+    )
+
+    const estado = await screen.findByRole("status")
+    expect(estado).toHaveTextContent(/supresión revocada/i)
+    expect(estado).toHaveTextContent(/no se reabrieron prospectos ni envíos/i)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/supresiones/sup_1/revocar")
+    expect(init.method).toBe("POST")
+    expect(JSON.parse(String(init.body))).toEqual({
+      motivo: "Autorización expresa del titular",
+    })
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled())
+
+    expect(document.body.textContent ?? "").not.toContain(EMAIL_SUPRIMIDO)
+  })
+
+  it.each([
+    [404, "NO_ENCONTRADO", /no existe o fue eliminada/i],
+    [409, "ESTADO", /ya estaba revocada/i],
+  ])("un %s %s se muestra accesible", async (status, codigo, mensaje) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status,
+        json: async () => ({ codigo }),
+      }),
+    )
+
+    render(
+      <SupresionRevocarForm id="sup_1" etiqueta="v***@alfa.com.ar" />,
+    )
+    fireEvent.click(
+      screen.getByRole("button", { name: /revocar la supresión de/i }),
+    )
+    fireEvent.change(screen.getByLabelText(/motivo de la excepción/i), {
+      target: { value: "Excepcion documentada" },
+    })
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: /confirmo que la revocación es una excepción/i,
+      }),
+    )
+    fireEvent.submit(
+      screen
+        .getByRole("button", { name: "Confirmar revocación" })
+        .closest("form") as HTMLFormElement,
+    )
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(mensaje)
+    expect(alerta).not.toHaveTextContent(EMAIL_SUPRIMIDO)
+  })
+})
+
+describe("SupresionPurgarForm: purga manual (T-20, AC-15..AC-18, AC-27)", () => {
+  function abrirPurga(): void {
+    fireEvent.click(
+      screen.getByRole("button", { name: /purgar la supresión de/i }),
+    )
+  }
+
+  function formularioPurga(): HTMLFormElement {
+    return screen
+      .getByRole("button", { name: "Confirmar purga" })
+      .closest("form") as HTMLFormElement
+  }
+
+  function completarPurga(
+    motivo = "Limpieza de un registro revocado por error.",
+  ): void {
+    fireEvent.change(screen.getByLabelText(/motivo de la purga/i), {
+      target: { value: motivo },
+    })
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: /confirmo que la purga es una excepción administrativa definitiva/i,
+      }),
+    )
+  }
+
+  it("avisa que es una excepción definitiva y exige motivo y confirmación", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <SupresionPurgarForm id="sup_revocada" etiqueta="j***@beta.com" />,
+    )
+
+    const abrir = screen.getByRole("button", {
+      name: /purgar la supresión de j\*\*\*@beta\.com/i,
+    })
+    expect(abrir).toHaveAttribute("aria-expanded", "false")
+    fireEvent.click(abrir)
+
+    expect(
+      screen.getByText(/borra la fila de supresión de forma definitiva/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/no reabre prospectos ni envíos/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/solo se permite sobre supresiones ya revocadas/i),
+    ).toBeInTheDocument()
+    // El texto libre del motivo no se persiste ni se loguea: solo queda un
+    // registro operativo con identificador, admin, longitud y hash.
+    expect(
+      screen.getByText(/no se guarda el texto del motivo/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/constancia operativa sin datos personales/i),
+    ).toBeInTheDocument()
+
+    fireEvent.submit(formularioPurga())
+    expect(
+      await screen.findByText(/indicá el motivo de la purga/i),
+    ).toBeInTheDocument()
+    const motivo = screen.getByLabelText(/motivo de la purga/i)
+    expect(motivo).toHaveAttribute("aria-invalid", "true")
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    fireEvent.change(motivo, {
+      target: { value: "Autorización del titular." },
+    })
+    fireEvent.submit(formularioPurga())
+    expect(
+      await screen.findByText(
+        /confirmá que la purga es una excepción administrativa definitiva/i,
+      ),
+    ).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("purga con pending accesible, muestra éxito y refresca el server component", async () => {
+    let resolver: (valor: unknown) => void = () => undefined
+    const pendiente = new Promise((resolve) => {
+      resolver = resolve
+    })
+    const fetchMock = vi.fn().mockReturnValue(pendiente)
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <SupresionPurgarForm id="sup_revocada" etiqueta="j***@beta.com" />,
+    )
+    abrirPurga()
+    completarPurga("Limpieza de un registro revocado por error.")
+    const form = formularioPurga()
+    fireEvent.submit(form)
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    expect(
+      screen.getByRole("button", { name: /purgando/i }),
+    ).toBeDisabled()
+    expect(form).toHaveAttribute("aria-busy", "true")
+
+    resolver({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: "sup_revocada", purgada: true }),
+    })
+
+    const estado = await screen.findByRole("status")
+    expect(estado).toHaveTextContent(/supresión purgada/i)
+    expect(estado).toHaveTextContent(
+      /no se reabrieron prospectos ni envíos/i,
+    )
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/propuestas/supresiones/sup_revocada/purga")
+    expect(url).not.toContain("@")
+    expect(init.method).toBe("POST")
+    expect(JSON.parse(String(init.body))).toEqual({
+      motivo: "Limpieza de un registro revocado por error.",
+    })
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1))
+
+    expect(document.body.textContent ?? "").not.toContain(EMAIL_SUPRIMIDO)
+  })
+
+  it.each([
+    [409, "ESTADO", /primero revocá la supresión/i],
+    [404, "NO_ENCONTRADO", /no existe o ya fue purgada/i],
+    [403, "PROHIBIDO", /no tenés permisos para purgar/i],
+    [429, "RATE_LIMIT", /demasiadas solicitudes/i],
+  ])("un %s %s se muestra accesible sin PII", async (status, codigo, mensaje) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status,
+        json: async () => ({ codigo }),
+      }),
+    )
+
+    render(
+      <SupresionPurgarForm id="sup_revocada" etiqueta="j***@beta.com" />,
+    )
+    abrirPurga()
+    completarPurga()
+    fireEvent.submit(formularioPurga())
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(mensaje)
+    expect(alerta).not.toHaveTextContent("j***@beta.com")
+    expect(alerta).not.toHaveTextContent(EMAIL_SUPRIMIDO)
+    expect(mocks.refresh).not.toHaveBeenCalled()
+  })
+
+  it("una respuesta inválida no se toma como purga ni refresca", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: "sup_revocada", purgada: false }),
+      }),
+    )
+
+    render(
+      <SupresionPurgarForm id="sup_revocada" etiqueta="j***@beta.com" />,
+    )
+    abrirPurga()
+    completarPurga()
+    fireEvent.submit(formularioPurga())
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/respuesta del servidor no es válida/i)
+    expect(mocks.refresh).not.toHaveBeenCalled()
+  })
+
+  it("un error de red se muestra saneado y sin PII", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("fallo con juan@example.com")),
+    )
+
+    render(
+      <SupresionPurgarForm id="sup_revocada" etiqueta="j***@beta.com" />,
+    )
+    abrirPurga()
+    completarPurga()
+    fireEvent.submit(formularioPurga())
+
+    const alerta = await screen.findByRole("alert")
+    expect(alerta).toHaveTextContent(/error de red/i)
+    expect(alerta).not.toHaveTextContent("juan@example.com")
+    expect(mocks.refresh).not.toHaveBeenCalled()
+  })
+
+  it("cancelar cierra la confirmación sin llamar a la API", () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    render(
+      <SupresionPurgarForm id="sup_revocada" etiqueta="j***@beta.com" />,
+    )
+    abrirPurga()
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }))
+
+    expect(
+      screen.queryByRole("button", { name: "Confirmar purga" }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: /purgar la supresión de/i }),
+    ).toBeInTheDocument()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })
 

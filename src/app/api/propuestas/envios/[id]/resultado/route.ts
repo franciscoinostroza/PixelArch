@@ -15,7 +15,10 @@
  * - Sin retry automatico, sin llamadas a Resend y sin PII en logs.
  *
  * Solo se acepta un envio `ENVIADO` o ya en el mismo estado final (repeticion
- * idempotente). Cualquier otro estado responde 409 sin escribir.
+ * idempotente). Cualquier otro estado responde 409 sin escribir. Si el envio
+ * ya esta en el estado final pedido, la repeticion no escribe nada: no
+ * reactiva una supresion revocada, no cancela borradores nuevos y no agrega
+ * historial.
  */
 
 import type { Prisma } from "@prisma/client"
@@ -33,11 +36,7 @@ import {
 import { normalizarEmail } from "@/lib/propuestas/normalizar"
 import { origenPermitido } from "@/lib/propuestas/origen"
 import { agregarEntradaHistorial } from "@/lib/propuestas/prospectos"
-import {
-  claveSupresionEmail,
-  emailEnmascarado,
-  hashEmail,
-} from "@/lib/propuestas/supresion"
+import { crearSupresion } from "@/lib/propuestas/supresiones"
 import { normalizarEstadoEnvio } from "@/lib/propuestas/transiciones"
 import { envioResultadoSchema } from "@/lib/propuestas/validation"
 
@@ -199,17 +198,30 @@ export async function POST(
 
     const ahora = new Date()
     // Repeticion idempotente: el envio ya esta en el estado final pedido.
+    // No se vuelve a escribir nada: ni transicion, ni supresion, ni
+    // cancelacion de pendientes, ni historial. En particular, repetir un
+    // rebote/queja no reactiva una supresion revocada despues.
     const yaFinal = estadoActual === coherencia.final
+
+    if (yaFinal) {
+      logger.info("Resultado repetido sin cambios", {
+        envioId: envio.id,
+        adminId,
+        resultado: coherencia.final,
+      })
+
+      return tipo === "RESPONDIDO"
+        ? json({ estado: "RESPONDIDO", suprimido: false }, 200)
+        : json({ estado: coherencia.final, suprimido: true }, 200)
+    }
 
     if (tipo === "RESPONDIDO") {
       await prisma.$transaction(async (tx) => {
-        if (!yaFinal) {
-          const actualizado = await tx.envioPropuesta.updateMany({
-            where: { id: envio.id, estado: "ENVIADO" },
-            data: { estado: "RESPONDIDO" },
-          })
-          if (actualizado.count === 0) throw new ResultadoAbortado()
-        }
+        const actualizado = await tx.envioPropuesta.updateMany({
+          where: { id: envio.id, estado: "ENVIADO" },
+          data: { estado: "RESPONDIDO" },
+        })
+        if (actualizado.count === 0) throw new ResultadoAbortado()
 
         await tx.prospecto.updateMany({
           where: { id: prospecto.id, estado: "ENVIADO" },
@@ -243,56 +255,48 @@ export async function POST(
       return errorJson(503, "NO_CONFIGURADO")
     }
 
-    const emailHash = hashEmail(destinatario, config.secreto)
-    const clave = claveSupresionEmail(emailHash)
+    // T-20: la supresion se crea con el mismo helper que el alta manual
+    // (misma clave `EMAIL:<hash>`, mismo hash/enmascarado e idempotencia).
+    // El destinatario es el del envio, no el email actual del prospecto.
+    const secreto = config.secreto
     const motivo = tipo === "REBOTE_DURO" ? "REBOTE_DURO" : "QUEJA"
 
     const emailActual = normalizarEmail(prospecto.email ?? "")
     const coincide = emailActual !== null && emailActual === destinatario
 
-    // Solo el primer registro deja entrada de historial: repetir el mismo
-    // resultado es idempotente y no infla la ficha. No se guarda el detalle
-    // libre (puede contener datos personales), solo el tipo de resultado.
-    const historial =
-      yaFinal === false
-        ? agregarEntradaHistorial(prospecto.historial, {
-            accion: "RESULTADO_ENVIO",
-            motivo,
-            por: adminId,
-            en: ahora.toISOString(),
-          })
-        : null
+    // Solo el primer registro deja entrada de historial. No se guarda el
+    // detalle libre (puede contener datos personales), solo el tipo de
+    // resultado.
+    const historial = agregarEntradaHistorial(prospecto.historial, {
+      accion: "RESULTADO_ENVIO",
+      motivo,
+      por: adminId,
+      en: ahora.toISOString(),
+    })
 
     await prisma.$transaction(async (tx) => {
-      if (!yaFinal) {
-        const actualizado = await tx.envioPropuesta.updateMany({
-          where: { id: envio.id, estado: "ENVIADO" },
-          data: { estado: coherencia.final },
-        })
-        if (actualizado.count === 0) throw new ResultadoAbortado()
-      }
+      const actualizado = await tx.envioPropuesta.updateMany({
+        where: { id: envio.id, estado: "ENVIADO" },
+        data: { estado: coherencia.final },
+      })
+      if (actualizado.count === 0) throw new ResultadoAbortado()
 
-      await tx.supresionProspecto.upsert({
-        where: { clave },
-        create: {
+      // Un resultado nuevo (envio ENVIADO) puede crear la supresion o, si la
+      // fila estaba revocada, reactivarla dejando entrada REACTIVADA. Una
+      // repeticion yaFinal retorna antes y nunca llega a este punto.
+      await crearSupresion(
+        {
           ambito: "EMAIL",
-          clave,
-          emailHash,
-          emailEnmascarado: emailEnmascarado(destinatario),
+          email: destinatario,
           motivo,
           origen: "MANUAL",
-          activa: true,
           notas: detalle,
           creadaPor: adminId,
           creadaPorNombre: admin.admin.nombre,
+          secreto,
         },
-        update: {
-          activa: true,
-          revocadaPor: null,
-          revocadaEn: null,
-          motivoRevocacion: null,
-        },
-      })
+        { cliente: tx },
+      )
 
       await tx.envioPropuesta.updateMany({
         where: {
@@ -310,9 +314,7 @@ export async function POST(
           where: { id: prospecto.id, estado: { not: "SUPRIMIDO" } },
           data: {
             estado: "SUPRIMIDO",
-            ...(historial !== null
-              ? { historial: historial as unknown as Prisma.InputJsonValue }
-              : {}),
+            historial: historial as unknown as Prisma.InputJsonValue,
             ultimaInteraccionEn: ahora,
             actualizadoPor: adminId,
           },
@@ -323,9 +325,7 @@ export async function POST(
         await tx.prospecto.updateMany({
           where: { id: prospecto.id },
           data: {
-            ...(historial !== null
-              ? { historial: historial as unknown as Prisma.InputJsonValue }
-              : {}),
+            historial: historial as unknown as Prisma.InputJsonValue,
             ultimaInteraccionEn: ahora,
             actualizadoPor: adminId,
           },

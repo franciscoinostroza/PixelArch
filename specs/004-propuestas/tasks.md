@@ -228,7 +228,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Cierre: tester (`opt-out.test.ts`, `propuestas-email.test.ts`) · reviewer (privacidad, enumeración, cumplimiento) · 1 commit.
   - PASS tester+reviewer: 218 tests focalizados verdes (opt-out/middleware/email/páginas), suite completa 2794/2794, tsc 0 errores; reviewer PASS. Deuda menor: 202 vs 200 sin secreto; fallos DB genéricos requieren monitoreo; JS obligatorio en la página (evaluar form POST); historial fuera de transacción; body sin streaming; rotación de secreto invalida enlaces (runbook T-24); rate limit en memoria; baja pasa por Clerk (evaluar desacople); test de precedencia de headers es estructural, validar con curl en T-26.
 
-- [ ] **T-20 (AC-15..AC-18, AC-27, AC-36; RF-23..RF-28, RF-56) — Supresiones admin, rebotes y respuestas.**
+- [x] **T-20 (AC-15..AC-18, AC-27, AC-36; RF-23..RF-28, RF-56) — Supresiones admin, rebotes y respuestas.**
   - `POST /api/propuestas/supresiones`: EMAIL por hash o DOMINIO de negocio; motivo/origen; idempotente por clave; rechaza proveedores públicos; cancela pendientes y marca prospectos.
   - `POST /api/propuestas/supresiones/[id]/revocar`: excepción con motivo, registro de quién/cuándo; no es flujo normal; desactiva la supresión pero no reabre prospectos automáticamente (el admin crea/decide el siguiente paso).
   - Página `/propuestas/supresiones`: lista (hash/enmascarado/dominio/motivo/fecha/origen), alta manual, revocación con confirmación y purga manual.
@@ -237,6 +237,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-06, T-18.
   - Tests: alta email/dominio; hash no plaintext; público rechazado; idempotencia; cancelación de pendientes; revocación con motivo sin reabrir prospectos; rebote/queja; asistente 403.
   - Cierre: tester (`supresiones.test.ts`, `envios.test.ts`) · reviewer (cumplimiento, PII, idempotencia) · 1 commit.
+  - PASS tester+reviewer: 379 tests verdes (supresiones + envíos + páginas), tsc 0 errores; reviewer PASS. Deuda menor: `notas` libres sin redacción; lista 200 sin paginar; email pegado en ámbito DOMINIO suprime el dominio; schema de purga reutilizado; UI no muestra historial/revocadaPor; accesibilidad aria-describedby/aria-expanded; carreras de `creada`/reactivación; repetición final devuelve `suprimido:true` tras revocar; límites de notas 500/1000.
 
 - [ ] **T-21 (AC-38, AC-39; RF-57, RF-58) — Consumo, cupos y alertas en UI.**
   - Dashboard, detalle de campaña y ficha de prospecto: `estadoCupos(fecha)` por proveedor, enviados hoy/cap, restante, costo estimado si está configurado, aviso 80% y bloqueo 100%; consumo por campaña y por prospecto; sin cola.

@@ -42,7 +42,7 @@ const mocks = vi.hoisted(() => {
     prospecto: { updateMany: vi.fn() },
     envioPropuesta: { create: vi.fn(), updateMany: vi.fn() },
     consumoProveedor: { findMany: vi.fn(), upsert: vi.fn() },
-    supresionProspecto: { upsert: vi.fn() },
+    supresionProspecto: { findUnique: vi.fn(), upsert: vi.fn() },
     $queryRaw: vi.fn(),
   }
 
@@ -559,6 +559,7 @@ beforeEach(() => {
   mocks.tx.envioPropuesta.updateMany.mockResolvedValue({ count: 1 })
   mocks.tx.consumoProveedor.findMany.mockResolvedValue([])
   mocks.tx.consumoProveedor.upsert.mockResolvedValue({})
+  mocks.tx.supresionProspecto.findUnique.mockResolvedValue(null)
   mocks.tx.supresionProspecto.upsert.mockResolvedValue({})
   mocks.tx.$queryRaw.mockResolvedValue([])
   mocks.transaction.mockImplementation(
@@ -3282,7 +3283,8 @@ describe("POST /api/propuestas/envios/[id]/resultado (T-18, AC-29, AC-31)", () =
           creadaPorNombre: "Ana Pérez",
         },
       })
-      expect(upsert.update).toMatchObject({ activa: true })
+      // Alta nueva: el update del upsert no pisa estado ni datos.
+      expect(upsert.update).toEqual({ clave: `EMAIL:${emailHash}` })
 
       const cancelados = argumento(mocks.tx.envioPropuesta.updateMany, 1)
       expect(cancelados.where).toEqual({
@@ -3411,7 +3413,7 @@ describe("POST /api/propuestas/envios/[id]/resultado (T-18, AC-29, AC-31)", () =
     },
   )
 
-  it("repetir un rebote con email nuevo es idempotente y no duplica el historial (AC-31)", async () => {
+  it("repetir un rebote sobre el envio ya final no vuelve a escribir (AC-31)", async () => {
     mocks.envioFindUnique
       .mockResolvedValueOnce(envioAprobadoFixture({ estado: "ENVIADO" }))
       .mockResolvedValueOnce(envioAprobadoFixture({ estado: "REBOTADO" }))
@@ -3437,35 +3439,50 @@ describe("POST /api/propuestas/envios/[id]/resultado (T-18, AC-29, AC-31)", () =
       suprimido: true,
     })
 
+    // El primer resultado crea la supresion una sola vez; la repeticion
+    // sobre el envio ya final no abre transaccion ni vuelve a escribir.
+    expect(mocks.transaction).toHaveBeenCalledTimes(1)
     const upserts = mocks.tx.supresionProspecto.upsert.mock.calls.map(
       (llamada) =>
         (llamada[0] as { where: { clave: string } }).where.clave,
     )
-    expect(upserts).toHaveLength(2)
-    expect(new Set(upserts).size).toBe(1)
+    expect(upserts).toHaveLength(1)
     expect(upserts[0]).toMatch(/^EMAIL:[0-9a-f]{64}$/)
 
     const actualizaciones = mocks.tx.prospecto.updateMany.mock.calls.map(
       (llamada) =>
         (llamada[0] as { data?: Record<string, unknown> }).data ?? {},
     )
-    expect(actualizaciones).toHaveLength(2)
+    expect(actualizaciones).toHaveLength(1)
     expect(actualizaciones[0].historial).toHaveLength(1)
-    // La repetición no agrega otra entrada ni cambia el estado del prospecto.
-    expect(actualizaciones[1]).not.toHaveProperty("historial")
-    for (const datos of actualizaciones) {
-      expect(datos).not.toHaveProperty("estado")
-    }
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it("la supresion es idempotente por clave: repetir el mismo resultado no crea otra (AC-31)", async () => {
+  it("sobre un envio ya final no reactiva la supresion revocada ni cancela un borrador nuevo (AC-31)", async () => {
     mocks.envioFindUnique.mockResolvedValue(
       envioAprobadoFixture({ estado: "REBOTADO" }),
     )
     mocks.prospectoFindUnique.mockResolvedValue(
       prospectoBd({ estado: "SUPRIMIDO" }),
     )
+    // Si la ruta llamara a crearSupresion, esta fila revocada se reactivaria.
+    mocks.tx.supresionProspecto.findUnique.mockResolvedValue({
+      id: "sup_revocada",
+      activa: false,
+      historial: [
+        {
+          accion: "CREADA",
+          por: "user_9",
+          en: "2026-11-01T10:00:00.000Z",
+          motivo: "QUEJA",
+          origen: "MANUAL",
+        },
+      ],
+      motivo: "QUEJA",
+      origen: "MANUAL",
+      creadaPor: "user_9",
+      creadaEn: new Date("2026-11-01T10:00:00.000Z"),
+    })
     const fetchMock = vi.fn()
     vi.stubGlobal("fetch", fetchMock)
 
@@ -3484,21 +3501,14 @@ describe("POST /api/propuestas/envios/[id]/resultado (T-18, AC-29, AC-31)", () =
       estado: "REBOTADO",
       suprimido: true,
     })
-    expect(mocks.tx.supresionProspecto.upsert).toHaveBeenCalledTimes(2)
-    const claves = mocks.tx.supresionProspecto.upsert.mock.calls.map(
-      (llamada) =>
-        (llamada[0] as { where: { clave: string } }).where.clave,
-    )
-    expect(new Set(claves).size).toBe(1)
-    expect(claves[0]).toMatch(/^EMAIL:[0-9a-f]{64}$/)
-    // El envio ya esta en el estado final: no se vuelve a transicionar; solo
-    // se cancelan los pendientes (upsert idempotente + cancelacion).
-    const transiciones = mocks.tx.envioPropuesta.updateMany.mock.calls.filter(
-      (llamada) =>
-        (llamada[0] as { where?: { estado?: unknown } }).where?.estado ===
-        "ENVIADO",
-    )
-    expect(transiciones).toHaveLength(0)
+
+    // 200 idempotente sin crearSupresion/upsert/cancelacion/historial.
+    expect(mocks.transaction).not.toHaveBeenCalled()
+    expect(mocks.tx.supresionProspecto.findUnique).not.toHaveBeenCalled()
+    expect(mocks.tx.supresionProspecto.upsert).not.toHaveBeenCalled()
+    expect(mocks.tx.envioPropuesta.updateMany).not.toHaveBeenCalled()
+    expect(mocks.tx.prospecto.updateMany).not.toHaveBeenCalled()
+    expect(mocks.supresionUpsert).not.toHaveBeenCalled()
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
@@ -3772,6 +3782,112 @@ describe("POST /api/propuestas/envios/[id]/reconciliar (T-18, AC-28)", () => {
       unknown
     >
     expect(String(data.error)).not.toContain("ventas@alfa.com.ar")
+    expect(logsDeMocks()).not.toContain("ventas@alfa.com.ar")
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* T-20: resultado de rebote/queja reutiliza la supresion (AC-36)      */
+/* ------------------------------------------------------------------ */
+
+describe("resultado REBOTE_DURO/QUEJA y supresion compartida (T-20, AC-36; RF-56)", () => {
+  it("la ruta usa crearSupresion y no reimplementa el hash", () => {
+    const fuente = readFileSync(
+      join(
+        process.cwd(),
+        "src",
+        "app",
+        "api",
+        "propuestas",
+        "envios",
+        "[id]",
+        "resultado",
+        "route.ts",
+      ),
+      "utf8",
+    )
+
+    expect(fuente).toMatch(
+      /import\s*\{\s*crearSupresion\s*\}\s*from\s*"@\/lib\/propuestas\/supresiones"/,
+    )
+    expect(fuente).toMatch(/crearSupresion\(/)
+    expect(fuente).not.toMatch(/createHmac/)
+    expect(fuente).not.toMatch(/hashEmail\s*\(/)
+    expect(fuente).not.toMatch(/supresionProspecto\.(upsert|create)/)
+  })
+
+  it("normaliza el destinatario y el email actual antes de comparar (AC-36)", async () => {
+    mocks.envioFindUnique.mockResolvedValue(
+      envioAprobadoFixture({
+        estado: "ENVIADO",
+        destinatario: "  Ventas@Alfa.COM.AR  ",
+      }),
+    )
+    mocks.prospectoFindUnique.mockResolvedValue(
+      prospectoBd({ estado: "ENVIADO", email: " Ventas@Alfa.com.ar " }),
+    )
+
+    const res = await registrarResultado(
+      pedido(URL_RESULTADO, "POST", { tipo: "REBOTE_DURO" }),
+      contexto("env_1"),
+    )
+
+    expect(res.status).toBe(200)
+    expect(await jsonDe(res)).toEqual({
+      estado: "REBOTADO",
+      suprimido: true,
+    })
+
+    const upsert = argumento(mocks.tx.supresionProspecto.upsert)
+    const emailHash = hashEmail("ventas@alfa.com.ar", SECRETO)
+    expect(upsert).toMatchObject({
+      where: { clave: `EMAIL:${emailHash}` },
+      create: {
+        ambito: "EMAIL",
+        clave: `EMAIL:${emailHash}`,
+        emailHash,
+        emailEnmascarado: "v***@alfa.com.ar",
+        motivo: "REBOTE_DURO",
+        origen: "MANUAL",
+        activa: true,
+        creadaPor: "user_1",
+      },
+    })
+
+    // Coincide tras normalizar: el prospecto se marca SUPRIMIDO.
+    const prospecto = argumento(mocks.tx.prospecto.updateMany)
+    expect(prospecto.where).toEqual({
+      id: "pros_1",
+      estado: { not: "SUPRIMIDO" },
+    })
+    expect((prospecto.data ?? {}) as Record<string, unknown>).toMatchObject({
+      estado: "SUPRIMIDO",
+      actualizadoPor: "user_1",
+    })
+  })
+
+  it("redacta el detalle con email antes de guardarlo en notas y logs (AC-36)", async () => {
+    mocks.envioFindUnique.mockResolvedValue(
+      envioAprobadoFixture({ estado: "ENVIADO" }),
+    )
+    mocks.prospectoFindUnique.mockResolvedValue(
+      prospectoBd({ estado: "ENVIADO" }),
+    )
+
+    const res = await registrarResultado(
+      pedido(URL_RESULTADO, "POST", {
+        tipo: "QUEJA",
+        detalle: "Queja recibida de Ventas@Alfa.com.ar",
+      }),
+      contexto("env_1"),
+    )
+
+    expect(res.status).toBe(200)
+    const upsert = argumento(mocks.tx.supresionProspecto.upsert)
+    const create = (upsert.create ?? {}) as Record<string, unknown>
+    expect(String(create.notas)).toContain("[email]")
+    expect(String(create.notas)).not.toContain("Ventas@Alfa.com.ar")
+    expect(logsDeMocks()).not.toContain("Ventas@Alfa.com.ar")
     expect(logsDeMocks()).not.toContain("ventas@alfa.com.ar")
   })
 })

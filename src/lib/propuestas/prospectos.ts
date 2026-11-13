@@ -116,6 +116,8 @@ export interface EntradaHistorialProspecto {
     | "DESCARTE"
     | "RESULTADO_ENVIO"
     | "OPT_OUT"
+    | "SUPRESION"
+    | "REACTIVADA"
   por: string
   en: string
   /** Solo nombres de campos, nunca valores (sin PII). */

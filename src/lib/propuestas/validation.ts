@@ -468,3 +468,126 @@ export const envioReconciliarSchema = z
   .strict()
 
 export type EnvioReconciliarInput = z.infer<typeof envioReconciliarSchema>
+
+/* ------------------------------------------------------------------ */
+/* T-20 (AC-15..AC-18, AC-27, AC-36; RF-23..RF-28, RF-56): supresiones */
+/* ------------------------------------------------------------------ */
+
+export const SUPRESION_AMBITOS = ["EMAIL", "DOMINIO"] as const
+
+export const SUPRESION_MOTIVOS = [
+  "OPT_OUT",
+  "REBOTE_DURO",
+  "QUEJA",
+  "MANUAL",
+  "SOLICITUD_ARCO",
+] as const
+
+export const SUPRESION_EMAIL_MAX = PROSPECTO_EMAIL_MAX
+export const SUPRESION_DOMINIO_MAX = 253
+export const SUPRESION_NOTAS_MAX = 500
+
+const supresionEmailSchema = z
+  .string("El email es obligatorio.")
+  .trim()
+  .min(1, "El email es obligatorio.")
+  .max(
+    SUPRESION_EMAIL_MAX,
+    `El email no puede superar ${SUPRESION_EMAIL_MAX} caracteres.`,
+  )
+  .pipe(z.email("El email no es válido."))
+
+const supresionDominioSchema = z
+  .string("El dominio es obligatorio.")
+  .trim()
+  .min(1, "El dominio es obligatorio.")
+  .max(
+    SUPRESION_DOMINIO_MAX,
+    `El dominio no puede superar ${SUPRESION_DOMINIO_MAX} caracteres.`,
+  )
+
+const supresionMotivoSchema = z.enum(
+  SUPRESION_MOTIVOS,
+  "El motivo no es válido.",
+)
+
+/**
+ * `POST /api/propuestas/supresiones`: alta manual idempotente. El ámbito
+ * decide el dato obligatorio; unión discriminada para que no se pueda enviar
+ * email y dominio a la vez ni omitir el que corresponde. El servidor además
+ * rechaza dominios de proveedores públicos o plataformas multiinquilino.
+ */
+export const supresionCreateSchema = z.discriminatedUnion("ambito", [
+  z
+    .object({
+      ambito: z.literal("EMAIL"),
+      email: supresionEmailSchema,
+      motivo: supresionMotivoSchema,
+      notas: textoOpcional(SUPRESION_NOTAS_MAX, "Las notas"),
+    })
+    .strict(),
+  z
+    .object({
+      ambito: z.literal("DOMINIO"),
+      dominioNegocio: supresionDominioSchema,
+      motivo: supresionMotivoSchema,
+      notas: textoOpcional(SUPRESION_NOTAS_MAX, "Las notas"),
+    })
+    .strict(),
+])
+
+export type SupresionCreateInput = z.infer<typeof supresionCreateSchema>
+
+/**
+ * `POST /api/propuestas/supresiones/[id]/revocar`: excepción explícita. El
+ * motivo es obligatorio y se registra; no reabre prospectos.
+ */
+export const supresionRevocarSchema = z
+  .object({
+    motivo: motivoSchema,
+  })
+  .strict()
+
+export type SupresionRevocarInput = z.infer<typeof supresionRevocarSchema>
+
+/**
+ * Variante del formulario: ambos campos opcionales en el tipo de entrada y una
+ * validación condicional según el ámbito. El servidor vuelve a validar con
+ * `supresionCreateSchema` y con las reglas de dominio de `supresion.ts`.
+ */
+export const supresionFormSchema = z
+  .object({
+    ambito: z.enum(SUPRESION_AMBITOS, "El ámbito no es válido."),
+    email: textoOpcionalForm(SUPRESION_EMAIL_MAX, "El email"),
+    dominioNegocio: textoOpcionalForm(SUPRESION_DOMINIO_MAX, "El dominio"),
+    motivo: supresionMotivoSchema,
+    notas: textoOpcionalForm(SUPRESION_NOTAS_MAX, "Las notas"),
+  })
+  .superRefine((valor, ctx) => {
+    if (valor.ambito === "EMAIL") {
+      if (!valor.email) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["email"],
+          message: "El email es obligatorio.",
+        })
+      } else if (!z.email().safeParse(valor.email).success) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["email"],
+          message: "El email no es válido.",
+        })
+      }
+      return
+    }
+
+    if (!valor.dominioNegocio) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["dominioNegocio"],
+        message: "El dominio es obligatorio.",
+      })
+    }
+  })
+
+export type SupresionFormValues = z.infer<typeof supresionFormSchema>

@@ -88,7 +88,7 @@ Todas las variables nuevas del portal son **server-only**. No se agrega ninguna 
 | Canal ARCO visible | `hola@pixelarch.dev` (canal por defecto del código; el email debe incluirlo) |
 | Baja visible | `https://pixelarch.dev/propuestas/baja/<token>` |
 | Baja one-click | `https://pixelarch.dev/api/opt-out?token=<token>` |
-| Dominio | `pixelarch.dev` verificado en Resend, con SPF/DKIM/DMARC verificados |
+| Dominio | `pixelarch.dev` debe estar verificado en Resend, con SPF/DKIM/DMARC verificados, antes de habilitar el envío; verificar y registrar la evidencia en `legal-checklist.md` §5 |
 
 No usar `onboarding@resend.dev`, un remitente inventado ni un reply-to sin buzón atendido.
 
@@ -113,7 +113,7 @@ No usar `onboarding@resend.dev`, un remitente inventado ni un reply-to sin buzó
 - [ ] `legal-checklist.md` preparado y completo (sin secciones pendientes de redacción); firma de dueño y abogado **una vez que T-26 esté PASS y antes de iniciar T-27**. Sin esa firma no se ejecuta T-27 ni se habilita el envío.
 - [ ] Autorización explícita del dueño para ejecutar T-27, registrada con fecha.
 - [ ] `PROPUESTAS_TEXTO_LEGAL` y `PROPUESTAS_BASE_LEGAL` aprobados y **cargados en Railway**; el contenido debe coincidir con el anexo firmado (hash/fecha).
-- [ ] SPF/DKIM/DMARC verificados; dominio verificado en Resend.
+- [ ] Verificar SPF/DKIM/DMARC y dominio en Resend; registrar la evidencia en `legal-checklist.md` §5. Sin esto no se habilita el envío.
 - [ ] `PROPUESTAS_ENVIO_HABILITADO=false` antes de empezar.
 - [ ] Ventana de mantenimiento y responsable de rollback definidos.
 

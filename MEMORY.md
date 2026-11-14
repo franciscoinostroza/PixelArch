@@ -83,7 +83,7 @@ npm install / npm uninstall                            # npm si funciona
 - **Link publico:** `/pago/paypal/*` es publico, `no-store`, `no-referrer` y `noindex`; `/pago` y `/pago/(.*)` estan en `ROUTES.public` y los webhooks quedan fuera del matcher. El guest checkout depende de PayPal (`NO_PREFERENCE`).
 - **Sin cambios de Dockerfile:** no hay `NEXT_PUBLIC_PAYPAL_*`; las envs PayPal son server-only y se inyectan en runtime. Solo haria falta `ARG`/`ENV` si algun dia se usa el JS SDK del lado cliente.
 - **Estado de la BD / deploy:** staging quedo validado en T-37 (commit `139b8cb`, deploy `4c765526`; evidencia en `specs/001-paypal-pagos/review.md`). **Produccion tiene PayPal Live desde T-38 (2026-11-03):** `db push` + backfill aplicados (`UPDATE 0`, sin filas a migrar), deploy `f1185f76` en el commit `de64b50`, health OK, 33 variables y webhook `https://pixelarch.dev/api/webhooks/paypal` (`401` sin firma); admin y Mercado Pago operativos. **Sin pago real de smoke por decision del dueno:** el primer cobro real es la primera validacion live (firma, captura, hito, recibo, sin duplicado); monitorearlo con prioridad. Hardening H-5..H-9 PASS tester+reviewer; T-09 (smoke de staging) queda como deuda documental y no bloquea produccion. Rollback: quitar envs PayPal + deshabilitar webhook Live + redeploy, sin borrar datos ni revertir el esquema aditivo.
-- **Tests/verificacion:** `node node_modules\vitest\vitest.mjs run` (sin red; guard en `src/__tests__/setup.ts`). **Baseline vigente: 3031/3031 en 114 archivos (T-23, 13 nov 2026)**; la corrida 1644/1644 en 85 archivos del 30 oct 2026 es historica (cierre PayPal). Ademas `node node_modules\typescript\bin\tsc --noEmit`, `npm run lint` (18 errores/18 warnings preexistentes) y `node node_modules\next\dist\bin\next build` cuando se pida. No hay llamadas reales a PayPal/MP en CI; el sandbox es manual en Railway staging. El flake ocasional de `registrar-pago-paypal` no aparecio en la corrida de cierre.
+- **Tests/verificacion:** `node node_modules\vitest\vitest.mjs run` (sin red; guard en `src/__tests__/setup.ts`). **Baseline vigente: 3031/3031 en 114 archivos (T-25, 13 nov 2026; PASS tester, pendiente cierre reviewer)**; la corrida 1644/1644 en 85 archivos del 30 oct 2026 es historica (cierre PayPal). Ademas `node node_modules\typescript\bin\tsc --noEmit`, `npm run lint` (18 errores/18 warnings preexistentes) y `node node_modules\next\dist\bin\next build` cuando se pida. No hay llamadas reales a PayPal/MP en CI; el sandbox es manual en Railway staging. El flake ocasional de `registrar-pago-paypal` no aparecio en la corrida de cierre.
 
 ## Gotchas recibo MP (Oct 2026)
 
@@ -113,10 +113,10 @@ npm install / npm uninstall                            # npm si funciona
 
 ## Backlog abierto (2026-11-13)
 
-- **T-24 (spec 004, en curso):** runbook y checklist legal redactados; `AGENTS.md`/`MEMORY.md` actualizados; falta revision documental/commit. **No marcar `[x]`** hasta PASS tester+reviewer.
-- **T-25 (spec 004):** verificacion final local (`node node_modules\vitest\vitest.mjs run`, `tsc --noEmit`, `npm run lint`, `next build`) con evidencia; corregir solo lo introducido por la feature.
-- **T-26 [GATE] (spec 004):** staging con Postgres separado y `PROPUESTAS_ENVIO_HABILITADO=false` hasta el envio controlado; smoke de Places/fetch/auditoria/score/borrador/aprobacion, baja one-click, cupo 21 y retencion.
-- **T-27 [GATE] (spec 004):** produccion con autorizacion del dueno y checklist legal firmado + SPF/DKIM/DMARC + `pg_dump`/`db push`; recien entonces habilitar el envio. El esquema de propuestas sigue pendiente de `db push`.
+- **T-24 (spec 004, cerrada):** runbook y checklist legal redactados; `AGENTS.md`/`MEMORY.md` actualizados; commit `2b8132c`; PASS tester+reviewer.
+- **T-25 (spec 004, PASS tester, pendiente cierre reviewer):** verificacion final local con evidencia: suite **3031/3031 en 114 archivos**, `tsc --noEmit` 0 errores, lint 18/18 preexistente y `next build` PASS; corregir solo lo introducido por la feature. Baseline vigente: T-25.
+- **T-26 [GATE] (spec 004, pendiente, sin ejecutar):** staging con Postgres separado y `PROPUESTAS_ENVIO_HABILITADO=false` hasta el envio controlado; smoke de Places/fetch/auditoria/score/borrador/aprobacion, baja one-click, cupo 21 y retencion.
+- **T-27 [GATE] (spec 004, pendiente, sin ejecutar):** produccion con autorizacion del dueno y checklist legal firmado + SPF/DKIM/DMARC + `pg_dump`/`db push`; recien entonces habilitar el envio. El esquema de propuestas sigue pendiente de `db push`.
 - **Deuda portal v1:** LLM no implementado (`modo="LLM"` falla cerrado), sin webhooks de Resend (resultados manuales), cupo `REDACTOR` no reservado, listas sin paginacion completa y reconciliacion de `ENVIANDO` sin boton en UI.
 - **Primer cobro real PayPal (post-T-38):** monitorear con prioridad la firma del webhook (`200`), un solo `Pago`, hito `PAGADO`, recibo y ausencia de duplicados. T-38 no ejecuto pago real de smoke por decision del dueno.
 - **T-09 (spec 003, deuda documental):** smoke manual de staging — link en `REVISION`, webhook PayPal con firma invalida (`401`/`429`), topic ajeno a MP (`200` ignorado) y `git check-ignore` de `.railway/`. No bloquea produccion.
@@ -132,23 +132,24 @@ npm install / npm uninstall                            # npm si funciona
 - WhatsApp: `5491132464045`; mensajes en `src/lib/contact.ts`.
 - El **Sentry MCP no esta en opencode**; el plugin `@sentry/agent-plugin` quedo instalado para **Claude Code** (skills sentry-*).
 
-## Sesion 13 nov 2026 — Portal de propuestas T-01..T-23
+## Sesion 13 nov 2026 — Portal de propuestas T-01..T-24
 
-- **T-01..T-23 PASS tester+reviewer**, un commit `feat:` por tarea y push de la rama de trabajo (sin listar hashes). Cierre funcional del portal admin-only de prospeccion B2B, separado del CRM.
+- **T-01..T-24 PASS tester+reviewer**, un commit `feat:` por tarea (T-24 `docs:`) y push de la rama de trabajo (sin listar hashes). Cierre funcional del portal admin-only de prospeccion B2B, separado del CRM.
 - **Fundaciones:** middleware corregido (`/propuesta` singular publico; `/propuestas` admin; APIs `401/403`; baja/opt-out publicos; headers `noindex`/`no-store`), guard Clerk-only sin Prisma, shell sin nav de CRM, esquema aditivo de 6 modelos/8 enums sin FKs al CRM y config server-only fail-closed.
 - **Prospeccion y borradores:** Places (solo `place_id`), dedupe por `placeId`/email/dominio, fetch seguro + robots, extraccion de email publicado, auditoria interna, score determinista, alta manual con fuente, plantillas versionadas, borrador con grounding y edicion versionada.
 - **Aprobacion y envio:** snapshot con footer legal/token/hash, aprobacion sin envio, wrapper Resend con `Idempotency-Key` y `List-Unsubscribe` one-click, reintento manual, resultado/rebote/queja con supresion global y reconciliacion manual de `ENVIANDO`.
 - **Cumplimiento:** baja publica `/propuestas/baja/[token]` + `POST /api/opt-out`, supresiones por hash/dominio con revocacion excepcional, retencion 12 meses con cron `Bearer`, ARCO exportar/rectificar/eliminar y redaccion de PII/tokens en logs/Sentry.
 - **Verificacion T-23:** suite **3031/3031 en 114 archivos**, `tsc --noEmit` 0 errores, `npm run lint` 18 errores/18 warnings preexistentes y `next build` PASS.
 - **Estado real:** codigo desplegado, pero **esquema pendiente de `db push`** y `PROPUESTAS_ENVIO_HABILITADO=false`; el portal falla cerrado (`ESQUEMA_NO_APLICADO`). No se ejecutaron T-26 (staging) ni T-27 (produccion), no hubo envio real ni llamadas reales a Places/Resend/LLM.
-- **T-24 en curso:** `runbook.md` y `legal-checklist.md` redactados (sin commit al cerrar esta sesion); `AGENTS.md`/`MEMORY.md` actualizados. No marcar T-24 hasta PASS tester+reviewer.
+- **T-24 cerrada:** `runbook.md` y `legal-checklist.md` redactados; `AGENTS.md`/`MEMORY.md` actualizados; commit `2b8132c`; PASS tester+reviewer.
+- **T-25 (PASS tester, pendiente cierre reviewer):** suite **3031/3031 en 114 archivos**, `tsc --noEmit` 0 errores, lint 18/18 preexistente y `next build` PASS (13 nov 2026); T-26/T-27 siguen pendientes de ejecucion.
 
 ## Sesion 3 nov 2026 — Cierre T-38 (rollout a produccion)
 
 - **T-38 PASS con observacion:** deploy `f1185f76` en el commit `de64b50`, `/api/health` OK; `db push` + backfill aplicados (`UPDATE 0`, sin filas a migrar); PayPal Live cargado (33 variables); webhook `https://pixelarch.dev/api/webhooks/paypal` responde `401` sin firma; admin y Mercado Pago operativos.
 - **Sin pago real de smoke** por decision del dueno: no hubo cobro live de punta a punta. La validacion live de firma, captura, hito y recibo queda para el primer cobro real; monitorearlo con prioridad.
 - **Rollback definido (no ejecutado):** quitar envs PayPal + deshabilitar webhook Live + redeploy, sin borrar datos ni revertir el esquema aditivo.
-- **T-09 (spec 003)** sigue pendiente como deuda documental y no bloquea produccion. Tests **historicos del cierre T-38: 1644/1644 en 85 archivos** (ultima corrida reportada al 30 oct 2026, no revalidada en este cierre); **baseline vigente: 3031/3031 en 114 archivos** (T-23, 13 nov 2026). Sin cambios de codigo en este cierre; `de64b50` difiere de `139b8cb` y no se reporta revalidacion sobre ese SHA.
+- **T-09 (spec 003)** sigue pendiente como deuda documental y no bloquea produccion. Tests **historicos del cierre T-38: 1644/1644 en 85 archivos** (ultima corrida reportada al 30 oct 2026, no revalidada en este cierre); **baseline vigente: 3031/3031 en 114 archivos** (T-25, 13 nov 2026; PASS tester, pendiente cierre reviewer). Sin cambios de codigo en este cierre; `de64b50` difiere de `139b8cb` y no se reporta revalidacion sobre ese SHA.
 - Docs actualizados: `AGENTS.md`, `MEMORY.md` y `specs/001-paypal-pagos/review.md`, `specs/001-paypal-pagos/tasks.md`, `specs/002-recibo-mp/tasks.md`, `specs/003-hardening-paypal/tasks.md`; commit docs-only (no dispara deploy).
 
 ## Sesion 30 oct 2026 — Cierre spec 003 (hardening PayPal/MP)

@@ -81,7 +81,7 @@ Crear un portal interno `/propuestas`, separado del CRM y accesible solo para el
 
 ### 1.6 Supuestos y dependencias
 
-- El dominio de envío está verificado en Resend y tiene SPF/DKIM/DMARC correctos; el remitente es `propuestas@pixelarch.dev` y el reply-to `hola@pixelarch.dev` (Q-2).
+- El dominio de envío debe estar verificado en Resend y tener SPF/DKIM/DMARC correctos antes de habilitar el envío; verificar y registrar la evidencia en `legal-checklist.md` §5. El remitente es `propuestas@pixelarch.dev` y el reply-to `hola@pixelarch.dev` (Q-2).
 - La cuenta de Google Cloud tiene Places API habilitada y facturación; se usa una clave server-only separada para prospección (`PROPUESTAS_PLACES_API_KEY`, Q-12).
 - **v1 no usa LLM.** La redacción es determinista con plantillas y la auditoría existente. Se deja un puerto/adaptador server-only reservado para una mejora posterior; no se elige proveedor ni se agrega dependencia en esta spec.
 - La base es PostgreSQL y los cambios de esquema se aplican con `db push` (o el CLI local si `npx` falla). Los modelos nuevos son aditivos; no hay backfill ni migración de datos existentes.

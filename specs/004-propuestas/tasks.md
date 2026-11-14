@@ -4,7 +4,7 @@
 **Plan:** ./plan.md
 **Regla:** una tarea = un cambio revisable (~1 commit). Cada tarea indica AC, archivos probables, dependencias, tests y cierre tester+reviewer.
 **Gate:** ninguna tarea de envío real se habilita sin `PROPUESTAS_ENVIO_HABILITADO=true`, checklist legal y gate de staging (T-26). T-27 (producción) requiere aprobación explícita del dueño.
-**Baseline:** inicial histórico: suite 1644/1644 en 85 archivos; **vigente tras T-23:** suite 3031/3031 en 114 archivos. TypeScript 0 errores; lint 18/18 preexistente. No introducir errores nuevos.
+**Baseline:** inicial histórico: suite 1644/1644 en 85 archivos; **vigente tras T-25:** suite 3031/3031 en 114 archivos. TypeScript 0 errores; lint 18/18 preexistente. No introducir errores nuevos.
 
 Formato de cierre por tarea:
 
@@ -249,7 +249,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - PASS tester+reviewer: 290 tests verdes (consumo + páginas), tsc 0 errores; reviewer PASS. Deuda menor: restante acotado vs global; cap 0 bloqueado/configurado; Places en total acotado; Places 0/20 en ficha (no se registra por prospecto); banner operativo duplicado; doble lectura mensual/índice `[fecha]`; medidor en shell pendiente; aria-label/`aria-valuetext`; cupo REDACTOR no reservado; paginación.
 
 - [x] **T-22 (AC-37, AC-40; RF-30, RF-65) — Retención 12 meses y ARCO.**
-  - `retencion.ts`: selección por `ultimaInteraccionEn < now-12m`, borrado en lotes de 100 con `onDelete: Cascade`, `pg_try_advisory_lock`, supresión intacta; cron `GET /api/cron/propuestas-retencion` con `CRON_SECRET`; `POST /api/propuestas/retencion` para admin.
+  - `retencion.ts`: selección por `ultimaInteraccionEn < now-12m`, borrado en lotes de 100 con `onDelete: Cascade`, `pg_try_advisory_xact_lock(hashtext('PROPUESTAS_RETENCION'))`, supresión intacta; cron `GET /api/cron/propuestas-retencion` con `CRON_SECRET`; `POST /api/propuestas/retencion` para admin.
   - `arco.ts` + `POST /api/propuestas/arco/[prospectoId]`: EXPORTAR (JSON con datos/fuentes/auditoría/envíos, sin tokens/hashes), ELIMINAR (crea supresión SOLICITUD_ARCO si hay email, luego borra; conserva supresión), RECTIFICAR (PATCH + historial).
   - UI `arco-panel.tsx` en la ficha.
   - Archivos: `src/lib/propuestas/retencion.ts`, `arco.ts`; `src/app/api/cron/propuestas-retencion/route.ts`, `src/app/api/propuestas/retencion/route.ts`, `src/app/api/propuestas/arco/[prospectoId]/route.ts`; `src/components/propuestas/arco-panel.tsx`; tests `propuestas-retencion.test.ts`, `src/__tests__/api/propuestas/arco.test.ts`.
@@ -280,14 +280,15 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-23.
   - Tests: revisión documental; `estadoEnvio` sigue fallando cerrado sin texto/base legal.
   - Cierre: tester (revisión de checklist + `propuestas-config.test.ts`) · reviewer (operación, legal, completitud) · 1 commit.
-  - PASS tester+reviewer: `runbook.md` + `legal-checklist.md` creados y `AGENTS.md`/`MEMORY.md` actualizados; `propuestas-config.test.ts` 34/34, tsc 0 errores; reviewer PASS. AC-45 sigue delegado a T-25/T-26/T-27 (suite completa, staging y producción). Deuda menor: el runbook afirma DNS/Resend verificado mientras el checklist lo deja en `[VERIFICAR]`; el check de origen se omite con `NEXT_PUBLIC_URL` nula en `reintentar`/`reconciliar`/`resultado`; comandos bash documentados para PowerShell; verificar texto/base legal cargados antes del smoke en seco; alinear `pg_try_advisory_lock` vs `pg_try_advisory_xact_lock` en T-25; crear la Function `propuestas-retencion` (aún no existe); validar la referencia a la DNPDP 4/2009 con el abogado; precisar T-24/AC-45 vs RF-65 (entregable documental vs regresión).
+  - PASS tester+reviewer: `runbook.md` + `legal-checklist.md` creados y `AGENTS.md`/`MEMORY.md` actualizados; `propuestas-config.test.ts` 34/34, tsc 0 errores; reviewer PASS. AC-45 sigue delegado a T-25/T-26/T-27 (suite completa, staging y producción). Deuda menor: el runbook afirmaba DNS/Resend verificado (corregido: ahora es requisito a verificar en `legal-checklist.md`); el check de origen se omite con `NEXT_PUBLIC_URL` nula en `reintentar`/`reconciliar`/`resultado`; comandos bash documentados para PowerShell; verificar texto/base legal cargados antes del smoke en seco; `pg_try_advisory_lock` alineado a `pg_try_advisory_xact_lock` en runbook/plan/tasks; crear la Function `propuestas-retencion` (aún no existe); validar la referencia a la DNPDP 4/2009 con el abogado; precisar T-24/AC-45 vs RF-65 (entregable documental vs regresión).
 
-- [ ] **T-25 (AC-44, AC-45; RNF-6) — Verificación final local.**
+- [x] **T-25 (AC-44, AC-45; RNF-6) — Verificación final local.**
   - Ejecutar suite completa, typecheck, lint y build; corregir solo lo introducido por la feature.
   - Archivos: los que correspondan a correcciones; sin cambios funcionales nuevos.
   - Depende: T-24.
   - Tests: `node node_modules\vitest\vitest.mjs run`; `node node_modules\typescript\bin\tsc --noEmit`; `npm run lint` (sin errores nuevos sobre 18/18); `node node_modules\next\dist\bin\next build`.
   - Cierre: tester (evidencia de comandos) · reviewer (diff final, baseline) · 1 commit (solo si hay correcciones).
+  - PASS tester+reviewer: suite 3031/3031 en 114 archivos, `tsc --noEmit` 0 errores, lint 18/18 preexistente (sin nuevos), `next build` PASS; reviewer PASS; sin cambios de código en T-24/T-25; T-26/T-27 gates pendientes.
 
 - [ ] **T-26 [GATE] (AC-1..AC-45; RF-66) — Gate de staging antes de producción.**
   - No es un commit de código. Se ejecuta en staging con Postgres separado y `PROPUESTAS_ENVIO_HABILITADO=false` hasta el paso de envío controlado.

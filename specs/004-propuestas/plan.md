@@ -1029,7 +1029,7 @@ Además:
 ### 7.5 Operación y cron
 
 - **Purga de retención:** Railway Function `propuestas-retencion` (cron `0 4 * * *`, UTC) llama a `GET /api/cron/propuestas-retencion` con `Authorization: Bearer $CRON_SECRET`. Alternativa: botón admin `POST /api/propuestas/retencion`.
-- **Advisory lock:** `pg_try_advisory_lock(hashtext('propuestas-retencion'))` para evitar solapamientos; si no se obtiene, responde 200 `{ omitido: true }`.
+- **Advisory lock:** `pg_try_advisory_xact_lock(hashtext('PROPUESTAS_RETENCION'))` para evitar solapamientos; si no se obtiene, responde 200 `{ omitido: true }`.
 - **Logs 30 días:** verificar la retención de logs de Railway y documentarla; la evidencia durable de aprobaciones/envíos/supresiones vive en la base, no en logs.
 - **Monitoreo:** Sentry con redacción de URLs de baja y sin PII; alertas de errores 5xx del portal.
 

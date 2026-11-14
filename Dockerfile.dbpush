@@ -1,5 +1,0 @@
-# Job temporal: db push del portal de propuestas
-FROM node:22-slim
-WORKDIR /app
-COPY prisma ./prisma
-CMD ["sh", "-c", "npx prisma@7.8.0 db push --schema=prisma/schema.prisma --url \"$DATABASE_URL\""]

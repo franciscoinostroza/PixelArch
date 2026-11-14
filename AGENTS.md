@@ -2,11 +2,13 @@
 
 > Memoria operativa del agente (workflow, comandos, gotchas): ver **MEMORY.md**.
 
-**Ultima actualizacion:** 3 de noviembre de 2026
-**Build:** TypeScript 0 errores | **Lint:** 18 errores/18 warnings preexistentes | **Tests:** 1644 en 85 archivos (ultima corrida reportada, 30 oct 2026; sin cambios de codigo desde entonces) | **PayPal:** **produccion Live** (T-38 PASS con observacion, deploy `f1185f76`, commit `de64b50`, health OK); sin pago real de smoke por decision del dueno
+**Ultima actualizacion:** 13 de noviembre de 2026
+**Build:** TypeScript 0 errores | **Lint:** 18 errores/18 warnings preexistentes | **Tests:** 3031 en 114 archivos (ultima corrida T-23) | **Build local:** PASS en T-23
+**Portal de propuestas (spec 004):** T-01..T-23 PASS tester+reviewer; codigo desplegado; **esquema pendiente de `db push`** y `PROPUESTAS_ENVIO_HABILITADO=false` (falla cerrado con `ESQUEMA_NO_APLICADO`); T-24 en curso; T-25 y gates T-26/T-27 pendientes
+**PayPal:** **produccion Live** (T-38 PASS con observacion, deploy `f1185f76`, commit `de64b50`, health OK); sin pago real de smoke por decision del dueno
 **Hardening PayPal/MP (spec 003):** H-5/H-6/H-7/H-8/H-9 implementados y **PASS tester+reviewer**; **sin cambios de schema/envs**; T-09 (smoke manual de staging) pendiente como deuda documental
 **Recibo MP:** desplegado a produccion con T-38 (T-01..T-07); **sin cambios de schema**; falta validacion con un cobro MP real
-**Deploy Railway:** Online (Mercado Pago + PayPal Live) | **BD:** PostgreSQL sincronizada en staging y produccion (`db push` + backfill, `UPDATE 0`) | **Clerk:** Auth admin/asistente (gate con modal) | **Sanity:** Studio + Schemas + 15 articulos | **Pagos:** CRM por proyectos/hitos + soporte mensual + Mercado Pago (links) + PayPal (USD) + recibo interno PayPal/MP
+**Deploy Railway:** Online (Mercado Pago + PayPal Live) | **BD:** PostgreSQL sincronizada para CRM/PayPal en staging y produccion (`db push` + backfill, `UPDATE 0`); **esquema de propuestas pendiente de `db push`** | **Clerk:** Auth admin/asistente (gate con modal) | **Sanity:** Studio + Schemas + 15 articulos | **Pagos:** CRM por proyectos/hitos + soporte mensual + Mercado Pago (links) + PayPal (USD) + recibo interno PayPal/MP
 **URL:** https://pixelarch.dev
 
 ---
@@ -65,7 +67,7 @@ Constitucion → Spec (QUE/POR QUE) → Plan (COMO) → Tareas → Implementacio
 | Resend | v6 | Emails transaccionales |
 | Sentry | 11 | Errors + tracing + replay (condicional a SENTRY_DSN, tunnel `/monitoring`) |
 | PayPal | REST Orders v2 | `fetch` nativo, checkout alojado, webhook verificado con firma (sin SDK) |
-| Vitest | 3.2.6 | Testing (1644 tests, 85 archivos; flake ocasional de `registrar-pago-paypal`) |
+| Vitest | 3.2.6 | Testing (3031 tests, 114 archivos al cerrar T-23; flake ocasional de `registrar-pago-paypal`) |
 | Deploy | Railway | Auto-deploy desde GitHub |
 
 ---
@@ -131,6 +133,36 @@ Roles (`publicMetadata.role`, sin alias `assistant`):
 
 La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las acciones de registro manual PayPal, reembolso/contracargo y resolucion de diferencias se ocultan en la UI para la asistente y las APIs las rechazan con `requireAdmin()`.
 
+### Portal de propuestas (spec 004; admin-only)
+
+Portal interno de prospeccion B2B **separado del CRM**: no lee ni escribe `Cliente`, `Pago`, `Suscripcion`, `EnlacePago`, `Proyecto` ni `Hito`, y no crea clientes ni cobros.
+
+| Ruta | Funcion |
+|------|---------|
+| `/propuestas` | Dashboard: campanas, cola, cupos, supresiones y estado operativo |
+| `/propuestas/buscar` | Alta de campana/busqueda (Places) con `limiteCorrida` 1-20 |
+| `/propuestas/campanas/[id]` | Detalle, ejecucion de Places, resultados transitorios, duplicados y consumo |
+| `/propuestas/prospectos/[id]` | Ficha, fuentes, auditoria, score, borrador, aprobacion, ARCO |
+| `/propuestas/bandeja` | Borradores `BORRADOR`/`APROBADO` pendientes, sin acciones masivas |
+| `/propuestas/plantillas` + `/propuestas/plantillas/[id]` | Plantillas versionadas y vista previa con prospecto real |
+| `/propuestas/envios` | Historial de envios y estados |
+| `/propuestas/supresiones` | Supresiones por email/dominio y revocacion excepcional con motivo |
+| `/propuestas/baja/[token]` | Baja publica por token, layout propio `(propuestas-baja)`, `noindex`/`no-store`/`no-referrer` |
+
+**APIs:** `/api/propuestas/**` (admin; `401/403` JSON en middleware) y `/api/opt-out` (POST publico one-click RFC 8058). La purga programada vive en `/api/cron/propuestas-retencion` (`Authorization: Bearer $CRON_SECRET`).
+
+**Auth:** solo `publicMetadata.role === "admin"`. `resolverAdminPropuestas()` es Clerk-only (sin Prisma ni consultas al CRM); el layout redirige sin sesion a `/gate/admin?next=/propuestas` y a la asistente a `/admin/cobros`, mientras que las APIs `/api/propuestas/**` responden `401`/`403` JSON. El portal tiene shell/sidebar propios sin navegacion de CRM.
+
+**Modelos aditivos (sin FKs al CRM):** `CampanaProspeccion`, `Prospecto`, `PlantillaPropuesta`, `EnvioPropuesta`, `SupresionProspecto`, `ConsumoProveedor` (y 8 enums). `SupresionProspecto` no tiene relacion con `Prospecto`: sobrevive al borrado del prospecto.
+
+**Flujo:** Places (solo `place_id` persistido) → dedupe por `placeId`/email/dominio de negocio → fetch seguro + robots + auditoria + score determinista → plantilla/borrador con grounding → **aprobacion con snapshot** (footer legal, token de baja y hash) → envio con Resend (`Idempotency-Key`, `List-Unsubscribe` one-click) → registro manual de resultado y supresion. **Nada es automatico:** sin scheduler, envio por lote ni retry automatico; rebotes/quejas/respuestas se registran a mano.
+
+**Envs:** todas server-only, sin `NEXT_PUBLIC_*` nuevas (`NEXT_PUBLIC_URL` ya existente se usa para baja y check de origen). `PROPUESTAS_ENVIO_HABILITADO=false` por defecto; `estadoEnvio()` exige ademas `RESEND_API_KEY`, from/reply-to, `PROPUESTAS_SECRETO` (min. 32), URL HTTPS, `PROPUESTAS_TEXTO_LEGAL` y `PROPUESTAS_BASE_LEGAL`. Aprobar no exige el gate y nunca envia; solo el envio lo exige.
+
+**Estado de despliegue:** codigo del portal desplegado, pero el **esquema de propuestas sigue pendiente de `db push`** y el envio esta deshabilitado. El portal **falla cerrado** (`ESQUEMA_NO_APLICADO`): sin tablas no muestra datos ni formularios. Habilitar solo tras T-26 (staging), T-27 (produccion, con dueno) y el checklist legal firmado.
+
+**Deuda v1:** LLM no implementado (`PROPUESTAS_LLM_HABILITADO` reservado; `modo="LLM"` falla cerrado), sin webhooks de Resend, cupo `REDACTOR` definido pero no reservado, listas sin paginacion completa (bandeja/supresiones 200, envios 100) y reconciliacion de `ENVIANDO` solo por API.
+
 ### API Routes
 
 | Ruta | Metodo | Proposito |
@@ -157,6 +189,16 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 | `/api/admin/suscripciones` | PATCH | Admin: activar/pausar/reactivar/cancelar/vencido + precio/vencimiento + deploy |
 | `/api/admin/entregar` | POST | Admin: marcar entregado + email |
 | `/api/admin/asignar-producto` | POST | Admin: asignar producto a cliente |
+| `/api/propuestas/campanas` | POST | **Admin**: alta de campana idempotente (no busca ni envia) |
+| `/api/propuestas/campanas/[id]/ejecutar` · `/cancelar` | POST | **Admin**: corrida Places acotada / cancelacion sin nuevas llamadas |
+| `/api/propuestas/prospectos` · `/[id]` · `/[id]/analizar` · `/[id]/borrador` · `/[id]/descartar` | POST/PATCH | **Admin**: alta manual con fuente, correccion, fetch/auditoria/score, borrador y descarte |
+| `/api/propuestas/plantillas` · `/[id]` | POST/PATCH | **Admin**: plantillas versionadas |
+| `/api/propuestas/envios/[id]` · `/aprobar` · `/enviar` · `/reintentar` · `/resultado` · `/reconciliar` | PATCH/POST | **Admin**: edicion/version, snapshot, envio Resend, reintento manual, resultado y reconciliacion |
+| `/api/propuestas/supresiones` · `/[id]/revocar` · `/[id]/purga` | POST | **Admin**: supresion por hash/dominio, revocacion con motivo y purga manual |
+| `/api/propuestas/arco/[prospectoId]` | POST | **Admin**: exportar/rectificar/eliminar (ARCO) |
+| `/api/propuestas/retencion` | POST | **Admin**: purga manual de prospectos vencidos |
+| `/api/opt-out` | POST | Publico one-click (RFC 8058): baja por token, idempotente y con rate limit |
+| `/api/cron/propuestas-retencion` | GET | Purga programada con `Authorization: Bearer $CRON_SECRET` |
 | `/api/cron/uptime` | GET | Monitoreo: chequea 4 servicios (Railway Function `uptime-cron` cada 10 min) + alertas por email |
 | `/api/cron/digest` | GET | Digest diario de cobros por email (Railway Function `digest-cobros`, 9:00 ARG) |
 | `/api/revalidate` | POST | ISR on-demand |
@@ -203,6 +245,13 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 | `deploy.ts` | Pausar/reanudar deploys (Railway/Vercel) |
 | `uptime-alerts.ts` | Logica pura de alertas de uptime por transicion (caida/recuperacion) |
 | `digest.ts` | Armado del digest diario de cobros (hitos, soportes, cobrado 24h) |
+| `propuestas/config.ts` / `errores.ts` / `origen.ts` | Config server-only fail-closed, gate `estadoEnvio()`, codigos/`ESQUEMA_NO_APLICADO` y check same-origin |
+| `propuestas/auth.ts` | Guard Clerk-only `resolverAdminPropuestas()` (sin Prisma ni CRM) |
+| `propuestas/places.ts` / `web.ts` / `auditoria.ts` / `score.ts` | Places, fetch seguro + robots, auditoria interna y score determinista |
+| `propuestas/normalizar.ts` / `dedupe.ts` / `prospectos.ts` | Normalizacion, dedupe y alta/correccion de prospectos |
+| `propuestas/supresion.ts` / `supresiones.ts` / `email.ts` / `legal.ts` / `plantillas.ts` | HMAC/baja, supresiones, email legal y render de plantillas |
+| `propuestas/envios.ts` / `resend.ts` / `consumo.ts` / `retencion.ts` / `arco.ts` | Snapshot/hash, wrapper Resend idempotente, cupos, retencion y ARCO |
+| `propuestas/redact.ts` / `validation.ts` / `transiciones.ts` / `fechas.ts` | Redaccion de PII/Sentry, esquemas Zod, transiciones/permisos y fechas UTC/es-AR |
 
 ### UI Components clave (`src/components/`)
 
@@ -210,6 +259,10 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 |-----------|-----|
 | `layout/admin-gate.tsx` | Modal de ingreso al admin (openSignIn sobre el sitio) |
 | `layout/admin-user-button.tsx` | Cuenta + cerrar sesion en el sidebar del admin (AccountModal custom) |
+| `propuestas/portal-shell.tsx` / `portal-sidebar.tsx` / `estado-vacio.tsx` | Shell, sidebar y estados vacios del portal (sin nav de CRM) |
+| `propuestas/campana-form.tsx` / `campana-tabla.tsx` / `prospecto-ficha.tsx` / `score-desglose.tsx` | Alta/ejecucion de campanas, ficha y desglose de score |
+| `propuestas/borrador-editor.tsx` / `aprobacion-panel.tsx` / `envio-confirmacion.tsx` | Borrador, snapshot de aprobacion y confirmacion de envio |
+| `propuestas/cupo-dia.tsx` / `supresion-form.tsx` / `arco-panel.tsx` / `baja-confirmar.tsx` | Cupos, supresiones, ARCO y baja publica |
 | `ui/account-modal.tsx` | Modal "Mi cuenta" custom (mover a admin) |
 | `ui/paypal-dialog.tsx` / `ui/paypal-link-modal.tsx` | Dialogo accesible base y modal de link PayPal (monto, meses, preview de comision, idioma, copiar/enviar/regenerar) |
 | `ui/generar-link-paypal-button.tsx` | Boton "Link PayPal" en hitos y soportes elegibles |
@@ -281,7 +334,17 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 - **PASS con observacion:** deploy `f1185f76` en el commit `de64b50`, `/api/health` OK; `prisma db push` + backfill aplicados (`UPDATE 0`, sin filas a migrar); PayPal Live cargado (33 variables) y webhook `https://pixelarch.dev/api/webhooks/paypal` (`401` sin firma); admin y Mercado Pago operativos.
 - **Sin pago real de smoke** por decision del dueno: no hubo cobro live de punta a punta. La validacion live de firma, captura, hito y recibo queda para el primer cobro real; monitorearlo con prioridad.
 - **Rollback definido (no ejecutado):** quitar las envs PayPal, deshabilitar el webhook Live y redeployar; sin borrar datos ni revertir el esquema (aditivo).
-- **Deuda documental:** T-09 (smoke manual de staging) sigue pendiente; `de64b50` difiere de `139b8cb` y no se reporta revalidacion de suite/typecheck/lint/build sobre ese SHA. Tests vigentes: **1644/1644 en 85 archivos** (ultima corrida reportada, 30 oct 2026), sin cambios de codigo en este cierre.
+- **Deuda documental:** T-09 (smoke manual de staging) sigue pendiente; `de64b50` difiere de `139b8cb` y no se reporta revalidacion de suite/typecheck/lint/build sobre ese SHA. Tests al cerrar T-38: **1644/1644 en 85 archivos** (ultima corrida reportada, 30 oct 2026), sin cambios de codigo en ese cierre.
+
+### Portal de propuestas (spec 004; T-01..T-23, Nov 2026)
+- **T-01..T-23 PASS tester+reviewer**, un commit `feat:` por tarea. Portal admin-only separado del CRM, con shell/sidebar propios.
+- **Fundaciones:** middleware `/propuesta` (singular) sigue publico y `/propuestas` pasa a admin; APIs `401/403`; headers `noindex`/`no-store`; baja publica con `no-referrer`. Guard Clerk-only sin Prisma; esquema aditivo de 6 modelos/8 enums sin FKs al CRM; config server-only fail-closed.
+- **Prospeccion:** Places (solo `place_id`), dedupe, fetch seguro + robots, extraccion de email publicado, auditoria interna y score determinista; alta manual/correccion con fuente y nota, sin importacion masiva ni scraping.
+- **Borradores y envio:** plantillas versionadas, borrador determinista con grounding, aprobacion con snapshot (footer legal/token/hash), envio Resend con `Idempotency-Key` y `List-Unsubscribe` one-click; reintento manual; resultado/rebote/queja con supresion.
+- **Cumplimiento:** baja publica `/propuestas/baja/[token]` + `POST /api/opt-out`, supresiones por hash/dominio con revocacion excepcional, retencion 12 meses con cron `Bearer` y ARCO exportar/rectificar/eliminar.
+- **Cupos y privacidad:** `ConsumoProveedor` con locks transaccionales, alertas 80%/bloqueo 100%, redaccion de PII/tokens en logs/Sentry y guard de red que bloquea Places/Resend/LLM en tests.
+- **Verificacion T-23:** suite **3031/3031 en 114 archivos**, `tsc --noEmit` 0 errores, lint 18/18 preexistente y build PASS.
+- **Estado:** codigo desplegado; **esquema pendiente de `db push`** y `PROPUESTAS_ENVIO_HABILITADO=false`. T-24 (docs/legal) en curso; T-25 (verificacion final) y T-26/T-27 pendientes.
 
 ### Monitoreo propio (`/estado`)
 - Tabla `UptimeCheck` + **Railway Function `uptime-cron`** cada 10 min (dispara `/api/cron/uptime` con el secret; unica fuente, sin GitHub Actions)
@@ -321,6 +384,11 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 
 ## Pendiente
 
+- [ ] **T-24 (spec 004, en curso):** runbook y checklist legal redactados; `AGENTS.md`/`MEMORY.md` actualizados; falta revision documental/commit. No marcar `[x]` hasta PASS tester+reviewer.
+- [ ] **T-25 (spec 004):** verificacion final local (suite, `tsc`, lint y build) con evidencia; corregir solo lo introducido por la feature.
+- [ ] **T-26 [GATE] (spec 004):** staging con Postgres separado; smoke de Places/fetch/auditoria/score/borrador/aprobacion, envio a direccion propia, baja one-click, cupo 21 y retencion.
+- [ ] **T-27 [GATE] (spec 004):** produccion con autorizacion del dueno, checklist legal firmado, SPF/DKIM/DMARC, `pg_dump` + `db push`, smoke en seco y primer envio controlado; recien entonces habilitar `PROPUESTAS_ENVIO_HABILITADO=true`.
+- [ ] Deuda portal v1: LLM no implementado (`modo="LLM"` falla cerrado), sin webhooks de Resend (resultados manuales), cupo `REDACTOR` no reservado, listas sin paginacion completa y reconciliacion de `ENVIANDO` sin boton en UI.
 - [ ] Pasos manuales: desactivar registro publico en Clerk + invitar a la asistente · borrar el webhook de Polar en su panel
 - [ ] **Primer cobro real PayPal (post-T-38):** T-38 no ejecuto pago real de smoke por decision del dueno; monitorear con prioridad el primer pago Live (firma del webhook `200`, un solo `Pago`, hito `PAGADO`, recibo, sin duplicado). Rollback definido: quitar envs PayPal + deshabilitar webhook Live + redeploy, sin borrar datos.
 - [ ] **T-09 (spec 003, deuda documental):** smoke manual en staging — link con pago en `REVISION`, webhook PayPal con firma invalida (`401`/`429`), topic ajeno a MP (`200` ignorado) y `git check-ignore` de `.railway/`. H-8 se valida con la suite. No bloquea produccion.
@@ -336,7 +404,7 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 ## Tests
 
 ```
-85 test files | 1644 tests (1644 verdes en la ultima corrida reportada, 30 oct 2026; sin cambios de codigo desde entonces)
+114 test files | 3031 tests (3031 verdes en la ultima corrida de T-23, 13 nov 2026)
 ```
 
 `npm test` — correr tests
@@ -346,15 +414,17 @@ La asistente solo ve clientes, cobros y pagos (incluye detalle y recibo). Las ac
 ## Build
 
 ```
-TypeScript — 0 errores (verificado)
+TypeScript — 0 errores (verificado en T-23)
 Lint — 18 errores/18 warnings preexistentes (sin errores nuevos)
-Build — PASS (next build local, 30 oct 2026)
+Build — PASS (next build local, T-23; 13 nov 2026)
+Tests — 3031/3031 en 114 archivos (T-23; 13 nov 2026)
+Portal de propuestas — T-01..T-23 PASS tester+reviewer; codigo desplegado; esquema pendiente de `db push`; `PROPUESTAS_ENVIO_HABILITADO=false`
 PayPal — produccion Live desde T-38 (deploy `f1185f76` en `de64b50`, health OK); staging validado en T-37 (`139b8cb` / deploy `4c765526`)
 Hardening PayPal/MP — H-5..H-9 PASS tester+reviewer; T-09 (smoke de staging) pendiente como deuda documental
 Recibo MP — desplegado a produccion con T-38; pendiente de validacion con un cobro real
 ```
 
-> T-38 cerro el rollout como PASS con observacion: no hubo pago real de smoke, por lo que la primera validacion end-to-end live sera el primer cobro real. Tests vigentes 1644/85, sin cambios de codigo en este cierre. Rollback: quitar envs PayPal + deshabilitar webhook + redeploy, sin borrar datos. `de64b50` difiere de `139b8cb` y no se reporta revalidacion sobre ese SHA; T-09 (smoke manual de staging) sigue pendiente.
+> T-38 cerro el rollout como PASS con observacion: no hubo pago real de smoke, por lo que la primera validacion end-to-end live sera el primer cobro real. Rollback: quitar envs PayPal + deshabilitar webhook + redeploy, sin borrar datos. `de64b50` difiere de `139b8cb` y no se reporta revalidacion sobre ese SHA; T-09 (smoke manual de staging) sigue pendiente. El portal de propuestas no cambia ese estado: su codigo esta desplegado pero el esquema sigue pendiente y el envio deshabilitado hasta T-26/T-27 y el checklist legal.
 
 ---
 

@@ -4,7 +4,7 @@
 **Plan:** ./plan.md
 **Regla:** una tarea = un cambio revisable (~1 commit). Cada tarea indica AC, archivos probables, dependencias, tests y cierre tester+reviewer.
 **Gate:** ninguna tarea de envío real se habilita sin `PROPUESTAS_ENVIO_HABILITADO=true`, checklist legal y gate de staging (T-26). T-27 (producción) requiere aprobación explícita del dueño.
-**Baseline:** suite 1644/1644 en 85 archivos; TypeScript 0 errores; lint 18/18 preexistente. No introducir errores nuevos.
+**Baseline:** inicial histórico: suite 1644/1644 en 85 archivos; **vigente tras T-23:** suite 3031/3031 en 114 archivos. TypeScript 0 errores; lint 18/18 preexistente. No introducir errores nuevos.
 
 Formato de cierre por tarea:
 
@@ -272,7 +272,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
 
 ## Fase 5: Cierre, gates y documentación
 
-- [ ] **T-24 (RF-65; AC-45) — Runbook, checklist legal y documentación operativa.**
+- [x] **T-24 (RF-65; AC-45) — Runbook, checklist legal y documentación operativa.**
   - Crear `specs/004-propuestas/runbook.md`: envs, orden `db push` → deploy, cron de retención, cupos, rollback, reconciliación de envíos, ARCO y retención de logs.
   - Crear `specs/004-propuestas/legal-checklist.md`: texto legal aprobado, base legal, SPF/DKIM/DMARC, AAIP/transferencia internacional, «publicidad», canal ARCO y firma del dueño. Sin el checklist completo, `PROPUESTAS_ENVIO_HABILITADO=false`.
   - Actualizar `AGENTS.md` y `MEMORY.md` con ruta, auth, modelos, envs, comandos y deuda (LLM, webhooks Resend).
@@ -280,6 +280,7 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-23.
   - Tests: revisión documental; `estadoEnvio` sigue fallando cerrado sin texto/base legal.
   - Cierre: tester (revisión de checklist + `propuestas-config.test.ts`) · reviewer (operación, legal, completitud) · 1 commit.
+  - PASS tester+reviewer: `runbook.md` + `legal-checklist.md` creados y `AGENTS.md`/`MEMORY.md` actualizados; `propuestas-config.test.ts` 34/34, tsc 0 errores; reviewer PASS. AC-45 sigue delegado a T-25/T-26/T-27 (suite completa, staging y producción). Deuda menor: el runbook afirma DNS/Resend verificado mientras el checklist lo deja en `[VERIFICAR]`; el check de origen se omite con `NEXT_PUBLIC_URL` nula en `reintentar`/`reconciliar`/`resultado`; comandos bash documentados para PowerShell; verificar texto/base legal cargados antes del smoke en seco; alinear `pg_try_advisory_lock` vs `pg_try_advisory_xact_lock` en T-25; crear la Function `propuestas-retencion` (aún no existe); validar la referencia a la DNPDP 4/2009 con el abogado; precisar T-24/AC-45 vs RF-65 (entregable documental vs regresión).
 
 - [ ] **T-25 (AC-44, AC-45; RNF-6) — Verificación final local.**
   - Ejecutar suite completa, typecheck, lint y build; corregir solo lo introducido por la feature.

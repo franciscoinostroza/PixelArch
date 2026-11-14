@@ -2,13 +2,13 @@
 
 > Memoria operativa del agente (workflow, comandos, gotchas): ver **MEMORY.md**.
 
-**Ultima actualizacion:** 13 de noviembre de 2026
+**Ultima actualizacion:** 14 de noviembre de 2026
 **Build:** TypeScript 0 errores | **Lint:** 18 errores/18 warnings preexistentes | **Tests:** 3031 en 114 archivos (ultima corrida T-25) | **Build local:** PASS en T-25
-**Portal de propuestas (spec 004):** cerrado hasta **T-24** (T-01..T-24 PASS tester+reviewer); **T-25 en verificación** (PASS tester: suite 3031/114, tsc 0, lint 18/18, build PASS; pendiente cierre reviewer); codigo desplegado; **esquema pendiente de `db push`** y `PROPUESTAS_ENVIO_HABILITADO=false` (falla cerrado con `ESQUEMA_NO_APLICADO`); gates T-26/T-27 pendientes
+**Portal de propuestas (spec 004):** **T-01..T-25 desplegado en produccion** (deploy `02a5ca66`, commit `700eaf1` + docs posteriores; `/api/health` OK y `/api/propuestas/**` 401 sin sesion). **Esquema aplicado en produccion** (6 tablas + 8 enums verificados con una Function temporal ya eliminada) y 52 variables en PixelArch con `PROPUESTAS_*` (`PROPUESTAS_SECRETO` generado). `PROPUESTAS_ENVIO_HABILITADO=false` y sin `PROPUESTAS_TEXTO_LEGAL`/`PROPUESTAS_BASE_LEGAL`: aprobar/enviar sigue bloqueado. El dueno autorizo aplicar directo en produccion; **T-26/T-27 no se ejecutaron** y falta validacion real + checklist legal/SPF/DKIM/DMARC antes de habilitar el envio.
 **PayPal:** **produccion Live** (T-38 PASS con observacion, deploy `f1185f76`, commit `de64b50`, health OK); sin pago real de smoke por decision del dueno
 **Hardening PayPal/MP (spec 003):** H-5/H-6/H-7/H-8/H-9 implementados y **PASS tester+reviewer**; **sin cambios de schema/envs**; T-09 (smoke manual de staging) pendiente como deuda documental
 **Recibo MP:** desplegado a produccion con T-38 (T-01..T-07); **sin cambios de schema**; falta validacion con un cobro MP real
-**Deploy Railway:** Online (Mercado Pago + PayPal Live) | **BD:** PostgreSQL sincronizada para CRM/PayPal en staging y produccion (`db push` + backfill, `UPDATE 0`); **esquema de propuestas pendiente de `db push`** | **Clerk:** Auth admin/asistente (gate con modal) | **Sanity:** Studio + Schemas + 15 articulos | **Pagos:** CRM por proyectos/hitos + soporte mensual + Mercado Pago (links) + PayPal (USD) + recibo interno PayPal/MP
+**Deploy Railway:** Online (Mercado Pago + PayPal Live + portal de propuestas) | **BD:** PostgreSQL sincronizada para CRM/PayPal (`db push` + backfill, `UPDATE 0`) y **esquema de propuestas aplicado en produccion** (6 tablas + 8 enums) | **Clerk:** Auth admin/asistente (gate con modal) | **Sanity:** Studio + Schemas + 15 articulos | **Pagos:** CRM por proyectos/hitos + soporte mensual + Mercado Pago (links) + PayPal (USD) + recibo interno PayPal/MP
 **URL:** https://pixelarch.dev
 
 ---
@@ -159,7 +159,7 @@ Portal interno de prospeccion B2B **separado del CRM**: no lee ni escribe `Clien
 
 **Envs:** todas server-only, sin `NEXT_PUBLIC_*` nuevas (`NEXT_PUBLIC_URL` ya existente se usa para baja y check de origen). `PROPUESTAS_ENVIO_HABILITADO=false` por defecto; `estadoEnvio()` exige ademas `RESEND_API_KEY`, from/reply-to, `PROPUESTAS_SECRETO` (min. 32), URL HTTPS, `PROPUESTAS_TEXTO_LEGAL` y `PROPUESTAS_BASE_LEGAL`. Aprobar no exige el gate y nunca envia; solo el envio lo exige.
 
-**Estado de despliegue:** codigo del portal desplegado, pero el **esquema de propuestas sigue pendiente de `db push`** y el envio esta deshabilitado. El portal **falla cerrado** (`ESQUEMA_NO_APLICADO`): sin tablas no muestra datos ni formularios. Habilitar solo tras T-26 (staging), T-27 (produccion, con dueno) y el checklist legal firmado.
+**Estado de despliegue:** **T-01..T-25 desplegado en produccion** con el deploy `02a5ca66` (commit `700eaf1` + docs posteriores); `/api/health` OK y `/api/propuestas/**` responde `401` sin sesion. El dueno autorizo aplicar el portal directamente en produccion: **T-26 (staging) y T-27 (gate formal) no se ejecutaron**. **Esquema aplicado en produccion** (6 tablas + 8 enums, verificados con una Function temporal ya eliminada) y 52 variables en el servicio PixelArch, incluidas las `PROPUESTAS_*` (`PROPUESTAS_SECRETO` generado). `PROPUESTAS_ENVIO_HABILITADO=false` y `PROPUESTAS_TEXTO_LEGAL`/`PROPUESTAS_BASE_LEGAL` no estan cargados: **aprobar y enviar siguen bloqueados** (falla cerrado). Antes de habilitar el envio falta validar en real Places/fetch/auditoria/borrador/aprobacion/envio/baja/cupos y cerrar checklist legal/SPF/DKIM/DMARC.
 
 **Deuda v1:** LLM no implementado (`PROPUESTAS_LLM_HABILITADO` reservado; `modo="LLM"` falla cerrado), sin webhooks de Resend, cupo `REDACTOR` definido pero no reservado, listas sin paginacion completa (bandeja/supresiones 200, envios 100) y reconciliacion de `ENVIANDO` solo por API.
 
@@ -336,8 +336,8 @@ Portal interno de prospeccion B2B **separado del CRM**: no lee ni escribe `Clien
 - **Rollback definido (no ejecutado):** quitar las envs PayPal, deshabilitar el webhook Live y redeployar; sin borrar datos ni revertir el esquema (aditivo).
 - **Deuda documental:** T-09 (smoke manual de staging) sigue pendiente; `de64b50` difiere de `139b8cb` y no se reporta revalidacion de suite/typecheck/lint/build sobre ese SHA. Tests al cerrar T-38: **1644/1644 en 85 archivos** (ultima corrida reportada, 30 oct 2026), sin cambios de codigo en ese cierre.
 
-### Portal de propuestas (spec 004; T-01..T-24, Nov 2026)
-- **T-01..T-24 PASS tester+reviewer**, un commit `feat:` por tarea (T-24 `docs:`). Portal admin-only separado del CRM, con shell/sidebar propios.
+### Portal de propuestas (spec 004; T-01..T-25, Nov 2026)
+- **T-01..T-24 PASS tester+reviewer** (T-25 PASS tester, pendiente cierre reviewer), un commit `feat:` por tarea (T-24 `docs:`). Portal admin-only separado del CRM, con shell/sidebar propios.
 - **Fundaciones:** middleware `/propuesta` (singular) sigue publico y `/propuestas` pasa a admin; APIs `401/403`; headers `noindex`/`no-store`; baja publica con `no-referrer`. Guard Clerk-only sin Prisma; esquema aditivo de 6 modelos/8 enums sin FKs al CRM; config server-only fail-closed.
 - **Prospeccion:** Places (solo `place_id`), dedupe, fetch seguro + robots, extraccion de email publicado, auditoria interna y score determinista; alta manual/correccion con fuente y nota, sin importacion masiva ni scraping.
 - **Borradores y envio:** plantillas versionadas, borrador determinista con grounding, aprobacion con snapshot (footer legal/token/hash), envio Resend con `Idempotency-Key` y `List-Unsubscribe` one-click; reintento manual; resultado/rebote/queja con supresion.
@@ -345,7 +345,8 @@ Portal interno de prospeccion B2B **separado del CRM**: no lee ni escribe `Clien
 - **Cupos y privacidad:** `ConsumoProveedor` con locks transaccionales, alertas 80%/bloqueo 100%, redaccion de PII/tokens en logs/Sentry y guard de red que bloquea Places/Resend/LLM en tests.
 - **Docs operativas (T-24, commit `2b8132c`):** `runbook.md` y `legal-checklist.md`; `AGENTS.md`/`MEMORY.md` actualizados; checklist legal pendiente de firma del dueno.
 - **Verificacion T-25 (PASS tester, pendiente cierre reviewer):** suite **3031/3031 en 114 archivos**, `tsc --noEmit` 0 errores, lint 18/18 preexistente y build PASS.
-- **Estado:** T-24 cerrada; **T-25 en verificacion** (PASS tester, pendiente cierre reviewer); codigo desplegado; **esquema pendiente de `db push`** y `PROPUESTAS_ENVIO_HABILITADO=false`. T-26/T-27 gates pendientes.
+- **Despliegue a produccion (14 nov 2026):** deploy `02a5ca66` (commit `700eaf1` + docs posteriores), `/api/health` OK y `/api/propuestas/**` responde `401` sin sesion. Esquema aplicado en produccion (6 tablas + 8 enums, verificados con una Function temporal ya eliminada) y 52 variables en PixelArch (`PROPUESTAS_SECRETO` generado). `PROPUESTAS_ENVIO_HABILITADO=false`; `PROPUESTAS_TEXTO_LEGAL`/`PROPUESTAS_BASE_LEGAL` no cargados, asi que aprobar/enviar sigue bloqueado.
+- **Estado:** T-24 cerrada; **T-25 PASS tester (pendiente cierre reviewer)** y **desplegado en produccion**; esquema aplicado y envio deshabilitado por configuracion/legal. **T-26/T-27 no ejecutados** (el dueno autorizo produccion directa): falta validacion real y checklist legal/SPF/DKIM/DMARC.
 
 ### Monitoreo propio (`/estado`)
 - Tabla `UptimeCheck` + **Railway Function `uptime-cron`** cada 10 min (dispara `/api/cron/uptime` con el secret; unica fuente, sin GitHub Actions)
@@ -386,9 +387,10 @@ Portal interno de prospeccion B2B **separado del CRM**: no lee ni escribe `Clien
 ## Pendiente
 
 - [x] **T-24 (spec 004, cerrada):** runbook y checklist legal redactados; `AGENTS.md`/`MEMORY.md` actualizados; commit `2b8132c`; PASS tester+reviewer.
-- [ ] **T-25 (spec 004, PASS tester, pendiente cierre reviewer):** verificacion final local con evidencia: suite **3031/3031 en 114 archivos**, `tsc --noEmit` 0 errores, lint 18/18 preexistente y `next build` PASS; corregir solo lo introducido por la feature.
-- [ ] **T-26 [GATE] (spec 004):** staging con Postgres separado; smoke de Places/fetch/auditoria/score/borrador/aprobacion, envio a direccion propia, baja one-click, cupo 21 y retencion.
-- [ ] **T-27 [GATE] (spec 004):** produccion con autorizacion del dueno, checklist legal firmado, SPF/DKIM/DMARC, `pg_dump` + `db push`, smoke en seco y primer envio controlado; recien entonces habilitar `PROPUESTAS_ENVIO_HABILITADO=true`.
+- [ ] **T-25 (spec 004, PASS tester, pendiente cierre reviewer):** verificacion final local con evidencia: suite **3031/3031 en 114 archivos**, `tsc --noEmit` 0 errores, lint 18/18 preexistente y `next build` PASS; corregir solo lo introducido por la feature. El codigo ya esta desplegado en produccion (deploy `02a5ca66`, commit `700eaf1` + docs posteriores).
+- [ ] **T-26 [GATE] (spec 004, no ejecutado):** staging con Postgres separado; smoke de Places/fetch/auditoria/score/borrador/aprobacion, envio a direccion propia, baja one-click, cupo 21 y retencion. **No se ejecuto:** el dueno autorizo aplicar el portal directamente en produccion.
+- [ ] **T-27 [GATE] (spec 004, no ejecutado):** produccion con autorizacion del dueno, checklist legal firmado, SPF/DKIM/DMARC, `pg_dump` + `db push`, smoke en seco y primer envio controlado; recien entonces habilitar `PROPUESTAS_ENVIO_HABILITADO=true`. **El gate formal no se ejecuto:** el despliegue (`02a5ca66`) y el esquema aplicado se hicieron con autorizacion del dueno, sin checklist firmado ni SPF/DKIM/DMARC.
+- [ ] **Validacion real del portal en produccion:** smoke de Places/fetch/auditoria/score/borrador/aprobacion/envio/baja one-click/cupos/retencion; cargar `PROPUESTAS_TEXTO_LEGAL`/`PROPUESTAS_BASE_LEGAL`, firmar el checklist legal y verificar SPF/DKIM/DMARC antes de habilitar `PROPUESTAS_ENVIO_HABILITADO=true`. No marcar T-26/T-27 como PASS.
 - [ ] Deuda portal v1: LLM no implementado (`modo="LLM"` falla cerrado), sin webhooks de Resend (resultados manuales), cupo `REDACTOR` no reservado, listas sin paginacion completa y reconciliacion de `ENVIANDO` sin boton en UI.
 - [ ] Pasos manuales: desactivar registro publico en Clerk + invitar a la asistente · borrar el webhook de Polar en su panel
 - [ ] **Primer cobro real PayPal (post-T-38):** T-38 no ejecuto pago real de smoke por decision del dueno; monitorear con prioridad el primer pago Live (firma del webhook `200`, un solo `Pago`, hito `PAGADO`, recibo, sin duplicado). Rollback definido: quitar envs PayPal + deshabilitar webhook Live + redeploy, sin borrar datos.
@@ -419,13 +421,13 @@ TypeScript — 0 errores (verificado en T-25)
 Lint — 18 errores/18 warnings preexistentes (sin errores nuevos)
 Build — PASS (next build local, T-25; 13 nov 2026)
 Tests — 3031/3031 en 114 archivos (T-25; 13 nov 2026)
-Portal de propuestas — T-01..T-24 PASS tester+reviewer; T-25 PASS tester (pendiente cierre reviewer); codigo desplegado; esquema pendiente de `db push`; `PROPUESTAS_ENVIO_HABILITADO=false`; T-26/T-27 gates pendientes
+Portal de propuestas — T-01..T-25 desplegado en produccion (deploy `02a5ca66`, commit `700eaf1` + docs posteriores); T-25 PASS tester (pendiente cierre reviewer); esquema aplicado (6 tablas + 8 enums) y 52 variables; `PROPUESTAS_ENVIO_HABILITADO=false` y textos legales sin cargar (aprobar/enviar bloqueado); T-26/T-27 no ejecutados
 PayPal — produccion Live desde T-38 (deploy `f1185f76` en `de64b50`, health OK); staging validado en T-37 (`139b8cb` / deploy `4c765526`)
 Hardening PayPal/MP — H-5..H-9 PASS tester+reviewer; T-09 (smoke de staging) pendiente como deuda documental
 Recibo MP — desplegado a produccion con T-38; pendiente de validacion con un cobro real
 ```
 
-> T-38 cerro el rollout como PASS con observacion: no hubo pago real de smoke, por lo que la primera validacion end-to-end live sera el primer cobro real. Rollback: quitar envs PayPal + deshabilitar webhook + redeploy, sin borrar datos. `de64b50` difiere de `139b8cb` y no se reporta revalidacion sobre ese SHA; T-09 (smoke manual de staging) sigue pendiente. El portal de propuestas no cambia ese estado: su codigo esta desplegado pero el esquema sigue pendiente y el envio deshabilitado hasta T-26/T-27 y el checklist legal.
+> T-38 cerro el rollout como PASS con observacion: no hubo pago real de smoke, por lo que la primera validacion end-to-end live sera el primer cobro real. Rollback: quitar envs PayPal + deshabilitar webhook + redeploy, sin borrar datos. `de64b50` difiere de `139b8cb` y no se reporta revalidacion sobre ese SHA; T-09 (smoke manual de staging) sigue pendiente. El portal de propuestas ya tiene el esquema aplicado y 52 variables en produccion (deploy `02a5ca66`), pero el envio sigue deshabilitado y aprobar/enviar esta bloqueado por los textos legales faltantes hasta la validacion real y el checklist legal/SPF/DKIM/DMARC.
 
 ---
 

@@ -1,11 +1,43 @@
 # Runbook 004 — Portal de propuestas
 
-**Estado:** borrador operativo de T-24. No habilitar envíos reales hasta contar con T-26 PASS, `legal-checklist.md` firmado y autorización explícita del dueño (T-27).
-**Última actualización:** 2026-11-13
+**Estado (2026-11-14):** esquema aditivo aplicado en producción (6 tablas + 8 enums verificados) mediante un job temporal de Railway/Prisma ya eliminado; código T-01..T-25 desplegado (deploy `02a5ca66`, commit `700eaf1` + docs posteriores); `/api/health` OK; portal admin-only. `PROPUESTAS_ENVIO_HABILITADO=false` y `PROPUESTAS_TEXTO_LEGAL`/`PROPUESTAS_BASE_LEGAL` no cargados: aprobar/enviar bloqueado. **T-26 (staging) y T-27 (gate formal) no se ejecutaron como gates** (ver §0). No habilitar el envío sin checklist legal firmado, SPF/DKIM/DMARC y pruebas controladas.
+**Última actualización:** 2026-11-14
 **Alcance:** operación del portal interno `/propuestas` (admin-only), prospección B2B, envío con Resend, baja pública, retención y ARCO.
 **Documentos relacionados:** `spec.md` §11.2/§14/§20.1, `plan.md` §7, `tasks.md` T-24, `legal-checklist.md`.
 
-> **Regla de oro:** `PROPUESTAS_ENVIO_HABILITADO=false` por defecto. Sin checklist legal firmado, sin SPF/DKIM/DMARC verificados y sin T-26 PASS no se habilita el envío. El portal puede buscar, analizar, puntuar y redactar en seco; el envío falla cerrado. La aprobación exige secreto, URL pública, from/reply-to, texto legal y base legal; **no** exige `RESEND_API_KEY` ni el gate, y no envía.
+> **Regla de oro:** `PROPUESTAS_ENVIO_HABILITADO=false` por defecto. Sin checklist legal firmado, sin SPF/DKIM/DMARC verificados y sin la validación controlada pendiente (T-26 no se ejecutó como gate) no se habilita el envío. El portal puede buscar, analizar, puntuar y redactar en seco; el envío falla cerrado. La aprobación exige secreto, URL pública, from/reply-to, texto legal y base legal; **no** exige `RESEND_API_KEY` ni el gate, y no envía. Hoy `PROPUESTAS_TEXTO_LEGAL` y `PROPUESTAS_BASE_LEGAL` no están cargados, por lo que aprobar también falla cerrado.
+
+---
+
+## 0. Estado real del despliegue (2026-11-14)
+
+> **T-26 (staging) y T-27 (gate formal) no se ejecutaron como gates.** El dueño autorizó aplicar el portal directamente en producción. El esquema y el código ya están aplicados; la validación funcional y el envío real siguen pendientes. **No afirmar T-26 PASS ni T-27 PASS.**
+
+| Ítem | Estado real |
+|------|-------------|
+| Esquema aditivo en producción | **Aplicado** mediante un job temporal de Railway/Prisma: 6 tablas + 8 enums verificados. El job y los servicios temporales ya se eliminaron. |
+| Código T-01..T-25 | **Desplegado**: deploy `02a5ca66`, commit `700eaf1` + docs posteriores. |
+| Health | **OK** (`/api/health`). |
+| Variables en PixelArch | **52 variables**, incluidas las `PROPUESTAS_*`. `PROPUESTAS_SECRETO` generado. |
+| `PROPUESTAS_ENVIO_HABILITADO` | **`false`**. |
+| `PROPUESTAS_TEXTO_LEGAL` / `PROPUESTAS_BASE_LEGAL` | **No cargados**: aprobar y enviar fallan cerrado. |
+| Acceso | **Solo admin**; las APIs `/api/propuestas/**` responden `401` sin sesión. |
+| T-26 (staging) | **No ejecutado como gate.** |
+| T-27 (gate formal) | **No ejecutado como gate.** La aplicación directa en producción fue autorizada por el dueño. |
+
+### 0.1 Validación pendiente
+
+La validación real queda pendiente y **no debe registrarse como PASS** hasta completarla:
+
+- Places: corrida acotada, field mask mínimo y solo `place_id` persistido.
+- Fetch seguro + robots + email publicado con fuente/fecha.
+- Auditoría interna y score determinista.
+- Borrador con grounding.
+- Aprobación con snapshot/hash; hoy bloqueada por texto/base legal ausentes.
+- Envío real, headers `List-Unsubscribe`, baja one-click y supresión.
+- Cupos (`ConsumoProveedor`), presupuesto y retención/locks.
+
+**No habilitar `PROPUESTAS_ENVIO_HABILITADO=true`** hasta completar: (1) checklist legal firmado; (2) SPF/DKIM/DMARC y dominio de Resend verificados; (3) `PROPUESTAS_TEXTO_LEGAL` y `PROPUESTAS_BASE_LEGAL` aprobados y cargados; (4) pruebas controladas a una dirección propia con evidencia. La autorización para aplicar el portal **no** es autorización para enviar.
 
 ---
 
@@ -47,7 +79,7 @@ Todas las variables nuevas del portal son **server-only**. No se agrega ninguna 
 
 | Variable | Obligatoria para | Default | Uso / nota |
 |----------|------------------|---------|------------|
-| `PROPUESTAS_ENVIO_HABILITADO` | Enviar | `false` | Gate explícito de envío; aprobar no lo exige ni envía. Mantener `false` hasta checklist legal firmado + T-26 PASS + autorización del dueño (T-27). |
+| `PROPUESTAS_ENVIO_HABILITADO` | Enviar | `false` | Gate explícito de envío; aprobar no lo exige ni envía. Mantener `false` hasta checklist legal firmado, SPF/DKIM/DMARC y validación controlada. **T-26/T-27 no se ejecutaron como gates** (ver §0). |
 | `PROPUESTAS_PLACES_API_KEY` | Buscar | — | Clave **separada** de reseñas. No reutilizar `GOOGLE_PLACES_API_KEY`. Server-only. |
 | `PROPUESTAS_FROM_EMAIL` | Aprobar/enviar | — | `propuestas@pixelarch.dev` (valor acordado). |
 | `PROPUESTAS_FROM_NOMBRE` | No | `PixelArch` | Nombre visible del remitente. |
@@ -68,6 +100,8 @@ Todas las variables nuevas del portal son **server-only**. No se agrega ninguna 
 | `PROPUESTAS_PRESUPUESTO_MENSUAL_CENTAVOS` | No | `0` | `0` = sin tope monetario; `>0` = tope mensual global. |
 | `PROPUESTAS_RETENCION_MESES` | No | `12` | Retención de prospectos. Un valor inválido bloquea la purga (nunca borra todo). |
 | `PROPUESTAS_LLM_HABILITADO` | No | `false` | Reservado; v1 no usa LLM. |
+
+> **Estado 2026-11-14:** 52 variables cargadas en el servicio PixelArch, incluidas las `PROPUESTAS_*`. `PROPUESTAS_SECRETO` generado; `PROPUESTAS_ENVIO_HABILITADO=false`; `PROPUESTAS_TEXTO_LEGAL` y `PROPUESTAS_BASE_LEGAL` **no cargados**, por lo que aprobar y enviar siguen bloqueados.
 
 ### 2.2 Variables existentes requeridas
 
@@ -103,18 +137,20 @@ No usar `onboarding@resend.dev`, un remitente inventado ni un reply-to sin buzó
 
 ## 3. Orden de despliegue (producción)
 
-> Este orden es el de T-27. No ejecutar T-27 sin T-26 PASS, checklist legal firmado y autorización explícita del dueño.
+> **Este orden no se ejecutó como gate T-27.** El dueño autorizó aplicar el portal directamente en producción el 2026-11-14; el esquema y el deploy ya están aplicados (ver §0). Lo que sigue es el procedimiento de referencia para completar el rollout y habilitar el envío. Siguen siendo obligatorios el checklist legal firmado, SPF/DKIM/DMARC y las pruebas controladas.
 
 ### 3.1 Prerrequisitos
 
+> **Estado 2026-11-14:** esta lista no está completa. T-26 y T-27 no se ejecutaron como gates; los ítems de validación, textos legales y DNS siguen pendientes. No marcar ítems por el hecho de que el deploy ya esté en producción.
+
 - [ ] T-25 (verificación local) PASS.
-- [ ] T-26 (staging) PASS con evidencia.
+- [ ] T-26 (staging) ejecutado con evidencia y PASS. **No ejecutado como gate (2026-11-14); no existe PASS de T-26.**
 - [ ] T-19 (baja pública/one-click) verificado; no habilitar el envío antes de esta verificación.
-- [ ] `legal-checklist.md` preparado y completo (sin secciones pendientes de redacción); firma de dueño y abogado **una vez que T-26 esté PASS y antes de iniciar T-27**. Sin esa firma no se ejecuta T-27 ni se habilita el envío.
-- [ ] Autorización explícita del dueño para ejecutar T-27, registrada con fecha.
-- [ ] `PROPUESTAS_TEXTO_LEGAL` y `PROPUESTAS_BASE_LEGAL` aprobados y **cargados en Railway**; el contenido debe coincidir con el anexo firmado (hash/fecha).
-- [ ] Verificar SPF/DKIM/DMARC y dominio en Resend; registrar la evidencia en `legal-checklist.md` §5. Sin esto no se habilita el envío.
-- [ ] `PROPUESTAS_ENVIO_HABILITADO=false` antes de empezar.
+- [ ] `legal-checklist.md` preparado y completo (sin secciones pendientes de redacción); firma de dueño y abogado **antes de habilitar el envío**. Sin esa firma no se habilita el envío. **Pendiente.**
+- [ ] Autorización explícita del dueño para ejecutar T-27, registrada con fecha. **No aplica como gate:** T-27 no se ejecutó; el dueño autorizó aplicar el portal directamente en producción el 2026-11-14, lo que no autoriza el envío.
+- [ ] `PROPUESTAS_TEXTO_LEGAL` y `PROPUESTAS_BASE_LEGAL` aprobados y **cargados en Railway**; el contenido debe coincidir con el anexo firmado (hash/fecha). **Hoy no cargados.**
+- [ ] Verificar SPF/DKIM/DMARC y dominio en Resend; registrar la evidencia en `legal-checklist.md` §5. Sin esto no se habilita el envío. **Pendiente.**
+- [ ] `PROPUESTAS_ENVIO_HABILITADO=false` antes de empezar. **Cumplido (2026-11-14).**
 - [ ] Ventana de mantenimiento y responsable de rollback definidos.
 
 ### 3.2 Secuencia
@@ -127,6 +163,7 @@ No usar `onboarding@resend.dev`, un remitente inventado ni un reply-to sin buzó
    - Si el backup falla, **detenerse**.
 
 2. **Aplicar esquema (`db push`).**
+   - **Estado 2026-11-14:** aplicado en producción mediante un job temporal de Railway/Prisma, ya eliminado; verificación: 6 tablas + 8 enums, sin FKs al CRM. El comando local queda como referencia para un entorno nuevo.
    - `node node_modules\prisma\build\index.js db push`
    - Luego `node node_modules\prisma\build\index.js generate` si el entorno lo requiere.
    - El cambio es aditivo: 6 tablas y 8 enums nuevos, sin backfill y sin FKs al CRM.
@@ -134,14 +171,17 @@ No usar `onboarding@resend.dev`, un remitente inventado ni un reply-to sin buzó
    - Verificar que las tablas existen y que no hay FKs a `Cliente`/`Pago`.
 
 3. **Deploy del código.**
-   - Deploy normal de Railway desde GitHub. Mantener `PROPUESTAS_ENVIO_HABILITADO=false`.
+   - **Estado 2026-11-14:** T-01..T-25 desplegado; deploy `02a5ca66`, commit `700eaf1` + docs posteriores. Mantener `PROPUESTAS_ENVIO_HABILITADO=false`.
+   - Deploy normal de Railway desde GitHub.
    - `NEXT_PUBLIC_URL` debe apuntar al dominio de producción; si es inválida, las mutaciones se rechazan por origen y los enlaces de baja no se generan.
 
 4. **Health.**
+   - **Estado 2026-11-14:** OK.
    - `curl -sS https://pixelarch.dev/api/health`
    - Confirmar estado del sitio y de la base. Si falla, no continuar.
 
 5. **Portal admin-only.**
+   - **Estado 2026-11-14:** accesible solo admin; las APIs `/api/propuestas/**` responden `401` sin sesión.
    - Entrar a `/propuestas` con un admin: shell propio, sin navegación de CRM.
    - Sin sesión: gate/redirect, sin datos. Asistente: redirect/denegación.
    - `/propuesta` (singular) sigue público y sin cambios.
@@ -150,28 +190,32 @@ No usar `onboarding@resend.dev`, un remitente inventado ni un reply-to sin buzó
    - Si aparece `ESQUEMA_NO_APLICADO`, el `db push` no se aplicó: detenerse y corregir.
 
 6. **Smoke en seco (sin envío).**
+   - **Estado 2026-11-14:** pendiente; no ejecutado.
    - Crear una campaña acotada (`limiteCorrida` 1-2) y ejecutar Places.
    - Verificar field mask mínimo; no se persiste nombre/address/rating de Places, solo `place_id` y datos de la web/carga manual.
    - Analizar un sitio controlado: fetch seguro, robots, timeout, email publicado con fuente/fecha, auditoría, score y borrador.
-   - Si el texto legal de producción **no** está cargado, **detenerse**: el checklist firmado exige que esté cargado. La aprobación fallará cerrada (`409` por configuración); el fail-closed se valida en staging (T-26), no en producción.
+   - Si el texto legal de producción **no** está cargado, **detenerse**: el checklist firmado exige que esté cargado. La aprobación fallará cerrada (`409` por configuración); el fail-closed debe validarse en la validación controlada, no en producción.
    - Aprobar un borrador con `PROPUESTAS_ENVIO_HABILITADO=false`; el botón de enviar debe estar deshabilitado y Resend no debe recibir llamadas.
    - Confirmar que no hay filas `RESEND` en `ConsumoProveedor` y que no se envió ningún email.
 
 7. **Checklist legal firmado y textos aprobados.**
-   - Verificar que el `legal-checklist.md` firmado por dueño y abogado es la versión vigente (la firma se obtuvo antes de iniciar T-27; el smoke en seco no la reemplaza; no se firma en este paso).
+   - **Estado 2026-11-14:** pendiente; `PROPUESTAS_TEXTO_LEGAL` y `PROPUESTAS_BASE_LEGAL` no cargados.
+   - Verificar que el `legal-checklist.md` firmado por dueño y abogado es la versión vigente (la firma debe estar vigente antes de habilitar el envío; el smoke en seco no la reemplaza; no se firma en este paso).
    - Verificar que `PROPUESTAS_TEXTO_LEGAL` y `PROPUESTAS_BASE_LEGAL` cargados coinciden exactamente con el anexo firmado (hash/fecha), sin placeholders.
    - Verificar que `estadoEnvio()` solo reporta el gate pendiente (si el resto ya está configurado) y que el texto renderizado no tiene placeholders.
    - No habilitar el envío con un texto de prueba en producción.
 
 8. **Habilitar envío.**
+   - **Estado 2026-11-14:** no ejecutado; `PROPUESTAS_ENVIO_HABILITADO=false`.
    - Cambiar `PROPUESTAS_ENVIO_HABILITADO=true`.
    - Redeploy/restart según corresponda para que el runtime lea la env.
    - Verificar en el portal que un envío aprobado y elegible habilita la confirmación de envío.
    - Si algo falla, volver a `false` de inmediato.
 
 9. **Primer envío a dirección propia.**
+   - **Estado 2026-11-14:** no ejecutado; sin envíos reales.
    - Usar una dirección propia/controlada, no un prospecto real.
-   - Alta manual con fuente y nota (por ejemplo, `smoke T-27`); no usar datos de clientes del CRM.
+   - Alta manual con fuente y nota (por ejemplo, `smoke de validación controlada`); no usar datos de clientes del CRM.
    - Aprobar y enviar con la segunda confirmación.
    - Verificar: un solo email, `ENVIADO`, message ID de Resend, headers `List-Unsubscribe`/`List-Unsubscribe-Post`, enlace visible, baja one-click, supresión global, pendientes cancelados, prospecto `SUPRIMIDO` y ausencia de duplicados.
    - Si el email cae en spam o falla autenticación, detener el rollout y revisar DNS/Resend antes de seguir.
@@ -195,7 +239,9 @@ Abortar y volver a `PROPUESTAS_ENVIO_HABILITADO=false` si:
 
 ---
 
-## 4. Staging y gate T-26
+## 4. Staging y gate T-26 (no ejecutado como gate)
+
+> **Estado 2026-11-14:** T-26 no se ejecutó como gate. Esta sección queda como checklist de la validación controlada pendiente (ver §0.1). No hay evidencia de T-26 PASS y no debe registrarse como PASS sin ejecutarla.
 
 ### 4.1 Preparación
 
@@ -556,29 +602,29 @@ Antes del primer envío real, `legal-checklist.md` §6 debe estar completo. El r
 
 ---
 
-## 13. Registro de cutover (T-27)
+## 13. Registro de cutover y estado de producción (2026-11-14)
 
-Completar al ejecutar producción. No adjuntar secretos.
+Este registro refleja la **aplicación directa autorizada por el dueño**, no un gate T-27. T-26 y T-27 no se ejecutaron como gates. No adjuntar secretos.
 
 | Campo | Valor |
 |-------|-------|
-| Fecha/hora (UTC) | `[COMPLETAR]` |
-| Responsable | `[COMPLETAR]` |
-| Commit/deploy | `[COMPLETAR]` |
-| Backup `pg_dump` (archivo/verificación) | `[COMPLETAR]` |
-| `db push` (resultado) | `[COMPLETAR]` |
-| Health | `[COMPLETAR]` |
-| Portal admin-only | `[COMPLETAR]` |
-| Smoke en seco (sin envío) | `[COMPLETAR]` |
-| Checklist legal firmado (fecha) | `[COMPLETAR]` |
-| Autorización del dueño para T-27 (fecha) | `[COMPLETAR]` |
-| `PROPUESTAS_ENVIO_HABILITADO=true` | `[COMPLETAR]` |
-| Primer envío (message ID, hora) | `[COMPLETAR]` |
-| Headers/baja one-click | `[COMPLETAR]` |
-| Supresión verificada | `[COMPLETAR]` |
-| Monitoreo 24-48 h | `[COMPLETAR]` |
-| Rollback probado | `[COMPLETAR]` |
-| Observaciones/deuda | `[COMPLETAR]` |
+| Fecha/hora (UTC) | 2026-11-14 (hora exacta no registrada) |
+| Responsable | Dueño (autorización) y operador del deploy `[NECESITA ACLARACION: nombre]` |
+| Commit/deploy | Commit `700eaf1` + docs posteriores · deploy `02a5ca66` |
+| Backup `pg_dump` (archivo/verificación) | No consta en este registro; el esquema se aplicó con un job temporal de Railway/Prisma (ver §0) |
+| `db push` (resultado) | Aplicado mediante job temporal de Railway/Prisma; 6 tablas + 8 enums verificados; job y servicios temporales eliminados |
+| Health | OK (`/api/health`) |
+| Portal admin-only | Sí; APIs `/api/propuestas/**` responden `401` sin sesión |
+| Smoke en seco (sin envío) | **Pendiente** (no ejecutado) |
+| Checklist legal firmado (fecha) | **Pendiente** |
+| Autorización del dueño para T-27 (fecha) | **No aplica como gate:** T-27 no se ejecutó; el 2026-11-14 el dueño autorizó aplicar el portal directamente en producción |
+| `PROPUESTAS_ENVIO_HABILITADO=true` | **No ejecutado**; sigue `false` |
+| Primer envío (message ID, hora) | **Pendiente** (no ejecutado) |
+| Headers/baja one-click | **Pendiente** de validación real |
+| Supresión verificada | **Pendiente** de validación real |
+| Monitoreo 24-48 h | No aplica aún (sin envíos) |
+| Rollback probado | No registrado en este corte; verificar antes de habilitar el envío |
+| Observaciones/deuda | 52 variables en PixelArch, `PROPUESTAS_SECRETO` generado, `PROPUESTAS_TEXTO_LEGAL`/`PROPUESTAS_BASE_LEGAL` no cargados; T-26/T-27 no ejecutados como gates; validación real pendiente (§0.1). No habilitar envío sin checklist legal, SPF/DKIM/DMARC y pruebas controladas. |
 
 ---
 
@@ -586,7 +632,7 @@ Completar al ejecutar producción. No adjuntar secretos.
 
 | Rol | Responsable | Nota |
 |-----|-------------|------|
-| Dueño / aprobador | `[COMPLETAR]` | Autoriza T-27 y el checklist legal. |
+| Dueño / aprobador | `[COMPLETAR]` | Autoriza el rollout y el checklist legal. El 2026-11-14 autorizó aplicar el portal directamente en producción; T-27 no se ejecutó como gate. |
 | Abogado / revisión legal | `[COMPLETAR]` | Texto, base legal, AAIP, transferencia. |
 | Admin del portal | `[COMPLETAR]` | Opera prospección, aprobaciones, ARCO. |
 | Resend | `[COMPLETAR]` | Dominio, DNS, rebotes/quejas. |

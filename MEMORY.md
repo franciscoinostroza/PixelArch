@@ -4,7 +4,7 @@
 > **MEMORY.md** = como trabajar en el (workflow, comandos, gotchas, lecciones).
 > Actualizar al final de cada sesion con lo aprendido.
 
-**Ultima actualizacion:** 2026-11-13
+**Ultima actualizacion:** 2026-11-14
 
 ---
 
@@ -98,6 +98,7 @@ npm install / npm uninstall                            # npm si funciona
 
 ## Gotchas portal de propuestas (Nov 2026)
 
+- **Produccion (14 nov 2026):** deploy `02a5ca66` (commit `700eaf1` + docs posteriores), health OK y `/api/propuestas/**` `401` sin sesion; esquema aplicado (6 tablas + 8 enums, verificado con una Function temporal ya eliminada) y 52 variables con `PROPUESTAS_*` (`PROPUESTAS_SECRETO` generado). `PROPUESTAS_ENVIO_HABILITADO=false` y `PROPUESTAS_TEXTO_LEGAL`/`PROPUESTAS_BASE_LEGAL` sin cargar: aprobar/enviar sigue bloqueado. T-26/T-27 no ejecutados.
 - **`reservarCupo` dentro de `prisma.$transaction`:** si se le pasa el singleton, `pg_advisory_xact_lock` no protege (la transaccion no es la misma) y dos corridas pueden sobreconsumir. Las rutas de ejecutar/analizar/enviar ya lo envuelven; mantenerlo asi.
 - **Locks de presupuesto global:** `reservarCupo` toma primero `pg_advisory_xact_lock(hashtext('PROPUESTAS_PRESUPUESTO'))` (si el presupuesto efectivo es > 0) y despues el lock diario `(proveedor, fecha)`. El orden es fijo para evitar deadlocks; no invertirlo. `PROPUESTAS_PRESUPUESTO_MENSUAL_CENTAVOS=0` = sin tope.
 - **`PROPUESTAS_SECRETO` no se rota a la ligera:** invalida tokens de baja ya emitidos, hashes de supresion y aprobaciones; v1 no tiene doble secreto ni rehash (la tabla no guarda el email en claro). Planificar ventana y pausar envios (runbook §10.5).
@@ -111,12 +112,13 @@ npm install / npm uninstall                            # npm si funciona
 - **Listas con tope:** bandeja y supresiones leen 200 filas y envios 100, sin paginacion completa; un volumen alto puede ocultar pendientes/historicos v1.
 - **`PROPUESTAS_MAX_ENVIOS_PROSPECTO=2`:** inicial + un follow-up **manual**. No hay scheduler, envio por lote ni retry automatico; el follow-up requiere nuevo borrador/aprobacion.
 
-## Backlog abierto (2026-11-13)
+## Backlog abierto (2026-11-14)
 
 - **T-24 (spec 004, cerrada):** runbook y checklist legal redactados; `AGENTS.md`/`MEMORY.md` actualizados; commit `2b8132c`; PASS tester+reviewer.
-- **T-25 (spec 004, PASS tester, pendiente cierre reviewer):** verificacion final local con evidencia: suite **3031/3031 en 114 archivos**, `tsc --noEmit` 0 errores, lint 18/18 preexistente y `next build` PASS; corregir solo lo introducido por la feature. Baseline vigente: T-25.
-- **T-26 [GATE] (spec 004, pendiente, sin ejecutar):** staging con Postgres separado y `PROPUESTAS_ENVIO_HABILITADO=false` hasta el envio controlado; smoke de Places/fetch/auditoria/score/borrador/aprobacion, baja one-click, cupo 21 y retencion.
-- **T-27 [GATE] (spec 004, pendiente, sin ejecutar):** produccion con autorizacion del dueno y checklist legal firmado + SPF/DKIM/DMARC + `pg_dump`/`db push`; recien entonces habilitar el envio. El esquema de propuestas sigue pendiente de `db push`.
+- **T-25 (spec 004, PASS tester, pendiente cierre reviewer):** verificacion final local con evidencia: suite **3031/3031 en 114 archivos**, `tsc --noEmit` 0 errores, lint 18/18 preexistente y `next build` PASS; corregir solo lo introducido por la feature. Baseline vigente: T-25. El codigo quedo desplegado en produccion (deploy `02a5ca66`, commit `700eaf1` + docs posteriores).
+- **T-26 [GATE] (spec 004, no ejecutado):** staging con Postgres separado y `PROPUESTAS_ENVIO_HABILITADO=false` hasta el envio controlado; smoke de Places/fetch/auditoria/score/borrador/aprobacion, baja one-click, cupo 21 y retencion. **No se ejecuto:** el dueno autorizo aplicar el portal directamente en produccion.
+- **T-27 [GATE] (spec 004, no ejecutado):** produccion con autorizacion del dueno y checklist legal firmado + SPF/DKIM/DMARC + `pg_dump`/`db push`; recien entonces habilitar el envio. **El gate formal no se ejecuto:** el despliegue (`02a5ca66`) y el esquema aplicado se hicieron con autorizacion del dueno, sin checklist firmado ni SPF/DKIM/DMARC.
+- **Validacion real del portal en produccion:** esquema aplicado (6 tablas + 8 enums) y 52 variables (`PROPUESTAS_SECRETO` generado; `PROPUESTAS_ENVIO_HABILITADO=false`); `PROPUESTAS_TEXTO_LEGAL`/`PROPUESTAS_BASE_LEGAL` sin cargar, por lo que aprobar/enviar sigue bloqueado. Falta smoke real de Places/fetch/auditoria/borrador/aprobacion/envio/baja/cupos, checklist legal y SPF/DKIM/DMARC. No marcar T-26/T-27 como PASS.
 - **Deuda portal v1:** LLM no implementado (`modo="LLM"` falla cerrado), sin webhooks de Resend (resultados manuales), cupo `REDACTOR` no reservado, listas sin paginacion completa y reconciliacion de `ENVIANDO` sin boton en UI.
 - **Primer cobro real PayPal (post-T-38):** monitorear con prioridad la firma del webhook (`200`), un solo `Pago`, hito `PAGADO`, recibo y ausencia de duplicados. T-38 no ejecuto pago real de smoke por decision del dueno.
 - **T-09 (spec 003, deuda documental):** smoke manual de staging — link en `REVISION`, webhook PayPal con firma invalida (`401`/`429`), topic ajeno a MP (`200` ignorado) y `git check-ignore` de `.railway/`. No bloquea produccion.
@@ -140,9 +142,17 @@ npm install / npm uninstall                            # npm si funciona
 - **Aprobacion y envio:** snapshot con footer legal/token/hash, aprobacion sin envio, wrapper Resend con `Idempotency-Key` y `List-Unsubscribe` one-click, reintento manual, resultado/rebote/queja con supresion global y reconciliacion manual de `ENVIANDO`.
 - **Cumplimiento:** baja publica `/propuestas/baja/[token]` + `POST /api/opt-out`, supresiones por hash/dominio con revocacion excepcional, retencion 12 meses con cron `Bearer`, ARCO exportar/rectificar/eliminar y redaccion de PII/tokens en logs/Sentry.
 - **Verificacion T-23:** suite **3031/3031 en 114 archivos**, `tsc --noEmit` 0 errores, `npm run lint` 18 errores/18 warnings preexistentes y `next build` PASS.
-- **Estado real:** codigo desplegado, pero **esquema pendiente de `db push`** y `PROPUESTAS_ENVIO_HABILITADO=false`; el portal falla cerrado (`ESQUEMA_NO_APLICADO`). No se ejecutaron T-26 (staging) ni T-27 (produccion), no hubo envio real ni llamadas reales a Places/Resend/LLM.
+- **Estado real (13 nov):** codigo desplegado, pero **esquema pendiente de `db push`** y `PROPUESTAS_ENVIO_HABILITADO=false`; el portal fallaba cerrado (`ESQUEMA_NO_APLICADO`). No se ejecutaron T-26 (staging) ni T-27 (produccion), no hubo envio real ni llamadas reales a Places/Resend/LLM. **Superado el 14 nov 2026:** esquema aplicado y portal desplegado en produccion (deploy `02a5ca66`).
 - **T-24 cerrada:** `runbook.md` y `legal-checklist.md` redactados; `AGENTS.md`/`MEMORY.md` actualizados; commit `2b8132c`; PASS tester+reviewer.
 - **T-25 (PASS tester, pendiente cierre reviewer):** suite **3031/3031 en 114 archivos**, `tsc --noEmit` 0 errores, lint 18/18 preexistente y `next build` PASS (13 nov 2026); T-26/T-27 siguen pendientes de ejecucion.
+
+## Sesion 14 nov 2026 — Portal de propuestas desplegado a produccion
+
+- **Deploy `02a5ca66`** en el commit `700eaf1` + docs posteriores; `/api/health` OK y `/api/propuestas/**` responde `401` sin sesion. T-01..T-25 en produccion.
+- **Esquema aplicado en produccion:** 6 tablas + 8 enums verificados con una Function temporal (ya eliminada). Ya no hay `db push` pendiente para propuestas y el portal no cae en `ESQUEMA_NO_APLICADO`.
+- **Variables:** 52 en el servicio PixelArch, incluidas las `PROPUESTAS_*`; `PROPUESTAS_SECRETO` generado. `PROPUESTAS_ENVIO_HABILITADO=false`; `PROPUESTAS_TEXTO_LEGAL`/`PROPUESTAS_BASE_LEGAL` no cargados, asi que aprobar/enviar sigue bloqueado.
+- **Decision del dueno:** autorizo aplicar el portal directamente en produccion. **T-26 (staging) y T-27 (gate formal) no se ejecutaron** y no se marcan como PASS. Queda pendiente la validacion real de Places/fetch/auditoria/borrador/aprobacion/envio/baja/cupos y el checklist legal/SPF/DKIM/DMARC antes de habilitar el envio.
+- **Historial:** la sesion del 13 nov queda como estaba (T-24 cerrada, T-25 PASS tester pendiente de reviewer, esquema pendiente en ese momento); este deploy no cambia el baseline de tests (**3031/3031 en 114 archivos**).
 
 ## Sesion 3 nov 2026 — Cierre T-38 (rollout a produccion)
 

@@ -15,12 +15,18 @@
  *   explicito de 8 s con `AbortController`; sin reintentos ni backoff.
  * - Los errores del proveedor se mapean a codigos propios. El mensaje devuelto
  *   es generico (sin PII, sin body del proveedor, sin headers ni clave).
+ * - Un rechazo del proveedor se diagnostica con `logger.warn` usando solo el
+ *   status HTTP, el codigo propio, `error.status` y hasta 5
+ *   `error.details[].reason` (80 chars). Nunca se loguean headers, clave,
+ *   `error.message` ni el body completo.
  *
  * Modulo server-only: usa `fetch` y lee la clave server-only
  * `PROPUESTAS_PLACES_API_KEY` a traves de `configPropuestas()`. No toca
  * Prisma. El `fetch`, la clave, la config y el timeout son inyectables para
  * testear sin red ni entorno.
  */
+
+import { logger } from "@/lib/logger"
 
 import { configPropuestas, type ConfigPropuestas } from "./config"
 import { sanitizarError, type CodigoError } from "./errores"
@@ -187,6 +193,67 @@ function mapearStatus(status: number): CodigoErrorPlaces | null {
   return null
 }
 
+/** Solo se conservan los primeros 5 motivos y 80 chars por motivo. */
+const MAX_MOTIVOS_LOG = 5
+const MAX_TEXTO_MOTIVO_LOG = 80
+
+interface MotivoRechazoPlaces {
+  googleStatus: string | null
+  reasons: string[]
+}
+
+function recortarMotivo(valor: string): string {
+  return valor.trim().slice(0, MAX_TEXTO_MOTIVO_LOG)
+}
+
+/**
+ * Extrae unicamente `error.status` y `error.details[].reason` del body de error.
+ * Nunca devuelve `error.message` (puede contener datos) ni el body completo.
+ */
+function leerMotivoRechazoPlaces(cuerpo: unknown): MotivoRechazoPlaces {
+  if (!esRegistro(cuerpo)) return { googleStatus: null, reasons: [] }
+
+  const error = cuerpo.error
+  if (!esRegistro(error)) return { googleStatus: null, reasons: [] }
+
+  const status = error.status
+  const googleStatus =
+    typeof status === "string" && status.trim().length > 0
+      ? recortarMotivo(status)
+      : null
+
+  const reasons: string[] = []
+
+  if (Array.isArray(error.details)) {
+    for (const detalle of error.details) {
+      if (reasons.length >= MAX_MOTIVOS_LOG) break
+      if (!esRegistro(detalle) || typeof detalle.reason !== "string") continue
+
+      const motivo = recortarMotivo(detalle.reason)
+      if (motivo.length > 0) reasons.push(motivo)
+    }
+  }
+
+  return { googleStatus, reasons }
+}
+
+/**
+ * Lee el body de rechazo con el mismo signal/timeout de la request. Cualquier
+ * fallo (clone no disponible, JSON invalido, abort) deja el diagnostico vacio
+ * sin cambiar el resultado ni lanzar.
+ */
+async function inspeccionarRechazoPlaces(
+  respuesta: Response,
+  signal: AbortSignal,
+): Promise<MotivoRechazoPlaces> {
+  try {
+    const cuerpo = await conTimeout(respuesta.clone().json(), signal)
+    return leerMotivoRechazoPlaces(cuerpo)
+  } catch {
+    return { googleStatus: null, reasons: [] }
+  }
+}
+
 function leerNombre(registro: Record<string, unknown>): string | null {
   const displayName = registro.displayName
   if (!esRegistro(displayName)) return null
@@ -273,6 +340,18 @@ export async function buscarLugaresPlaces(
 
     const codigoStatus = mapearStatus(respuesta.status)
     if (codigoStatus !== null) {
+      const { googleStatus, reasons } = await inspeccionarRechazoPlaces(
+        respuesta,
+        controller.signal,
+      )
+
+      logger.warn("Places rechazo la solicitud", {
+        httpStatus: respuesta.status,
+        codigo: codigoStatus,
+        googleStatus,
+        reasons,
+      })
+
       return errorPlaces(codigoStatus, respuesta.status)
     }
 

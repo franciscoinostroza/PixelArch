@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { logger } from "@/lib/logger"
 import type { ConfigPropuestas } from "@/lib/propuestas/config"
 import {
   FIELD_MASK_PLACES,
@@ -16,6 +17,10 @@ import type {
   ResultadoPlaces,
   ResultadoPlacesError,
 } from "@/lib/propuestas/places"
+
+vi.mock("@/lib/logger", () => ({
+  logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}))
 
 /**
  * T-11 (AC-8, AC-11, AC-12; RF-10, RF-11, RF-17, RF-57, RF-58): cliente de
@@ -65,9 +70,11 @@ interface FetchFalso {
 }
 
 function crearRespuesta(status: number, cuerpo: unknown): Response {
+  const base = { status, json: async () => cuerpo }
   return {
-    status,
-    json: async () => cuerpo,
+    ...base,
+    // El cliente lee el body de rechazo sobre un clon; el test lo emula.
+    clone: () => base,
   } as unknown as Response
 }
 
@@ -639,6 +646,123 @@ describe("T-11 Places: mapeo de errores sin reintentos (AC-12)", () => {
       expect(resultado.status).toBeNull()
     }
     expect(llamadas).toHaveLength(1)
+  })
+})
+
+describe("T-11 Places: diagnostico sanitizado de rechazos (AC-12, RF-58)", () => {
+  const warn = () => vi.mocked(logger.warn)
+
+  beforeEach(() => {
+    warn().mockClear()
+  })
+
+  it("AC-12: loguea httpStatus, codigo, googleStatus y reasons de un 403", async () => {
+    const { fetchImpl, llamadas } = crearFetchFalso({
+      status: 403,
+      cuerpo: {
+        error: {
+          status: "PERMISSION_DENIED",
+          details: [{ reason: "SERVICE_DISABLED" }],
+        },
+      },
+    })
+
+    const resultado = await buscar(
+      { textQuery: "negocios" },
+      { fetchImpl, apiKey: CLAVE },
+    )
+
+    expect(resultado).toEqual({
+      ok: false,
+      codigo: "CREDENCIALES",
+      status: 403,
+      mensaje: "Las credenciales del proveedor son invalidas.",
+    })
+    expect(llamadas).toHaveLength(1)
+
+    expect(warn()).toHaveBeenCalledTimes(1)
+    expect(warn()).toHaveBeenCalledWith("Places rechazo la solicitud", {
+      httpStatus: 403,
+      codigo: "CREDENCIALES",
+      googleStatus: "PERMISSION_DENIED",
+      reasons: ["SERVICE_DISABLED"],
+    })
+
+    const meta = warn().mock.calls[0]?.[1] ?? {}
+    expect(Object.keys(meta).sort()).toEqual([
+      "codigo",
+      "googleStatus",
+      "httpStatus",
+      "reasons",
+    ])
+  })
+
+  it("AC-12: body no parseable deja reasons vacio y no cambia el resultado", async () => {
+    const { fetchImpl } = crearFetchFalso({
+      status: 403,
+      errorJson: new SyntaxError("Unexpected token < in JSON"),
+    })
+
+    const resultado = await buscar(
+      { textQuery: "negocios" },
+      { fetchImpl, apiKey: CLAVE },
+    )
+
+    expect(resultado.ok).toBe(false)
+    if (resultado.ok) return
+    expect(resultado.codigo).toBe("CREDENCIALES")
+    expect(resultado.status).toBe(403)
+
+    expect(warn()).toHaveBeenCalledWith("Places rechazo la solicitud", {
+      httpStatus: 403,
+      codigo: "CREDENCIALES",
+      googleStatus: null,
+      reasons: [],
+    })
+  })
+
+  it("AC-12: no loguea message, clave ni body y acota reasons a 5x80", async () => {
+    const motivoLargo = "X".repeat(120)
+    const { fetchImpl } = crearFetchFalso({
+      status: 403,
+      cuerpo: {
+        error: {
+          status: "PERMISSION_DENIED",
+          message: `API key ${CLAVE} para cliente@example.com`,
+          details: [
+            { reason: motivoLargo },
+            { reason: "R2" },
+            { reason: "R3" },
+            { reason: "R4" },
+            { reason: "R5" },
+            { reason: "R6" },
+          ],
+        },
+      },
+    })
+
+    const resultado = await buscar(
+      { textQuery: "negocios" },
+      { fetchImpl, apiKey: CLAVE },
+    )
+
+    expect(resultado.ok).toBe(false)
+
+    const meta = warn().mock.calls[0]?.[1] ?? {}
+    expect(meta.googleStatus).toBe("PERMISSION_DENIED")
+    expect(meta.reasons).toEqual([
+      "X".repeat(80),
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+    ])
+
+    const serializado = JSON.stringify(meta)
+    expect(serializado).not.toContain(CLAVE)
+    expect(serializado).not.toContain("cliente@example.com")
+    expect(serializado).not.toContain("API key")
+    expect(serializado).not.toContain("X".repeat(120))
   })
 })
 

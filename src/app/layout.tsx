@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Space_Grotesk, Inter, JetBrains_Mono, Pixelify_Sans } from "next/font/google"
+import localFont from "next/font/local"
 import { ClerkProvider } from "@clerk/nextjs"
 import { ToastProvider } from "@/components/ui/toast"
 import { registerShutdown } from "@/lib/shutdown"
@@ -9,28 +9,47 @@ import "./globals.css"
 
 registerShutdown()
 
-const spaceGrotesk = Space_Grotesk({
+const spaceGrotesk = localFont({
+  src: [
+    { path: "./fonts/space-grotesk-500.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/space-grotesk-600.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/space-grotesk-700.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
 })
 
-const inter = Inter({
+const inter = localFont({
+  src: [
+    { path: "./fonts/inter-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/inter-500.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/inter-600.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/inter-700.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-body",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
 })
 
-const jetbrainsMono = JetBrains_Mono({
+const jetbrainsMono = localFont({
+  src: [
+    { path: "./fonts/jetbrains-mono-500.woff2", weight: "500", style: "normal" },
+  ],
   variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["500"],
+  display: "swap",
+  fallback: ["ui-monospace", "monospace"],
 })
 
-const pixelifySans = Pixelify_Sans({
+const pixelifySans = localFont({
+  src: [
+    { path: "./fonts/pixelify-sans-500.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/pixelify-sans-600.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/pixelify-sans-700.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-pixel-display",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
 })
 
 const baseUrl = process.env.NEXT_PUBLIC_URL || "https://pixelarch.dev"

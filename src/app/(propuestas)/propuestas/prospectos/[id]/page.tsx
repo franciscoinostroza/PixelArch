@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { Clock, Gauge, Mail, ShieldCheck } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import {
   configPropuestas,
@@ -35,6 +36,14 @@ import {
   EnvioSeguimiento,
 } from "@/components/propuestas/envio-confirmacion"
 import type { PlantillaOpcion } from "@/components/propuestas/campana-form"
+import { PageHeader } from "@/components/propuestas/ui/page-header"
+import { Panel } from "@/components/propuestas/ui/panel"
+import { ScoreRing } from "@/components/propuestas/ui/score-ring"
+import { StatCard } from "@/components/propuestas/ui/stat-card"
+import {
+  StatusPill,
+  type StatusTone,
+} from "@/components/propuestas/ui/status-pill"
 
 export const dynamic = "force-dynamic"
 
@@ -74,9 +83,8 @@ export const metadata: Metadata = {
  * manual (nuevo borrador + nueva aprobacion), nunca automatico.
  */
 
-const CLASE_SECCION = "rounded-xl border border-border bg-panel p-5"
 const CLASE_DEFINICION =
-  "font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint"
+  "font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-dim"
 const CLASE_VALOR = "mt-1 text-sm leading-6 text-text"
 const CLASE_ENLACE =
   "break-all underline-offset-4 hover:text-text hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
@@ -141,30 +149,30 @@ function hallazgosDe(valor: unknown): HallazgoVista[] {
   return salida
 }
 
-function colorHallazgo(type: string): string {
+function tonoHallazgo(type: string): StatusTone {
   switch (type) {
     case "fail":
-      return "border-red-500/30 bg-red-500/10 text-red-300"
+      return "red"
     case "warn":
-      return "border-amber-500/30 bg-amber-500/10 text-amber-300"
+      return "amber"
     default:
-      return "border-mint/30 bg-mint/5 text-mint"
+      return "mint"
   }
 }
 
-function colorEstado(estado: string): string {
+function tonoEstado(estado: string): StatusTone {
   switch (estado) {
     case "PUNTUADO":
     case "ENRIQUECIDO":
-      return "border-cyan/30 bg-cyan/5 text-cyan"
+      return "cyan"
     case "SIN_ENRIQUECER":
-      return "border-amber-500/30 bg-amber-500/10 text-amber-300"
+      return "amber"
     case "SUPRIMIDO":
-      return "border-red-500/30 bg-red-500/10 text-red-300"
+      return "red"
     case "DESCARTADO":
-      return "border-border bg-bg/40 text-text-dim"
+      return "neutral"
     default:
-      return "border-violet/30 bg-violet-soft text-text"
+      return "violet"
   }
 }
 
@@ -330,7 +338,14 @@ function cargarEnvioSeguimiento(
     where: {
       prospectoId,
       estado: {
-        in: ["ENVIANDO", "ENVIADO", "FALLIDO", "REBOTADO", "QUEJA", "RESPONDIDO"],
+        in: [
+          "ENVIANDO",
+          "ENVIADO",
+          "FALLIDO",
+          "REBOTADO",
+          "QUEJA",
+          "RESPONDIDO",
+        ],
       },
     },
     orderBy: { actualizadoEn: "desc" },
@@ -380,9 +395,7 @@ function motivosAprobacion(
     !textoDe(prospecto.fuenteUrl) &&
     !textoDe(prospecto.emailFuenteUrl)
   ) {
-    motivos.push(
-      "Falta la fuente pública de los datos para el aviso legal.",
-    )
+    motivos.push("Falta la fuente pública de los datos para el aviso legal.")
   }
 
   const hashIntacto = verificarHashContenido(
@@ -544,8 +557,7 @@ export default async function ProspectoDetallePage({
   const scores = scoresDe(resumen)
   const hallazgos = hallazgosDe(resumen)
   const auditoriaEstado =
-    prospecto.auditoriaEstado ??
-    (resumen ? textoDe(resumen.estado) : null)
+    prospecto.auditoriaEstado ?? (resumen ? textoDe(resumen.estado) : null)
   const fechaResumenTexto = resumen ? textoDe(resumen.fecha) : null
   const auditoriaFecha =
     prospecto.auditoriaFecha ??
@@ -592,504 +604,547 @@ export default async function ProspectoDetallePage({
   const estadoConfigEnvio = estadoEnvio(config)
   const hayEnvioEnCurso = envioSeguimiento?.estado === "ENVIANDO"
 
+  const contactoResumen = prospecto.email
+    ? prospecto.emailFuenteUrl
+      ? "Email con fuente"
+      : "Email sin fuente"
+    : "Sin email"
+
+  const contactoDetalle = prospecto.email
+    ? prospecto.emailFuenteUrl
+      ? "Email registrado con fuente"
+      : "Email registrado sin fuente"
+    : "Sin email: no se puede aprobar"
+
   return (
     <div>
-      <header className="mb-8 max-w-[80ch]">
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-text-faint">
-          Ficha de prospecto
-        </p>
-        <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="font-display text-3xl font-semibold text-text">
-              {prospecto.nombreNegocio}
-            </h1>
-            <p className="mt-2 text-sm leading-6 text-text-dim">
+      <PageHeader
+        eyebrow="Ficha de prospecto"
+        title={prospecto.nombreNegocio}
+        description={
+          <>
+            <p>
               Datos del portal con su procedencia. Analizar no envía emails ni
               toca el CRM; la aprobación y el envío viven en tareas posteriores.
             </p>
-          </div>
-          <span
-            className={`rounded-full border px-3 py-1 font-mono text-xs uppercase tracking-[0.12em] ${colorEstado(
-              prospecto.estado,
-            )}`}
-          >
+            <p className="mt-3">
+              <Link
+                href={`/propuestas/campanas/${prospecto.campanaOrigen.id}`}
+                className={CLASE_ENLACE}
+              >
+                Volver a la campaña «{prospecto.campanaOrigen.nombre}»
+              </Link>
+            </p>
+          </>
+        }
+        status={
+          <StatusPill tone={tonoEstado(prospecto.estado)}>
             {prospecto.estado}
-          </span>
-        </div>
-        <p className="mt-3">
-          <Link
-            href={`/propuestas/campanas/${prospecto.campanaOrigen.id}`}
-            className={CLASE_ENLACE}
+          </StatusPill>
+        }
+      />
+
+      <div className="p-prospect-layout">
+        <aside className="p-prospect-rail">
+          <div className="p-rail-card">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="p-panel-eyebrow">Estado</p>
+                <div className="mt-2">
+                  <StatusPill tone={tonoEstado(prospecto.estado)}>
+                    {prospecto.estado}
+                  </StatusPill>
+                </div>
+              </div>
+              {prospecto.score === null ? (
+                <StatusPill>Sin score</StatusPill>
+              ) : (
+                <ScoreRing score={prospecto.score} size={76} />
+              )}
+            </div>
+
+            <dl className="p-kv-grid p-kv-grid--rail">
+              <div>
+                <dt className="p-detail-term">Contacto</dt>
+                <dd className="p-detail-value" aria-label={contactoDetalle}>
+                  {contactoResumen}
+                </dd>
+              </div>
+              <div>
+                <dt className="p-detail-term">Auditoría</dt>
+                <dd className="p-detail-value">
+                  {auditoriaEstado ?? "Sin auditoría"}
+                </dd>
+              </div>
+              <div>
+                <dt className="p-detail-term">Última interacción</dt>
+                <dd className="p-detail-value">
+                  {fechaHora(prospecto.ultimaInteraccionEn) ?? "—"}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          <AnalizarProspecto key={prospecto.id} prospectoId={prospecto.id} />
+
+          <div className="p-rail-card">
+            <p className="p-panel-eyebrow">Siguiente paso</p>
+            <p className="mt-2 text-sm leading-6 text-text">
+              Revisá fuentes y borrador antes de aprobar
+            </p>
+            <p className="mt-3">
+              <a href="#borrador-propuesta" className="p-quota-link text-sm">
+                Ir al borrador
+              </a>
+            </p>
+          </div>
+        </aside>
+
+        <div className="p-prospect-main">
+          {prospecto.posibleDuplicadoDeId && (
+            <Panel
+              tone="warn"
+              role="note"
+              aria-label="Posible duplicado"
+              title="Posible duplicado"
+              className="mb-8"
+            >
+              <p className="text-sm leading-6 text-text">
+                El email o el dominio coincide con otra ficha. No se fusionó
+                automáticamente: revisá la ficha relacionada antes de contactar.
+              </p>
+              <p className="mt-2">
+                <Link
+                  href={`/propuestas/prospectos/${encodeURIComponent(
+                    prospecto.posibleDuplicadoDeId,
+                  )}`}
+                  className={CLASE_ENLACE}
+                >
+                  Ver ficha relacionada
+                </Link>
+              </p>
+            </Panel>
+          )}
+
+          {prospecto.motivoSinEnriquecer && (
+            <Panel
+              tone="warn"
+              role="note"
+              aria-label="Motivo sin enriquecer"
+              title="Motivo sin enriquecer"
+              className="mb-8"
+            >
+              <p className="font-mono text-sm text-text">
+                {prospecto.motivoSinEnriquecer}
+              </p>
+            </Panel>
+          )}
+
+          <section aria-label="Resumen del prospecto" className="mb-8">
+            <div className="p-stat-grid">
+              <StatCard
+                label="Score"
+                value={
+                  prospecto.score === null ? "—" : `${prospecto.score}/100`
+                }
+                accent="cyan"
+                icon={<Gauge size={18} aria-hidden="true" />}
+              />
+              <StatCard
+                label="Contacto"
+                value={contactoDetalle}
+                accent="violet"
+                icon={<Mail size={18} aria-hidden="true" />}
+              />
+              <StatCard
+                label="Auditoría"
+                value={auditoriaEstado ?? "Sin auditoría"}
+                accent="mint"
+                icon={<ShieldCheck size={18} aria-hidden="true" />}
+              />
+              <StatCard
+                label="Última interacción"
+                value={fechaHora(prospecto.ultimaInteraccionEn) ?? "—"}
+                accent="amber"
+                icon={<Clock size={18} aria-hidden="true" />}
+              />
+            </div>
+          </section>
+
+          <section aria-label="Consumo del prospecto" className="mb-8">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <CupoDia
+                estado={consumoProspecto}
+                titulo="Consumo del prospecto (hoy)"
+                variante="compacto"
+                disponibilidad={disponibilidadConsumo}
+                mostrarPresupuesto={false}
+                mostrarPie={false}
+              />
+              <CupoDia
+                estado={cuposGlobales}
+                titulo="Cupos globales del día"
+                variante="compacto"
+                disponibilidad={disponibilidadConsumo}
+              />
+            </div>
+            <p className="mt-2 text-xs leading-5 text-text-dim">
+              Fetches, auditoría y borradores se registran por prospecto y por
+              día. No se muestran datos personales en este medidor.
+            </p>
+          </section>
+
+          <Panel
+            aria-label="Datos del prospecto"
+            title="Datos"
+            className="mb-8"
           >
-            Volver a la campaña «{prospecto.campanaOrigen.nombre}»
-          </Link>
-        </p>
-      </header>
-
-      <div className="mb-8">
-        <AnalizarProspecto key={prospecto.id} prospectoId={prospecto.id} />
-      </div>
-
-      {prospecto.posibleDuplicadoDeId && (
-        <div
-          role="note"
-          aria-label="Posible duplicado"
-          className="mb-8 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4"
-        >
-          <p className={CLASE_DEFINICION}>Posible duplicado</p>
-          <p className="mt-1 text-sm leading-6 text-text">
-            El email o el dominio coincide con otra ficha. No se fusionó
-            automáticamente: revisá la ficha relacionada antes de contactar.
-          </p>
-          <p className="mt-2">
-            <Link
-              href={`/propuestas/prospectos/${encodeURIComponent(
-                prospecto.posibleDuplicadoDeId,
-              )}`}
-              className={CLASE_ENLACE}
-            >
-              Ver ficha relacionada
-            </Link>
-          </p>
-        </div>
-      )}
-
-      {prospecto.motivoSinEnriquecer && (
-        <div
-          role="note"
-          aria-label="Motivo sin enriquecer"
-          className="mb-8 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4"
-        >
-          <p className={CLASE_DEFINICION}>Motivo sin enriquecer</p>
-          <p className="mt-1 font-mono text-sm text-text">
-            {prospecto.motivoSinEnriquecer}
-          </p>
-        </div>
-      )}
-
-      <section aria-label="Resumen del prospecto" className="mb-8">
-        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className={`${CLASE_SECCION} p-4`}>
-            <dt className={CLASE_DEFINICION}>Score</dt>
-            <dd className="mt-1 font-display text-2xl font-semibold text-text">
-              {prospecto.score === null ? "—" : `${prospecto.score}/100`}
-            </dd>
-          </div>
-          <div className={`${CLASE_SECCION} p-4`}>
-            <dt className={CLASE_DEFINICION}>Contacto</dt>
-            <dd className="mt-1 text-sm leading-6 text-text">
-              {prospecto.email
-                ? prospecto.emailFuenteUrl
-                  ? "Email registrado con fuente"
-                  : "Email registrado sin fuente"
-                : "Sin email: no se puede aprobar"}
-            </dd>
-          </div>
-          <div className={`${CLASE_SECCION} p-4`}>
-            <dt className={CLASE_DEFINICION}>Auditoría</dt>
-            <dd className="mt-1 text-sm leading-6 text-text">
-              {auditoriaEstado ?? "Sin auditoría"}
-            </dd>
-          </div>
-          <div className={`${CLASE_SECCION} p-4`}>
-            <dt className={CLASE_DEFINICION}>Última interacción</dt>
-            <dd className="mt-1 text-sm leading-6 text-text">
-              {fechaHora(prospecto.ultimaInteraccionEn) ?? "—"}
-            </dd>
-          </div>
-        </dl>
-      </section>
-
-      <section aria-label="Consumo del prospecto" className="mb-8">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <CupoDia
-            estado={consumoProspecto}
-            titulo="Consumo del prospecto (hoy)"
-            variante="compacto"
-            disponibilidad={disponibilidadConsumo}
-            mostrarPresupuesto={false}
-            mostrarPie={false}
-          />
-          <CupoDia
-            estado={cuposGlobales}
-            titulo="Cupos globales del día"
-            variante="compacto"
-            disponibilidad={disponibilidadConsumo}
-          />
-        </div>
-        <p className="mt-2 text-xs leading-5 text-text-dim">
-          Fetches, auditoría y borradores se registran por prospecto y por día.
-          No se muestran datos personales en este medidor.
-        </p>
-      </section>
-
-      <section
-        aria-label="Datos del prospecto"
-        className={`${CLASE_SECCION} mb-8`}
-      >
-        <h2 className="font-display text-xl font-semibold text-text">Datos</h2>
-        <dl className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <Campo etiqueta="Nombre del negocio">
-            {prospecto.nombreNegocio}
-          </Campo>
-
-          <Campo etiqueta="Sitio web">
-            {sitioSeguro ? (
-              <a
-                href={sitioSeguro}
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className={CLASE_ENLACE}
-              >
-                {prospecto.sitioWeb}
-              </a>
-            ) : (
-              "—"
-            )}
-          </Campo>
-
-          <Campo etiqueta="Dominio normalizado">
-            {prospecto.dominioNormalizado ?? "—"}
-          </Campo>
-
-          <Campo etiqueta="Email de contacto">
-            {prospecto.email ? (
-              <a href={`mailto:${prospecto.email}`} className={CLASE_ENLACE}>
-                {prospecto.email}
-              </a>
-            ) : (
-              "Sin email publicado"
-            )}
-          </Campo>
-
-          <Campo etiqueta="Teléfono comercial">
-            {prospecto.telefono ?? "—"}
-          </Campo>
-
-          <Campo etiqueta="Ciudad">{prospecto.ciudad ?? "—"}</Campo>
-
-          <Campo etiqueta="Rubro">{prospecto.rubro ?? "—"}</Campo>
-
-          <Campo etiqueta="Contacto">
-            {prospecto.contactoNombre || prospecto.contactoCargo
-              ? [prospecto.contactoNombre, prospecto.contactoCargo]
-                  .filter((valor): valor is string => Boolean(valor))
-                  .join(" — ")
-              : "—"}
-          </Campo>
-
-          <Campo etiqueta="Origen de la ficha">
-            {origenDe(prospecto.fuenteTipo)}
-          </Campo>
-
-          <Campo etiqueta="Campaña">
-            <Link
-              href={`/propuestas/campanas/${prospecto.campanaOrigen.id}`}
-              className={CLASE_ENLACE}
-            >
-              {prospecto.campanaOrigen.nombre}
-            </Link>{" "}
-            <span className="font-mono text-xs text-text-faint">
-              ({prospecto.campanaOrigen.estado})
-            </span>
-          </Campo>
-
-          <Campo etiqueta="Notas internas">
-            {prospecto.notas ?? "—"}
-          </Campo>
-        </dl>
-      </section>
-
-      <section
-        aria-label="Fuentes y fechas"
-        className={`${CLASE_SECCION} mb-8`}
-      >
-        <h2 className="font-display text-xl font-semibold text-text">
-          Fuentes y fechas
-        </h2>
-        <p className="mt-1 text-sm leading-6 text-text-dim">
-          Cada dato relevante conserva la página pública donde se encontró y la
-          fecha de obtención. No se muestran datos sin procedencia.
-        </p>
-        <dl className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <Campo etiqueta="Fuente general">
-            {fuenteSegura ? (
-              <a
-                href={fuenteSegura}
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className={CLASE_ENLACE}
-              >
-                {prospecto.fuenteUrl}
-              </a>
-            ) : (
-              "—"
-            )}
-          </Campo>
-
-          <Campo etiqueta="Fecha de la fuente">
-            {fechaHora(prospecto.fechaFuente) ?? "—"}
-          </Campo>
-
-          <Campo etiqueta="Fuente del email">
-            {emailFuenteSegura ? (
-              <a
-                href={emailFuenteSegura}
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className={CLASE_ENLACE}
-              >
-                {prospecto.emailFuenteUrl}
-              </a>
-            ) : (
-              "—"
-            )}
-          </Campo>
-
-          <Campo etiqueta="Fecha de la fuente del email">
-            {fechaHora(prospecto.emailFechaFuente) ?? "—"}
-          </Campo>
-
-          <Campo etiqueta="Fecha de auditoría">
-            {fechaHora(auditoriaFecha) ?? "—"}
-          </Campo>
-
-          <Campo etiqueta="Creado">
-            {fechaHora(prospecto.creadoEn) ?? "—"}
-          </Campo>
-
-          <Campo etiqueta="Actualizado">
-            {fechaHora(prospecto.actualizadoEn) ?? "—"}
-          </Campo>
-        </dl>
-      </section>
-
-      <section
-        aria-label="Auditoría del sitio"
-        className={`${CLASE_SECCION} mb-8`}
-      >
-        <h2 className="font-display text-xl font-semibold text-text">
-          Auditoría del sitio
-        </h2>
-
-        {!auditada ? (
-          <p role="status" className="mt-3 text-sm leading-6 text-text-dim">
-            Sin auditoría registrada. Se ejecuta al analizar la web del
-            prospecto; no se llama al endpoint público ni se guarda el HTML.
-          </p>
-        ) : (
-          <>
-            <dl className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              <Campo etiqueta="Estado">
-                <span className="font-mono text-xs">
-                  {auditoriaEstado ?? "SIN_DATOS"}
-                </span>
+            <dl className="p-kv-grid">
+              <Campo etiqueta="Nombre del negocio">
+                {prospecto.nombreNegocio}
               </Campo>
-              <Campo etiqueta="Fecha de auditoría">
-                {fechaHora(auditoriaFecha) ?? "—"}
-              </Campo>
-              <Campo etiqueta="URL auditada">
-                {auditoriaUrlSegura ? (
+
+              <Campo etiqueta="Sitio web">
+                {sitioSeguro ? (
                   <a
-                    href={auditoriaUrlSegura}
+                    href={sitioSeguro}
                     target="_blank"
                     rel="noopener noreferrer nofollow"
                     className={CLASE_ENLACE}
                   >
-                    {auditoriaFinalUrl}
+                    {prospecto.sitioWeb}
                   </a>
                 ) : (
                   "—"
                 )}
               </Campo>
+
+              <Campo etiqueta="Dominio normalizado">
+                {prospecto.dominioNormalizado ?? "—"}
+              </Campo>
+
+              <Campo etiqueta="Email de contacto">
+                {prospecto.email ? (
+                  <a
+                    href={`mailto:${prospecto.email}`}
+                    className={CLASE_ENLACE}
+                  >
+                    {prospecto.email}
+                  </a>
+                ) : (
+                  "Sin email publicado"
+                )}
+              </Campo>
+
+              <Campo etiqueta="Teléfono comercial">
+                {prospecto.telefono ?? "—"}
+              </Campo>
+
+              <Campo etiqueta="Ciudad">{prospecto.ciudad ?? "—"}</Campo>
+
+              <Campo etiqueta="Rubro">{prospecto.rubro ?? "—"}</Campo>
+
+              <Campo etiqueta="Contacto">
+                {prospecto.contactoNombre || prospecto.contactoCargo
+                  ? [prospecto.contactoNombre, prospecto.contactoCargo]
+                      .filter((valor): valor is string => Boolean(valor))
+                      .join(" — ")
+                  : "—"}
+              </Campo>
+
+              <Campo etiqueta="Origen de la ficha">
+                {origenDe(prospecto.fuenteTipo)}
+              </Campo>
+
+              <Campo etiqueta="Campaña">
+                <Link
+                  href={`/propuestas/campanas/${prospecto.campanaOrigen.id}`}
+                  className={CLASE_ENLACE}
+                >
+                  {prospecto.campanaOrigen.nombre}
+                </Link>{" "}
+                <span className="font-mono text-xs text-text-dim">
+                  ({prospecto.campanaOrigen.estado})
+                </span>
+              </Campo>
+
+              <Campo etiqueta="Notas internas">{prospecto.notas ?? "—"}</Campo>
             </dl>
+          </Panel>
 
-            {auditoriaMotivo && (
-              <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm leading-6 text-text">
-                Motivo saneado:{" "}
-                <span className="font-mono text-xs">{auditoriaMotivo}</span>
-              </p>
-            )}
+          <Panel
+            aria-label="Fuentes y fechas"
+            title="Fuentes y fechas"
+            description="Cada dato relevante conserva la página pública donde se encontró y la fecha de obtención. No se muestran datos sin procedencia."
+            className="mb-8"
+          >
+            <dl className="p-kv-grid">
+              <Campo etiqueta="Fuente general">
+                {fuenteSegura ? (
+                  <a
+                    href={fuenteSegura}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className={CLASE_ENLACE}
+                  >
+                    {prospecto.fuenteUrl}
+                  </a>
+                ) : (
+                  "—"
+                )}
+              </Campo>
 
-            {scores === null ? (
-              <p className="mt-4 text-sm leading-6 text-text-dim">
-                La auditoría no registró puntajes. No se completan con valores
-                inventados.
+              <Campo etiqueta="Fecha de la fuente">
+                {fechaHora(prospecto.fechaFuente) ?? "—"}
+              </Campo>
+
+              <Campo etiqueta="Fuente del email">
+                {emailFuenteSegura ? (
+                  <a
+                    href={emailFuenteSegura}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className={CLASE_ENLACE}
+                  >
+                    {prospecto.emailFuenteUrl}
+                  </a>
+                ) : (
+                  "—"
+                )}
+              </Campo>
+
+              <Campo etiqueta="Fecha de la fuente del email">
+                {fechaHora(prospecto.emailFechaFuente) ?? "—"}
+              </Campo>
+
+              <Campo etiqueta="Fecha de auditoría">
+                {fechaHora(auditoriaFecha) ?? "—"}
+              </Campo>
+
+              <Campo etiqueta="Creado">
+                {fechaHora(prospecto.creadoEn) ?? "—"}
+              </Campo>
+
+              <Campo etiqueta="Actualizado">
+                {fechaHora(prospecto.actualizadoEn) ?? "—"}
+              </Campo>
+            </dl>
+          </Panel>
+
+          <Panel
+            aria-label="Auditoría del sitio"
+            title="Auditoría del sitio"
+            className="mb-8"
+          >
+            {!auditada ? (
+              <p role="status" className="mt-3 text-sm leading-6 text-text-dim">
+                Sin auditoría registrada. Se ejecuta al analizar la web del
+                prospecto; no se llama al endpoint público ni se guarda el HTML.
               </p>
             ) : (
-              <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {[
-                  ["Velocidad", scores.velocidad],
-                  ["SSL", scores.ssl],
-                  ["SEO", scores.seo],
-                  ["Seguridad", scores.seguridad],
-                ].map(([etiqueta, valor]) => (
-                  <div
-                    key={String(etiqueta)}
-                    className="rounded-lg border border-border bg-bg/40 p-3"
-                  >
-                    <dt className={CLASE_DEFINICION}>{String(etiqueta)}</dt>
-                    <dd className="mt-1 text-lg font-semibold text-text">
-                      {typeof valor === "number" ? `${valor}/100` : "—"}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            )}
-
-            {hallazgos.length === 0 ? (
-              <p className="mt-4 text-sm leading-6 text-text-dim">
-                Sin hallazgos registrados en el resumen.
-              </p>
-            ) : (
-              <ul className="mt-4 space-y-2">
-                {hallazgos.map((hallazgo, indice) => (
-                  <li
-                    key={`${hallazgo.type}-${indice}-${hallazgo.codigo ?? ""}`}
-                    className="flex flex-wrap items-start gap-2 rounded-lg border border-border bg-bg/40 p-3"
-                  >
-                    <span
-                      className={`rounded-full border px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-[0.1em] ${colorHallazgo(
-                        hallazgo.type,
-                      )}`}
-                    >
-                      {hallazgo.type}
+              <>
+                <dl className="p-kv-grid">
+                  <Campo etiqueta="Estado">
+                    <span className="font-mono text-xs">
+                      {auditoriaEstado ?? "SIN_DATOS"}
                     </span>
-                    <span className="min-w-0 flex-1 text-sm leading-6 text-text">
-                      {hallazgo.text}
-                    </span>
-                    {hallazgo.codigo && (
-                      <span className="font-mono text-[0.65rem] text-text-faint">
-                        {hallazgo.codigo}
-                      </span>
+                  </Campo>
+                  <Campo etiqueta="Fecha de auditoría">
+                    {fechaHora(auditoriaFecha) ?? "—"}
+                  </Campo>
+                  <Campo etiqueta="URL auditada">
+                    {auditoriaUrlSegura ? (
+                      <a
+                        href={auditoriaUrlSegura}
+                        target="_blank"
+                        rel="noopener noreferrer nofollow"
+                        className={CLASE_ENLACE}
+                      >
+                        {auditoriaFinalUrl}
+                      </a>
+                    ) : (
+                      "—"
                     )}
-                  </li>
-                ))}
-              </ul>
+                  </Campo>
+                </dl>
+
+                {auditoriaMotivo && (
+                  <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm leading-6 text-text">
+                    Motivo saneado:{" "}
+                    <span className="font-mono text-xs">{auditoriaMotivo}</span>
+                  </p>
+                )}
+
+                {scores === null ? (
+                  <p className="mt-4 text-sm leading-6 text-text-dim">
+                    La auditoría no registró puntajes. No se completan con
+                    valores inventados.
+                  </p>
+                ) : (
+                  <dl className="p-audit-grid">
+                    {[
+                      ["Velocidad", scores.velocidad],
+                      ["SSL", scores.ssl],
+                      ["SEO", scores.seo],
+                      ["Seguridad", scores.seguridad],
+                    ].map(([etiqueta, valor]) => (
+                      <div key={String(etiqueta)} className="p-audit-cell">
+                        <dt className={CLASE_DEFINICION}>{String(etiqueta)}</dt>
+                        <dd className="mt-1 text-lg font-semibold text-text">
+                          {typeof valor === "number" ? `${valor}/100` : "—"}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+
+                {hallazgos.length === 0 ? (
+                  <p className="mt-4 text-sm leading-6 text-text-dim">
+                    Sin hallazgos registrados en el resumen.
+                  </p>
+                ) : (
+                  <ul className="mt-4 space-y-2">
+                    {hallazgos.map((hallazgo, indice) => (
+                      <li
+                        key={`${hallazgo.type}-${indice}-${hallazgo.codigo ?? ""}`}
+                        className="flex flex-wrap items-start gap-2 rounded-lg border border-border bg-bg/40 p-3"
+                      >
+                        <StatusPill tone={tonoHallazgo(hallazgo.type)}>
+                          {hallazgo.type}
+                        </StatusPill>
+                        <span className="min-w-0 flex-1 text-sm leading-6 text-text">
+                          {hallazgo.text}
+                        </span>
+                        {hallazgo.codigo && (
+                          <span className="font-mono text-[0.65rem] text-text-dim">
+                            {hallazgo.codigo}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
             )}
-          </>
-        )}
-      </section>
+          </Panel>
 
-      <div className="mb-8">
-        <ScoreDesglose
-          score={prospecto.score}
-          detalle={prospecto.scoreDetalle}
-        />
+          <div className="mb-8">
+            <ScoreDesglose
+              score={prospecto.score}
+              detalle={prospecto.scoreDetalle}
+            />
+          </div>
+
+          <Panel
+            id="borrador-propuesta"
+            aria-label="Borrador de propuesta"
+            title="Borrador de propuesta"
+            description="El borrador se genera con una plantilla activa, los datos verificados de la ficha y los hallazgos de la auditoría. No se envía nada: la aprobación y el envío son pasos separados."
+            className="mb-8"
+          >
+            {envioAbierto ? (
+              <BorradorEditor
+                key={envioAbierto.id}
+                envioId={envioAbierto.id}
+                prospectoId={prospecto.id}
+                estado={envioAbierto.estado}
+                version={envioAbierto.version}
+                secuencia={envioAbierto.secuencia}
+                asunto={envioAbierto.asunto}
+                cuerpoTexto={envioAbierto.cuerpoTexto}
+              />
+            ) : (
+              <GenerarBorrador
+                prospectoId={prospecto.id}
+                plantillas={plantillas}
+                plantillaPorDefectoId={prospecto.campanaOrigen.plantillaId}
+                tieneEmail={Boolean(prospecto.email)}
+                estadoProspecto={prospecto.estado}
+                hayEnvioAbierto={hayEnvioEnCurso}
+              />
+            )}
+          </Panel>
+
+          {envioAbierto && (
+            <div className="mb-8">
+              <AprobacionPanel
+                key={`aprobacion-${envioAbierto.id}`}
+                envioId={envioAbierto.id}
+                estado={envioAbierto.estado}
+                version={envioAbierto.version}
+                secuencia={envioAbierto.secuencia}
+                plantillaVersion={envioAbierto.plantillaVersion ?? null}
+                destinatario={textoDe(envioAbierto.destinatario) ?? ""}
+                fromEmail={textoDe(envioAbierto.fromEmail)}
+                fromNombre={textoDe(envioAbierto.fromNombre)}
+                replyTo={textoDe(envioAbierto.replyTo)}
+                asunto={textoDe(envioAbierto.asunto) ?? ""}
+                cuerpoTexto={textoDe(envioAbierto.cuerpoTexto) ?? ""}
+                cuerpoHtml={textoDe(envioAbierto.cuerpoHtml)}
+                aprobadoAsunto={textoDe(envioAbierto.aprobadoAsunto)}
+                aprobadoCuerpoTexto={textoDe(envioAbierto.aprobadoCuerpoTexto)}
+                aprobadoCuerpoHtml={textoDe(envioAbierto.aprobadoCuerpoHtml)}
+                aprobadoPorNombre={textoDe(envioAbierto.aprobadoPorNombre)}
+                aprobadoEnTexto={fechaHora(envioAbierto.aprobadoEn)}
+                bloqueos={bloqueosAprobacion}
+                fuentes={{
+                  sitioWeb: sitioSeguro,
+                  fuenteUrl: fuenteSegura,
+                  emailFuenteUrl: emailFuenteSegura,
+                }}
+                score={prospecto.score}
+                auditoriaEstado={auditoriaEstado}
+              />
+            </div>
+          )}
+
+          {envioAbierto && envioAbierto.estado === "APROBADO" && (
+            <div className="mb-8">
+              <EnvioConfirmacion
+                key={`envio-${envioAbierto.id}`}
+                envioId={envioAbierto.id}
+                destinatario={textoDe(envioAbierto.destinatario) ?? ""}
+                asunto={
+                  textoDe(envioAbierto.aprobadoAsunto) ??
+                  textoDe(envioAbierto.asunto) ??
+                  ""
+                }
+                version={envioAbierto.version}
+                secuencia={envioAbierto.secuencia}
+                habilitado={estadoConfigEnvio.ok}
+                motivos={estadoConfigEnvio.ok ? [] : estadoConfigEnvio.motivos}
+              />
+            </div>
+          )}
+
+          {envioSeguimiento && (
+            <div className="mb-8">
+              <EnvioSeguimiento
+                key={`seguimiento-${envioSeguimiento.id}`}
+                envioId={envioSeguimiento.id}
+                estado={envioSeguimiento.estado}
+                version={envioSeguimiento.version}
+                secuencia={envioSeguimiento.secuencia}
+                proveedorMessageId={textoDe(
+                  envioSeguimiento.proveedorMessageId,
+                )}
+                error={textoDe(envioSeguimiento.error)}
+                fechaTexto={fechaHora(envioSeguimiento.enviadoEn)}
+                hayEnvioAbierto={envioAbierto !== null}
+              />
+            </div>
+          )}
+
+          <section aria-label="Corrección del prospecto" className="mb-8">
+            <ProspectoFicha prospecto={editable} />
+          </section>
+
+          <ArcoPanel
+            prospecto={editable}
+            campanaId={prospecto.campanaOrigen.id}
+          />
+        </div>
       </div>
-
-      <section
-        aria-label="Borrador de propuesta"
-        className={`${CLASE_SECCION} mb-8`}
-      >
-        <h2 className="font-display text-xl font-semibold text-text">
-          Borrador de propuesta
-        </h2>
-        <p className="mt-1 text-sm leading-6 text-text-dim">
-          El borrador se genera con una plantilla activa, los datos verificados
-          de la ficha y los hallazgos de la auditoría. No se envía nada: la
-          aprobación y el envío son pasos separados.
-        </p>
-
-        {envioAbierto ? (
-          <BorradorEditor
-            key={envioAbierto.id}
-            envioId={envioAbierto.id}
-            prospectoId={prospecto.id}
-            estado={envioAbierto.estado}
-            version={envioAbierto.version}
-            secuencia={envioAbierto.secuencia}
-            asunto={envioAbierto.asunto}
-            cuerpoTexto={envioAbierto.cuerpoTexto}
-          />
-        ) : (
-          <GenerarBorrador
-            prospectoId={prospecto.id}
-            plantillas={plantillas}
-            plantillaPorDefectoId={prospecto.campanaOrigen.plantillaId}
-            tieneEmail={Boolean(prospecto.email)}
-            estadoProspecto={prospecto.estado}
-            hayEnvioAbierto={hayEnvioEnCurso}
-          />
-        )}
-      </section>
-
-      {envioAbierto && (
-        <div className="mb-8">
-          <AprobacionPanel
-            key={`aprobacion-${envioAbierto.id}`}
-            envioId={envioAbierto.id}
-            estado={envioAbierto.estado}
-            version={envioAbierto.version}
-            secuencia={envioAbierto.secuencia}
-            plantillaVersion={envioAbierto.plantillaVersion ?? null}
-            destinatario={textoDe(envioAbierto.destinatario) ?? ""}
-            fromEmail={textoDe(envioAbierto.fromEmail)}
-            fromNombre={textoDe(envioAbierto.fromNombre)}
-            replyTo={textoDe(envioAbierto.replyTo)}
-            asunto={textoDe(envioAbierto.asunto) ?? ""}
-            cuerpoTexto={textoDe(envioAbierto.cuerpoTexto) ?? ""}
-            cuerpoHtml={textoDe(envioAbierto.cuerpoHtml)}
-            aprobadoAsunto={textoDe(envioAbierto.aprobadoAsunto)}
-            aprobadoCuerpoTexto={textoDe(envioAbierto.aprobadoCuerpoTexto)}
-            aprobadoCuerpoHtml={textoDe(envioAbierto.aprobadoCuerpoHtml)}
-            aprobadoPorNombre={textoDe(envioAbierto.aprobadoPorNombre)}
-            aprobadoEnTexto={fechaHora(envioAbierto.aprobadoEn)}
-            bloqueos={bloqueosAprobacion}
-            fuentes={{
-              sitioWeb: sitioSeguro,
-              fuenteUrl: fuenteSegura,
-              emailFuenteUrl: emailFuenteSegura,
-            }}
-            score={prospecto.score}
-            auditoriaEstado={auditoriaEstado}
-          />
-        </div>
-      )}
-
-      {envioAbierto && envioAbierto.estado === "APROBADO" && (
-        <div className="mb-8">
-          <EnvioConfirmacion
-            key={`envio-${envioAbierto.id}`}
-            envioId={envioAbierto.id}
-            destinatario={textoDe(envioAbierto.destinatario) ?? ""}
-            asunto={
-              textoDe(envioAbierto.aprobadoAsunto) ??
-              textoDe(envioAbierto.asunto) ??
-              ""
-            }
-            version={envioAbierto.version}
-            secuencia={envioAbierto.secuencia}
-            habilitado={estadoConfigEnvio.ok}
-            motivos={estadoConfigEnvio.ok ? [] : estadoConfigEnvio.motivos}
-          />
-        </div>
-      )}
-
-      {envioSeguimiento && (
-        <div className="mb-8">
-          <EnvioSeguimiento
-            key={`seguimiento-${envioSeguimiento.id}`}
-            envioId={envioSeguimiento.id}
-            estado={envioSeguimiento.estado}
-            version={envioSeguimiento.version}
-            secuencia={envioSeguimiento.secuencia}
-            proveedorMessageId={textoDe(envioSeguimiento.proveedorMessageId)}
-            error={textoDe(envioSeguimiento.error)}
-            fechaTexto={fechaHora(envioSeguimiento.enviadoEn)}
-            hayEnvioAbierto={envioAbierto !== null}
-          />
-        </div>
-      )}
-
-      <section aria-label="Corrección del prospecto" className="mb-8">
-        <ProspectoFicha prospecto={editable} />
-      </section>
-
-      <ArcoPanel
-        prospecto={editable}
-        campanaId={prospecto.campanaOrigen.id}
-      />
     </div>
   )
 }

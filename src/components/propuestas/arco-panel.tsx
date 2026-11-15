@@ -93,15 +93,15 @@ const CAMPOS_RECTIFICABLES = new Set<string>([
   "emailFuenteUrl",
 ])
 
-const CLASE_AYUDA = "mt-1 text-xs leading-5 text-text-faint"
+const CLASE_AYUDA = "mt-1 text-xs leading-5 text-text-dim"
 const CLASE_ERROR = "mt-1 font-mono text-xs text-red-400"
 const CLASE_TEXTAREA =
-  "flex min-h-[90px] w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text font-mono placeholder:text-text-faint focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
+  "flex min-h-[90px] w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text font-mono placeholder:text-text-dim focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
 const CLASE_MENSAJE =
-  "rounded-lg border p-3 text-sm leading-6 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
+  "p-banner rounded-lg border p-3 text-sm leading-6 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
 const CLASE_AVISO =
-  "rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs leading-5 text-text-dim"
-const CLASE_SECCION = "rounded-xl border border-border bg-panel p-5"
+  "p-banner p-banner--warn rounded-lg p-3 text-xs leading-5 text-text-dim"
+const CLASE_SECCION = "p-panel p-panel-body"
 
 function valoresIniciales(prospecto: ProspectoArco): CamposRectificacion {
   return {
@@ -591,16 +591,14 @@ export function ArcoPanel({ prospecto, campanaId }: ArcoPanelProps) {
           tabIndex={-1}
           role={mensaje.tono === "ok" ? "status" : "alert"}
           className={`mt-4 ${CLASE_MENSAJE} ${
-            mensaje.tono === "ok"
-              ? "border-mint/30 bg-mint/5 text-text"
-              : "border-red-500/30 bg-red-500/10 text-red-300"
+            mensaje.tono === "ok" ? "p-banner--ok" : "p-banner--danger"
           }`}
         >
           {mensaje.texto}
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="p-form-actions">
         <Button type="button" onClick={() => void exportar()} disabled={ocupado}>
           {enviando === "EXPORTAR" ? (
             <Loader2 aria-hidden="true" className="animate-spin" />
@@ -641,7 +639,7 @@ export function ArcoPanel({ prospecto, campanaId }: ArcoPanelProps) {
           onSubmit={(event) => void rectificar(event)}
           noValidate
           aria-busy={enviando === "RECTIFICAR"}
-          className="mt-5 space-y-4 border-t border-border pt-5"
+          className="p-form-section space-y-4"
         >
           <p className="text-sm leading-6 text-text-dim">
             Solo se envían los campos que cambian. Los campos vacíos no borran el
@@ -649,7 +647,7 @@ export function ArcoPanel({ prospecto, campanaId }: ArcoPanelProps) {
             score.
           </p>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="p-form-grid">
             <Campo
               id={`${idBase}-nombre`}
               etiqueta="Nombre del negocio"
@@ -752,7 +750,7 @@ export function ArcoPanel({ prospecto, campanaId }: ArcoPanelProps) {
             filas={3}
           />
 
-          <div className="flex flex-wrap gap-2">
+          <div className="p-form-actions">
             <Button type="submit" disabled={ocupado}>
               {enviando === "RECTIFICAR" && (
                 <Loader2 aria-hidden="true" className="animate-spin" />
@@ -776,7 +774,7 @@ export function ArcoPanel({ prospecto, campanaId }: ArcoPanelProps) {
           onSubmit={(event) => void eliminar(event)}
           noValidate
           aria-busy={enviando === "ELIMINAR"}
-          className="mt-5 space-y-4 border-t border-border pt-5"
+          className="p-form-section space-y-4"
         >
           <p
             id={`${idBase}-eliminar-aviso`}
@@ -829,7 +827,7 @@ export function ArcoPanel({ prospecto, campanaId }: ArcoPanelProps) {
             </span>
           </label>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="p-form-actions">
             <Button
               type="submit"
               disabled={ocupado || !confirmoEliminar}

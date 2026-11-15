@@ -200,50 +200,52 @@ export function AnalizarProspecto({ prospectoId }: AnalizarProspectoProps) {
     <section
       aria-label="Analizar prospecto"
       aria-busy={enviando}
-      className="rounded-xl border border-border bg-panel p-5"
+      className="p-panel"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="max-w-[65ch]">
-          <h2 className="font-display text-xl font-semibold text-text">
-            Analizar la web del prospecto
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-text-dim">
+      <div className="p-panel-head">
+        <div className="p-panel-heading">
+          <h2 className="p-panel-title">Analizar la web del prospecto</h2>
+          <p className="p-panel-description">
             Visita solo el sitio público del negocio (SSRF, robots, timeout y
             tamaño acotados), extrae el contacto publicado y audita el home con
             la lógica interna. No se envía ningún email ni se toca el CRM.
           </p>
         </div>
-        <Button
-          type="button"
-          onClick={() => void analizar()}
-          disabled={enviando}
-          aria-busy={enviando}
-        >
-          {enviando ? (
-            <Loader2 aria-hidden="true" className="animate-spin" />
-          ) : (
-            <Search aria-hidden="true" />
-          )}
-          {enviando ? "Analizando…" : "Analizar"}
-        </Button>
+        <div className="p-panel-actions">
+          <Button
+            type="button"
+            onClick={() => void analizar()}
+            disabled={enviando}
+            aria-busy={enviando}
+          >
+            {enviando ? (
+              <Loader2 aria-hidden="true" className="animate-spin" />
+            ) : (
+              <Search aria-hidden="true" />
+            )}
+            {enviando ? "Analizando…" : "Analizar"}
+          </Button>
+        </div>
       </div>
 
-      {mensaje && (
-        <div
-          ref={mensajeRef}
-          tabIndex={-1}
-          role={mensaje.tono === "error" ? "alert" : "status"}
-          className={`${CLASE_MENSAJE} ${
-            mensaje.tono === "ok"
-              ? "border-mint/30 bg-mint/5 text-text"
-              : mensaje.tono === "aviso"
-                ? "border-amber-500/30 bg-amber-500/5 text-text"
-                : "border-red-500/30 bg-red-500/10 text-red-300"
-          }`}
-        >
-          {mensaje.texto}
-        </div>
-      )}
+      <div className="p-panel-body">
+        {mensaje && (
+          <div
+            ref={mensajeRef}
+            tabIndex={-1}
+            role={mensaje.tono === "error" ? "alert" : "status"}
+            className={`${CLASE_MENSAJE} ${
+              mensaje.tono === "ok"
+                ? "border-mint/30 bg-mint/5 text-text"
+                : mensaje.tono === "aviso"
+                  ? "border-amber-500/30 bg-amber-500/5 text-text"
+                  : "border-red-500/30 bg-red-500/10 text-red-300"
+            }`}
+          >
+            {mensaje.texto}
+          </div>
+        )}
+      </div>
     </section>
   )
 }

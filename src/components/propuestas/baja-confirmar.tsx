@@ -79,7 +79,7 @@ export function BajaConfirmar({ token }: BajaConfirmarProps) {
 
   return (
     <div aria-busy={enviando}>
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="p-baja-actions">
         <Button
           type="button"
           size="lg"
@@ -115,8 +115,8 @@ export function BajaConfirmar({ token }: BajaConfirmarProps) {
           <p
             className={
               confirmado
-                ? "rounded-lg border border-mint/30 bg-mint/5 p-3 text-text"
-                : "rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-text"
+                ? "p-banner p-banner--ok"
+                : "p-banner p-banner--warn"
             }
           >
             {mensaje}

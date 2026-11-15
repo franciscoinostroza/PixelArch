@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { Lock, Mail, Send, TriangleAlert } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import {
   CODIGO_ESQUEMA_NO_APLICADO,
@@ -8,6 +9,12 @@ import {
 import { formatearFechaHoraPortal } from "@/lib/propuestas/fechas"
 import { emailEnmascarado } from "@/lib/propuestas/supresion"
 import { EstadoOperativo, EstadoVacio } from "@/components/propuestas/estado-vacio"
+import { PageHeader } from "@/components/propuestas/ui/page-header"
+import { StatCard } from "@/components/propuestas/ui/stat-card"
+import {
+  StatusPill,
+  type StatusTone,
+} from "@/components/propuestas/ui/status-pill"
 
 export const dynamic = "force-dynamic"
 
@@ -61,21 +68,21 @@ function cargarEnvios() {
   })
 }
 
-function colorEstado(estado: string): string {
+function tonoEstado(estado: string): StatusTone {
   switch (estado) {
     case "ENVIADO":
     case "RESPONDIDO":
-      return "border-mint/30 bg-mint/5 text-mint"
+      return "mint"
     case "ENVIANDO":
-      return "border-cyan/30 bg-cyan/5 text-cyan"
+      return "cyan"
     case "APROBADO":
-      return "border-violet/30 bg-violet-soft text-text"
+      return "violet"
     case "FALLIDO":
     case "REBOTADO":
     case "QUEJA":
-      return "border-red-500/30 bg-red-500/10 text-red-300"
+      return "red"
     default:
-      return "border-border bg-bg/40 text-text-dim"
+      return "neutral"
   }
 }
 
@@ -110,20 +117,11 @@ export default async function EnviosPage() {
 
   return (
     <div>
-      <header className="mb-8 max-w-[70ch]">
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-text-faint">
-          Portal interno
-        </p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-text">
-          Historial de envíos
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-text-dim">
-          Estado, message ID, error saneado y fechas de cada envío. El
-          destinatario se muestra enmascarado y cada fila enlaza a la ficha del
-          prospecto. No hay acciones masivas: el envío y el reintento son
-          acciones manuales desde la ficha.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Portal interno"
+        title="Historial de envíos"
+        description="Estado, message ID, error saneado y fechas de cada envío. El destinatario se muestra enmascarado y cada fila enlaza a la ficha del prospecto. No hay acciones masivas: el envío y el reintento son acciones manuales desde la ficha."
+      />
 
       {envios.length === 0 ? (
         <EstadoVacio
@@ -132,20 +130,42 @@ export default async function EnviosPage() {
         />
       ) : (
         <div className="space-y-6">
-          <p className="text-sm text-text-dim">
-            {envios.length} envíos en el historial · {enviados} enviados ·{" "}
-            {fallidos} con fallo o supresión.
-          </p>
+          <section aria-label="Resumen de envíos">
+            <div className="p-stats-3">
+              <StatCard
+                label="Total"
+                value={envios.length}
+                hint="Envíos en el historial"
+                accent="violet"
+                icon={<Mail size={18} aria-hidden="true" />}
+              />
+              <StatCard
+                label="Enviados"
+                value={enviados}
+                hint="Enviados o respondidos"
+                accent="mint"
+                icon={<Send size={18} aria-hidden="true" />}
+              />
+              <StatCard
+                label="Con fallo o supresión"
+                value={fallidos}
+                hint="Fallo, rebote o queja"
+                accent="red"
+                icon={<TriangleAlert size={18} aria-hidden="true" />}
+              />
+            </div>
+            <p className="mt-3 text-sm text-text-dim">
+              {envios.length} envíos en el historial · {enviados} enviados ·{" "}
+              {fallidos} con fallo o supresión.
+            </p>
+          </section>
 
-          <ul className="space-y-3">
+          <ul className="p-list">
             {envios.map((envio) => {
               const destinatario = emailEnmascarado(envio.destinatario)
 
               return (
-                <li
-                  key={envio.id}
-                  className="rounded-xl border border-border bg-panel p-5"
-                >
+                <li key={envio.id} className="p-panel p-list-item">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <h2 className="font-display text-lg font-semibold text-text">
@@ -158,28 +178,22 @@ export default async function EnviosPage() {
                           {envio.prospecto.nombreNegocio}
                         </Link>
                       </h2>
-                      <p className="mt-1 text-sm leading-6 text-text-dim">
+                      <p className="mt-1 break-words text-sm leading-6 text-text-dim">
                         {destinatario.length > 0
                           ? destinatario
                           : "Destinatario no disponible"}{" "}
                         · v{envio.version} · secuencia {envio.secuencia}
                       </p>
                     </div>
-                    <span
-                      className={`rounded-full border px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.12em] ${colorEstado(
-                        envio.estado,
-                      )}`}
-                    >
+                    <StatusPill tone={tonoEstado(envio.estado)}>
                       {envio.estado}
-                    </span>
+                    </StatusPill>
                   </div>
 
-                  <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <dl className="p-meta-grid mt-4">
                     <div>
-                      <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                        Campaña
-                      </dt>
-                      <dd className="mt-1 text-sm text-text">
+                      <dt className="p-detail-term">Campaña</dt>
+                      <dd className="p-detail-value">
                         <Link
                           href={`/propuestas/campanas/${encodeURIComponent(
                             envio.campana.id,
@@ -191,28 +205,28 @@ export default async function EnviosPage() {
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                        Message ID
-                      </dt>
-                      <dd className="mt-1 break-all font-mono text-xs text-text">
-                        {envio.proveedorMessageId ?? "—"}
+                      <dt className="p-detail-term">Message ID</dt>
+                      <dd className="p-detail-value break-all">
+                        {envio.proveedorMessageId ? (
+                          <span className="p-code">
+                            {envio.proveedorMessageId}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                        Aprobado
-                      </dt>
-                      <dd className="mt-1 text-sm text-text">
+                      <dt className="p-detail-term">Aprobado</dt>
+                      <dd className="p-detail-value">
                         {envio.aprobadoEn
                           ? formatearFechaHoraPortal(envio.aprobadoEn)
                           : "—"}
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                        Enviado
-                      </dt>
-                      <dd className="mt-1 text-sm text-text">
+                      <dt className="p-detail-term">Enviado</dt>
+                      <dd className="p-detail-value">
                         {envio.enviadoEn
                           ? formatearFechaHoraPortal(envio.enviadoEn)
                           : "—"}
@@ -221,13 +235,21 @@ export default async function EnviosPage() {
                   </dl>
 
                   {envio.error && (
-                    <p
-                      role="alert"
-                      className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm leading-6 text-red-300"
-                    >
-                      Error saneado:{" "}
-                      <span className="font-mono text-xs">{envio.error}</span>
-                    </p>
+                    <div role="alert" className="p-banner p-banner--danger mt-4">
+                      <TriangleAlert
+                        aria-hidden="true"
+                        size={16}
+                        className="p-banner-icon"
+                      />
+                      <div className="p-banner-body">
+                        <p>
+                          Error saneado:{" "}
+                          <span className="font-mono text-xs">
+                            {envio.error}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
                   )}
 
                   <div className="mt-4 flex flex-wrap items-center gap-4">
@@ -235,11 +257,11 @@ export default async function EnviosPage() {
                       href={`/propuestas/prospectos/${encodeURIComponent(
                         envio.prospecto.id,
                       )}`}
-                      className="inline-flex rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-dim transition-colors hover:bg-white/5 hover:text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
+                      className="p-btn p-btn--ghost p-btn--sm"
                     >
                       Ver en la ficha del prospecto
                     </Link>
-                    <span className="font-mono text-[0.68rem] text-text-faint">
+                    <span className="font-mono text-[0.68rem] text-text-dim">
                       Actualizado{" "}
                       {formatearFechaHoraPortal(envio.actualizadoEn)}
                     </span>
@@ -249,15 +271,19 @@ export default async function EnviosPage() {
             })}
           </ul>
 
-          <p
-            role="note"
-            className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm leading-6 text-text"
-          >
-            El historial es de solo lectura. No hay reenvío, reintento ni
-            acciones por lote: un fallo se reintenta manualmente creando una
-            versión nueva desde la ficha, y siempre requiere una nueva
-            aprobación.
-          </p>
+          <div role="note" className="p-banner p-banner--warn">
+            <Lock aria-hidden="true" size={16} className="p-banner-icon" />
+            <div className="p-banner-body">
+              <p className="p-banner-title">
+                El historial es de solo lectura.
+              </p>
+              <p className="mt-1">
+                No hay reenvío, reintento ni acciones por lote: un fallo se
+                reintenta manualmente creando una versión nueva desde la ficha,
+                y siempre requiere una nueva aprobación.
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>

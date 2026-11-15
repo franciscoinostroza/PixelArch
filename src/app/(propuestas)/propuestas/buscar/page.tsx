@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { TriangleAlert } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import {
   CODIGO_ESQUEMA_NO_APLICADO,
@@ -9,6 +10,7 @@ import {
   type PlantillaOpcion,
 } from "@/components/propuestas/campana-form"
 import { EstadoOperativo } from "@/components/propuestas/estado-vacio"
+import { PageHeader } from "@/components/propuestas/ui/page-header"
 
 export const dynamic = "force-dynamic"
 
@@ -53,36 +55,34 @@ export default async function BuscarProspectosPage() {
 
   return (
     <div>
-      <header className="mb-8 max-w-[65ch]">
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-text-faint">
-          Portal interno
-        </p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-text">
-          Buscar prospectos
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-text-dim">
-          Definí la consulta, la zona y el rubro de la búsqueda. La campaña
-          queda en borrador hasta que decidas ejecutarla.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Portal interno"
+        title="Buscar prospectos"
+        description="Definí la consulta, la zona y el rubro de la búsqueda. La campaña queda en borrador hasta que decidas ejecutarla."
+      />
 
       <div
         role="note"
         aria-label="Aviso sobre la creación de campañas"
-        className="mb-8 max-w-[70ch] rounded-xl border border-amber-500/30 bg-amber-500/5 p-5"
+        className="p-banner p-banner--warn mb-8 max-w-[70ch]"
       >
-        <p className="text-sm font-medium text-text">
-          Crear una campaña no busca ni envía nada.
-        </p>
-        <p className="mt-1 text-sm leading-6 text-text-dim">
-          Solo guarda la configuración de la búsqueda en estado{" "}
-          <span className="font-mono text-xs">BORRADOR</span>. La búsqueda en
-          Google Places se ejecuta después, de forma explícita, y ningún email
-          sale sin aprobación y confirmación humanas.
-        </p>
+        <TriangleAlert aria-hidden="true" size={16} className="p-banner-icon" />
+        <div className="p-banner-body">
+          <p className="p-banner-title">
+            Crear una campaña no busca ni envía nada.
+          </p>
+          <p className="mt-1">
+            Solo guarda la configuración de la búsqueda en estado{" "}
+            <span className="font-mono text-xs">BORRADOR</span>. La búsqueda en
+            Google Places se ejecuta después, de forma explícita, y ningún email
+            sale sin aprobación y confirmación humanas.
+          </p>
+        </div>
       </div>
 
-      <CampanaForm plantillas={plantillas} />
+      <div className="p-form-shell">
+        <CampanaForm plantillas={plantillas} />
+      </div>
     </div>
   )
 }

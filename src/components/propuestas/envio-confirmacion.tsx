@@ -69,14 +69,14 @@ interface RespuestaApi {
 }
 
 const CLASE_DEFINICION =
-  "font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint"
+  "font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-dim"
 const CLASE_VALOR = "mt-1 text-sm leading-6 text-text"
 const CLASE_MENSAJE =
-  "mt-4 rounded-lg border p-3 text-sm leading-6 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
+  "p-banner mt-4 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
 const CLASE_SELECT =
   "mt-1 flex h-10 w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
 const CLASE_TEXTAREA =
-  "mt-1 flex min-h-[80px] w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text placeholder:text-text-faint focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
+  "mt-1 flex min-h-[80px] w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text placeholder:text-text-dim focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
 
 function textoDe(valor: unknown): string | null {
   return typeof valor === "string" && valor.trim().length > 0
@@ -173,10 +173,10 @@ function Aviso({ mensaje }: { mensaje: Mensaje }) {
       role={mensaje.tono === "error" ? "alert" : "status"}
       className={`${CLASE_MENSAJE} ${
         mensaje.tono === "ok"
-          ? "border-mint/30 bg-mint/5 text-text"
+          ? "p-banner--ok"
           : mensaje.tono === "aviso"
-            ? "border-amber-500/30 bg-amber-500/5 text-text"
-            : "border-red-500/30 bg-red-500/10 text-red-300"
+            ? "p-banner--warn"
+            : "p-banner--danger"
       }`}
     >
       {mensaje.texto}
@@ -269,7 +269,7 @@ export function EnvioConfirmacion({
     <section
       aria-label="Confirmación de envío"
       aria-busy={enviando}
-      className="rounded-xl border border-border bg-panel p-5"
+      className="p-panel p-panel-body"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-[70ch]">
@@ -289,7 +289,7 @@ export function EnvioConfirmacion({
       {!habilitado && (
         <div
           role="status"
-          className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm leading-6 text-text"
+          className="p-banner p-banner--warn p-banner--block mt-4"
         >
           <p>
             El envío real está deshabilitado en este entorno. La aprobación
@@ -322,7 +322,7 @@ export function EnvioConfirmacion({
         </div>
       </dl>
 
-      <div className="mt-5 flex flex-wrap items-center gap-4">
+      <div className="p-form-actions mt-5">
         <Button
           type="button"
           onClick={() => setAbierto(true)}
@@ -353,7 +353,7 @@ export function EnvioConfirmacion({
         <div className="space-y-4">
           <div
             role="note"
-            className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm leading-6 text-text"
+            className="p-banner p-banner--warn p-banner--block"
           >
             <strong>Se enviará un email real a {destinatario}.</strong> Se llama
             a Resend una sola vez con clave de idempotencia. Si el proveedor
@@ -542,7 +542,7 @@ export function EnvioSeguimiento({
     <section
       aria-label="Seguimiento del envío"
       aria-busy={enviando}
-      className="rounded-xl border border-border bg-panel p-5"
+      className="p-panel p-panel-body"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-[70ch]">
@@ -585,7 +585,7 @@ export function EnvioSeguimiento({
       {error && (
         <p
           role="alert"
-          className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm leading-6 text-red-300"
+          className="p-banner p-banner--danger mt-4"
         >
           Error saneado: <span className="font-mono text-xs">{error}</span>
         </p>
@@ -594,7 +594,7 @@ export function EnvioSeguimiento({
       {esEnviando && (
         <p
           role="status"
-          className="mt-4 rounded-lg border border-cyan/30 bg-cyan/5 p-3 text-sm leading-6 text-text"
+          className="p-banner p-banner--info mt-4"
         >
           El envío quedó en curso. Si pasaron más de 10 minutos sin
           confirmación, hace falta reconciliarlo manualmente verificando el
@@ -611,7 +611,7 @@ export function EnvioSeguimiento({
             v1 no usa webhooks de Resend: el resultado se registra a mano.
           </p>
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="p-form-grid mt-4">
             <div>
               <label
                 htmlFor={`resultado-tipo-${envioId}`}
@@ -655,11 +655,11 @@ export function EnvioSeguimiento({
           {tipo !== "RESPONDIDO" && (
             <div
               role="note"
-              className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm leading-6 text-text"
+              className="p-banner p-banner--warn p-banner--block mt-4"
             >
               <AlertTriangle
                 aria-hidden="true"
-                className="mt-1 h-4 w-4 shrink-0"
+                className="p-banner-icon mt-1 h-4 w-4 shrink-0"
               />
               <p>
                 Un rebote duro o una queja suprimen el email por hash y cancelan
@@ -669,7 +669,7 @@ export function EnvioSeguimiento({
             </div>
           )}
 
-          <div className="mt-4 flex flex-wrap items-center gap-4">
+          <div className="p-form-actions mt-4">
             <Button
               type="button"
               onClick={() => void registrarResultado()}
@@ -700,13 +700,13 @@ export function EnvioSeguimiento({
           {hayEnvioAbierto ? (
             <p
               role="status"
-              className="mt-3 rounded-lg border border-border bg-panel p-3 text-sm leading-6 text-text-dim"
+              className="p-banner mt-3"
             >
               Ya hay un borrador o una aprobación pendiente para este mensaje.
               Revisá esa versión antes de crear otra.
             </p>
           ) : (
-            <div className="mt-4">
+            <div className="p-form-actions mt-4">
               <Button
                 type="button"
                 variant="outline"
@@ -729,7 +729,7 @@ export function EnvioSeguimiento({
       )}
 
       {esFinal && (
-        <div className="mt-5 flex items-start gap-2 rounded-lg border border-mint/30 bg-mint/5 p-3 text-sm leading-6 text-text">
+        <div className="p-banner p-banner--ok mt-5 flex items-start gap-2 text-sm leading-6 text-text">
           <CheckCircle2 aria-hidden="true" className="mt-1 h-4 w-4 shrink-0" />
           <p>
             El resultado de este envío ya está registrado. No se envía nada más

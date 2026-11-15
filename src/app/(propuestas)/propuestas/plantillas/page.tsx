@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { FileText } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import {
   CODIGO_ESQUEMA_NO_APLICADO,
@@ -8,6 +9,9 @@ import {
 import { formatearFechaHoraPortal } from "@/lib/propuestas/fechas"
 import { EstadoOperativo } from "@/components/propuestas/estado-vacio"
 import { PlantillaForm } from "@/components/propuestas/plantilla-form"
+import { PageHeader } from "@/components/propuestas/ui/page-header"
+import { Panel } from "@/components/propuestas/ui/panel"
+import { StatusPill } from "@/components/propuestas/ui/status-pill"
 
 export const dynamic = "force-dynamic"
 
@@ -22,6 +26,9 @@ export const metadata: Metadata = {
  * Server component de solo lectura salvo el formulario cliente. Muestra la
  * versión activa de cada plantilla y sus variables permitidas. Si el esquema
  * aditivo no está aplicado, falla cerrado sin datos ni formularios.
+ *
+ * FASE 3b "PixelArch Console": cabecera y tarjetas de panel con variables como
+ * chips; el alta vive en un panel "Nueva plantilla".
  */
 
 const CLASE_ENLACE =
@@ -70,42 +77,36 @@ export default async function PlantillasPage() {
 
   return (
     <div>
-      <header className="mb-8 max-w-[70ch]">
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-text-faint">
-          Portal interno
-        </p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-text">
-          Plantillas
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-text-dim">
-          Redacción determinista con variables de lista blanca y datos
-          verificados. Editar una plantilla crea una versión nueva: no hay
-          HTML arbitrario, LLM ni envíos desde esta página.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Portal interno"
+        title="Plantillas"
+        description="Redacción determinista con variables de lista blanca y datos verificados. Editar una plantilla crea una versión nueva: no hay HTML arbitrario, LLM ni envíos desde esta página."
+      />
 
-      <section aria-label="Plantillas activas" className="mb-10">
-        <h2 className="font-display text-xl font-semibold text-text">
+      <section aria-label="Plantillas activas" className="mb-8">
+        <h2 className="mb-3 font-display text-xl font-semibold text-text">
           Activas ({plantillas.length})
         </h2>
 
         {plantillas.length === 0 ? (
-          <p
-            role="status"
-            className="mt-3 rounded-xl border border-border bg-panel p-5 text-sm leading-6 text-text-dim"
-          >
-            Todavía no hay plantillas activas. Creá la primera con el formulario
-            de abajo; no se envía ningún email.
-          </p>
+          <div role="status" className="p-empty">
+            <span className="p-empty-icon" aria-hidden="true">
+              <FileText size={20} />
+            </span>
+            <p className="p-empty-description">
+              Todavía no hay plantillas activas. Creá la primera con el
+              formulario de abajo; no se envía ningún email.
+            </p>
+          </div>
         ) : (
-          <ul className="mt-4 space-y-3">
+          <ul className="p-list">
             {plantillas.map((plantilla) => {
               const variables = variablesDe(plantilla.variablesPermitidas)
 
               return (
                 <li
                   key={plantilla.id}
-                  className="rounded-xl border border-border bg-panel p-5"
+                  className="p-panel p-template-card"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -123,27 +124,20 @@ export default async function PlantillasPage() {
                         {plantilla.asunto}
                       </p>
                     </div>
-                    <span className="rounded-full border border-violet/30 bg-violet-soft px-3 py-1 font-mono text-xs uppercase tracking-[0.12em] text-text">
-                      v{plantilla.version} · {plantilla.idioma}
-                    </span>
+                    <StatusPill tone="violet">
+                      {`v${plantilla.version} · ${plantilla.idioma}`}
+                    </StatusPill>
                   </div>
 
-                  <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <dl className="p-meta-grid mt-4">
                     <div>
-                      <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                        Variables permitidas
-                      </dt>
-                      <dd className="mt-1 flex flex-wrap gap-1">
+                      <dt className="p-detail-term">Variables permitidas</dt>
+                      <dd className="p-detail-value flex flex-wrap items-center gap-1.5">
                         {variables.length === 0 ? (
-                          <span className="text-sm text-text-dim">
-                            Sin variables
-                          </span>
+                          <span className="text-text-dim">Sin variables</span>
                         ) : (
                           variables.map((variable) => (
-                            <code
-                              key={variable}
-                              className="rounded border border-border bg-bg/40 px-1.5 py-0.5 font-mono text-[0.7rem] text-text"
-                            >
+                            <code key={variable} className="p-code">
                               {`{{${variable}}}`}
                             </code>
                           ))
@@ -151,10 +145,8 @@ export default async function PlantillasPage() {
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                        Actualizada
-                      </dt>
-                      <dd className="mt-1 text-sm text-text">
+                      <dt className="p-detail-term">Actualizada</dt>
+                      <dd className="p-detail-value">
                         {formatearFechaHoraPortal(plantilla.actualizadoEn)}
                       </dd>
                     </div>
@@ -166,12 +158,9 @@ export default async function PlantillasPage() {
         )}
       </section>
 
-      <section aria-label="Alta de plantilla">
-        <h2 className="mb-3 font-display text-xl font-semibold text-text">
-          Nueva plantilla
-        </h2>
+      <Panel aria-label="Alta de plantilla" title="Nueva plantilla">
         <PlantillaForm />
-      </section>
+      </Panel>
     </div>
   )
 }

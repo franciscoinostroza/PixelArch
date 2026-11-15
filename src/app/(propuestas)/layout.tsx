@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { resolverAdminPropuestas } from "@/lib/propuestas/auth"
 import { PortalShell } from "@/components/propuestas/portal-shell"
+import "./propuestas.css"
 
 export const dynamic = "force-dynamic"
 

@@ -7,10 +7,17 @@
  * por fila. "Ver ficha" enlaza a la ficha del prospecto, donde vive el botón
  * "Analizar" que ejecuta el enriquecimiento. La tabla tiene `caption` y
  * encabezados con `scope` para lectores de pantalla.
+ *
+ * FASE 2 "PixelArch Console": tabla con estilos del portal, estado como pill y
+ * score como chip. Conserva caption, scopes, textos y acciones por fila.
  */
 
 import Link from "next/link"
 import { ProspectoAcciones } from "@/components/propuestas/prospecto-ficha"
+import {
+  StatusPill,
+  type StatusTone,
+} from "@/components/propuestas/ui/status-pill"
 
 export interface ProspectoFila {
   id: string
@@ -33,16 +40,27 @@ interface CampanaTablaProps {
   prospectos: ProspectoFila[]
 }
 
-const CLASE_CELDA = "px-4 py-3 align-top text-text-dim"
-const CLASE_ENCABEZADO =
-  "whitespace-nowrap px-4 py-3 text-left font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint"
-const CLASE_ENLACE =
-  "rounded border border-border px-2 py-1 font-mono text-[0.68rem] uppercase tracking-[0.1em] text-text transition-colors hover:border-violet/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
+const TONOS_ESTADO: Record<string, StatusTone> = {
+  NUEVO: "cyan",
+  SIN_ENRIQUECER: "neutral",
+  ENRIQUECIDO: "violet",
+  PUNTUADO: "violet",
+  BORRADOR: "neutral",
+  APROBADO: "amber",
+  ENVIADO: "mint",
+  RESPONDIO: "mint",
+  DESCARTADO: "red",
+  SUPRIMIDO: "red",
+}
+
+function tonoEstado(estado: string): StatusTone {
+  return TONOS_ESTADO[estado] ?? "neutral"
+}
 
 export function CampanaTabla({ prospectos }: CampanaTablaProps) {
   if (prospectos.length === 0) {
     return (
-      <p className="rounded-xl border border-border bg-panel p-6 text-sm leading-6 text-text-dim">
+      <p className="p-table-empty">
         La corrida todavía no creó prospectos. Ejecutá la búsqueda cuando la
         campaña esté en borrador; los resultados se van a listar acá.
       </p>
@@ -50,55 +68,35 @@ export function CampanaTabla({ prospectos }: CampanaTablaProps) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-panel">
-      <table className="min-w-full text-left text-sm">
+    <div className="p-table-wrap">
+      <table className="p-table p-table--wide">
         <caption className="sr-only">
           Prospectos creados por la campaña
         </caption>
-        <thead className="border-b border-border">
+        <thead>
           <tr>
-            <th scope="col" className={CLASE_ENCABEZADO}>
-              Negocio
-            </th>
-            <th scope="col" className={CLASE_ENCABEZADO}>
-              Sitio
-            </th>
-            <th scope="col" className={CLASE_ENCABEZADO}>
-              Ciudad
-            </th>
-            <th scope="col" className={CLASE_ENCABEZADO}>
-              Estado
-            </th>
-            <th scope="col" className={CLASE_ENCABEZADO}>
-              Posible duplicado
-            </th>
-            <th scope="col" className={CLASE_ENCABEZADO}>
-              Score
-            </th>
-            <th scope="col" className={CLASE_ENCABEZADO}>
-              Acciones
-            </th>
+            <th scope="col">Negocio</th>
+            <th scope="col">Sitio</th>
+            <th scope="col">Ciudad</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Posible duplicado</th>
+            <th scope="col">Score</th>
+            <th scope="col">Acciones</th>
           </tr>
         </thead>
         <tbody>
           {prospectos.map((prospecto) => (
-            <tr
-              key={prospecto.id}
-              className="border-b border-border/60 last:border-0"
-            >
-              <th
-                scope="row"
-                className="px-4 py-3 text-left align-top font-medium text-text"
-              >
+            <tr key={prospecto.id}>
+              <th scope="row" className="p-table-rowhead">
                 {prospecto.nombreNegocio}
               </th>
-              <td className={CLASE_CELDA}>
+              <td>
                 {prospecto.sitioWeb ? (
                   <a
                     href={prospecto.sitioWeb}
                     target="_blank"
                     rel="noopener noreferrer nofollow"
-                    className="break-all underline-offset-4 hover:text-text hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
+                    className="p-table-link"
                   >
                     {prospecto.sitioWeb}
                   </a>
@@ -106,16 +104,16 @@ export function CampanaTabla({ prospectos }: CampanaTablaProps) {
                   "—"
                 )}
               </td>
-              <td className={CLASE_CELDA}>{prospecto.ciudad ?? "—"}</td>
-              <td className={CLASE_CELDA}>
-                <span className="font-mono text-xs text-text">
+              <td>{prospecto.ciudad ?? "—"}</td>
+              <td>
+                <StatusPill tone={tonoEstado(prospecto.estado)}>
                   {prospecto.estado}
-                </span>
+                </StatusPill>
               </td>
-              <td className={CLASE_CELDA}>
+              <td>
                 {prospecto.posibleDuplicadoDeId ? (
                   <span
-                    className="font-mono text-xs text-amber-300"
+                    className="p-duplicate-flag"
                     title={`Referencia interna: ${prospecto.posibleDuplicadoDeId}`}
                   >
                     Sí
@@ -124,14 +122,24 @@ export function CampanaTabla({ prospectos }: CampanaTablaProps) {
                   "—"
                 )}
               </td>
-              <td className={CLASE_CELDA}>
-                {prospecto.score === null ? "—" : prospecto.score}
+              <td>
+                {prospecto.score === null ? (
+                  "—"
+                ) : (
+                  <span
+                    className="p-score-chip"
+                    role="img"
+                    aria-label={`Score ${prospecto.score} de 100`}
+                  >
+                    {prospecto.score}
+                  </span>
+                )}
               </td>
-              <td className={CLASE_CELDA}>
-                <div className="flex flex-wrap items-center gap-2">
+              <td>
+                <div className="p-table-actions">
                   <Link
                     href={`/propuestas/prospectos/${prospecto.id}`}
-                    className={CLASE_ENLACE}
+                    className="p-btn p-btn--ghost p-btn--sm"
                   >
                     Ver ficha
                   </Link>

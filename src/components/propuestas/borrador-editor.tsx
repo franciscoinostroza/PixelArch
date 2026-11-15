@@ -74,10 +74,10 @@ interface RespuestaBorrador {
 }
 
 const CLASE_MENSAJE =
-  "mt-4 rounded-lg border p-3 text-sm leading-6 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
-const CLASE_AYUDA = "mt-1 text-xs leading-5 text-text-faint"
+  "p-banner mt-4 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
+const CLASE_AYUDA = "mt-1 text-xs leading-5 text-text-dim"
 const CLASE_TEXTAREA =
-  "flex min-h-[220px] w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text font-mono placeholder:text-text-faint focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
+  "flex min-h-[220px] w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text font-mono placeholder:text-text-dim focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
 const CLASE_SELECT =
   "flex h-10 w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
 
@@ -270,7 +270,7 @@ export function GenerarBorrador({
       {plantillas.length === 0 && (
         <p
           role="status"
-          className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm leading-6 text-text"
+          className="p-banner p-banner--warn mt-4"
         >
           No hay plantillas activas.{" "}
           <Link
@@ -286,7 +286,7 @@ export function GenerarBorrador({
       {plantillas.length > 0 && !tieneEmail && (
         <p
           role="status"
-          className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm leading-6 text-text"
+          className="p-banner p-banner--warn mt-4"
         >
           El prospecto no tiene email de contacto. Completalo con fuente y
           analizá el sitio: sin email no se puede aprobar ni enviar.
@@ -296,7 +296,7 @@ export function GenerarBorrador({
       {hayEnvioAbierto && (
         <p
           role="status"
-          className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm leading-6 text-text"
+          className="p-banner p-banner--warn mt-4"
         >
           Ya hay un envío abierto o pendiente para este prospecto. Resolvelo
           (editá el borrador o esperá el resultado del envío) antes de generar
@@ -307,7 +307,7 @@ export function GenerarBorrador({
       {plantillas.length > 0 && estadoPermitido && esFollowUp && (
         <p
           role="status"
-          className="mt-4 rounded-lg border border-violet/30 bg-violet-soft p-3 text-sm leading-6 text-text"
+          className="p-banner p-banner--info mt-4"
         >
           Este prospecto ya recibió un mensaje. Un follow-up es{" "}
           <strong>manual</strong>: requiere un borrador nuevo y una aprobación
@@ -319,7 +319,7 @@ export function GenerarBorrador({
       {plantillas.length > 0 && tieneEmail && !estadoPermitido && (
         <p
           role="status"
-          className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm leading-6 text-text"
+          className="p-banner p-banner--warn mt-4"
         >
           El prospecto está en estado{" "}
           <span className="font-mono text-xs">{estadoProspecto}</span>. Se
@@ -363,10 +363,10 @@ export function GenerarBorrador({
           role={mensaje.tono === "error" ? "alert" : "status"}
           className={`${CLASE_MENSAJE} ${
             mensaje.tono === "ok"
-              ? "border-mint/30 bg-mint/5 text-text"
+              ? "p-banner--ok"
               : mensaje.tono === "aviso"
-                ? "border-amber-500/30 bg-amber-500/5 text-text"
-                : "border-red-500/30 bg-red-500/10 text-red-300"
+                ? "p-banner--warn"
+                : "p-banner--danger"
           }`}
         >
           {mensaje.texto}
@@ -466,7 +466,7 @@ export function BorradorEditor({
     <form
       onSubmit={(evento) => void guardar(evento)}
       aria-busy={enviando}
-      className="mt-4"
+      className="p-form-section"
     >
       {aprobado && (
         <div
@@ -529,7 +529,7 @@ export function BorradorEditor({
         </p>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-4">
+      <div className="p-form-actions">
         <Button type="submit" disabled={enviando || !valido}>
           {enviando ? (
             <Loader2 aria-hidden="true" className="animate-spin" />
@@ -560,10 +560,10 @@ export function BorradorEditor({
           role={mensaje.tono === "error" ? "alert" : "status"}
           className={`${CLASE_MENSAJE} ${
             mensaje.tono === "ok"
-              ? "border-mint/30 bg-mint/5 text-text"
+              ? "p-banner--ok"
               : mensaje.tono === "aviso"
-                ? "border-amber-500/30 bg-amber-500/5 text-text"
-                : "border-red-500/30 bg-red-500/10 text-red-300"
+                ? "p-banner--warn"
+                : "p-banner--danger"
           }`}
         >
           {mensaje.texto}

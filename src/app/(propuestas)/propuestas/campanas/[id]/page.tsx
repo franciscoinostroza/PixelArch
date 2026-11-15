@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
+import { Copy, Gauge, Globe, Users } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { configPropuestas } from "@/lib/propuestas/config"
 import {
@@ -26,6 +27,14 @@ import {
 } from "@/components/propuestas/campana-tabla"
 import { CampanaAcciones } from "@/components/propuestas/campana-acciones"
 import { AltaProspecto } from "@/components/propuestas/prospecto-ficha"
+import { PageHeader } from "@/components/propuestas/ui/page-header"
+import { Panel } from "@/components/propuestas/ui/panel"
+import { StatCard } from "@/components/propuestas/ui/stat-card"
+import { TableShell } from "@/components/propuestas/ui/table-shell"
+import {
+  StatusPill,
+  type StatusTone,
+} from "@/components/propuestas/ui/status-pill"
 
 export const dynamic = "force-dynamic"
 
@@ -42,12 +51,11 @@ export const metadata: Metadata = {
  * con sus prospectos, plantilla y consumo de Google Places; nunca lee datos
  * del CRM. Si el esquema aditivo no esta aplicado, falla cerrado con un estado
  * operativo y no renderiza acciones.
+ *
+ * FASE 2 "PixelArch Console": cabecera con estado, acciones como panel, error
+ * en panel de aviso, configuracion y contadores con primitivas, tabla del
+ * portal y metricas de Places. Sin consultas ni logica nuevas.
  */
-
-const CLASE_SECCION = "rounded-xl border border-border bg-panel p-5"
-const CLASE_DEFINICION =
-  "font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint"
-const CLASE_VALOR = "mt-1 text-sm leading-6 text-text"
 
 function cargarCampana(id: string) {
   return prisma.campanaProspeccion.findUnique({
@@ -100,21 +108,17 @@ function cargarCampana(id: string) {
   })
 }
 
-function colorEstado(estado: string): string {
-  switch (estado) {
-    case "COMPLETADA":
-      return "border-mint/30 bg-mint/5 text-mint"
-    case "PARCIAL":
-      return "border-amber-500/30 bg-amber-500/10 text-amber-300"
-    case "FALLIDA":
-      return "border-red-500/30 bg-red-500/10 text-red-300"
-    case "CANCELADA":
-      return "border-border bg-bg/40 text-text-dim"
-    case "EN_CURSO":
-      return "border-cyan/30 bg-cyan/5 text-cyan"
-    default:
-      return "border-violet/30 bg-violet-soft text-text"
-  }
+const TONOS_ESTADO: Record<string, StatusTone> = {
+  COMPLETADA: "mint",
+  PARCIAL: "amber",
+  FALLIDA: "red",
+  CANCELADA: "neutral",
+  EN_CURSO: "cyan",
+  BORRADOR: "violet",
+}
+
+function tonoEstado(estado: string): StatusTone {
+  return TONOS_ESTADO[estado] ?? "violet"
 }
 
 function fechaHora(fecha: Date | null): string {
@@ -214,27 +218,16 @@ export default async function CampanaDetallePage({
 
   return (
     <div>
-      <header className="mb-8 max-w-[75ch]">
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-text-faint">
-          Campaña de prospección
-        </p>
-        <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
-          <h1 className="font-display text-3xl font-semibold text-text">
-            {campana.nombre}
-          </h1>
-          <span
-            className={`rounded-full border px-3 py-1 font-mono text-xs uppercase tracking-[0.12em] ${colorEstado(
-              campana.estado,
-            )}`}
-          >
+      <PageHeader
+        eyebrow="Campaña de prospección"
+        title={campana.nombre}
+        description="La búsqueda se ejecuta de forma explícita y una sola vez por campaña. Ningún email sale desde esta pantalla."
+        status={
+          <StatusPill tone={tonoEstado(campana.estado)}>
             {campana.estado}
-          </span>
-        </div>
-        <p className="mt-2 text-sm leading-6 text-text-dim">
-          La búsqueda se ejecuta de forma explícita y una sola vez por campaña.
-          Ningún email sale desde esta pantalla.
-        </p>
-      </header>
+          </StatusPill>
+        }
+      />
 
       <div className="mb-8">
         <CampanaAcciones
@@ -245,97 +238,101 @@ export default async function CampanaDetallePage({
       </div>
 
       {ultimoError && (
-        <div
+        <Panel
+          tone="warn"
           role="note"
           aria-label="Último error de la campaña"
-          className="mb-8 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4"
+          title="Último error (sanitizado)"
+          className="mb-8"
         >
-          <p className={CLASE_DEFINICION}>Último error (sanitizado)</p>
-          <p className="mt-1 text-sm leading-6 text-text">{ultimoError}</p>
-        </div>
+          <p className="text-sm leading-6 text-text">{ultimoError}</p>
+        </Panel>
       )}
 
-      <section aria-label="Datos de la campaña" className={`${CLASE_SECCION} mb-8`}>
-        <h2 className="font-display text-xl font-semibold text-text">
-          Configuración
-        </h2>
-        <dl className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="sm:col-span-2 lg:col-span-3">
-            <dt className={CLASE_DEFINICION}>Consulta</dt>
-            <dd className={`${CLASE_VALOR} break-words`}>{campana.consulta}</dd>
+      <Panel
+        aria-label="Datos de la campaña"
+        title="Configuración"
+        className="mb-8"
+      >
+        <dl className="p-detail-grid">
+          <div className="p-detail-span">
+            <dt className="p-detail-term">Consulta</dt>
+            <dd className="p-detail-value break-words">{campana.consulta}</dd>
           </div>
           <div>
-            <dt className={CLASE_DEFINICION}>Zona</dt>
-            <dd className={CLASE_VALOR}>{campana.zona ?? "—"}</dd>
+            <dt className="p-detail-term">Zona</dt>
+            <dd className="p-detail-value">{campana.zona ?? "—"}</dd>
           </div>
           <div>
-            <dt className={CLASE_DEFINICION}>Rubro</dt>
-            <dd className={CLASE_VALOR}>{campana.rubro ?? "—"}</dd>
+            <dt className="p-detail-term">Rubro</dt>
+            <dd className="p-detail-value">{campana.rubro ?? "—"}</dd>
           </div>
           <div>
-            <dt className={CLASE_DEFINICION}>Límite por corrida</dt>
-            <dd className={CLASE_VALOR}>{campana.limiteCorrida}</dd>
+            <dt className="p-detail-term">Límite por corrida</dt>
+            <dd className="p-detail-value">{campana.limiteCorrida}</dd>
           </div>
           <div>
-            <dt className={CLASE_DEFINICION}>Plantilla</dt>
-            <dd className={CLASE_VALOR}>
+            <dt className="p-detail-term">Plantilla</dt>
+            <dd className="p-detail-value">
               {campana.plantilla
                 ? `${campana.plantilla.nombre} (v${campana.plantilla.version})`
                 : "Sin plantilla"}
             </dd>
           </div>
           <div>
-            <dt className={CLASE_DEFINICION}>Creada por</dt>
-            <dd className={CLASE_VALOR}>
+            <dt className="p-detail-term">Creada por</dt>
+            <dd className="p-detail-value">
               {campana.creadaPorNombre ?? "Admin"}
             </dd>
           </div>
           <div>
-            <dt className={CLASE_DEFINICION}>Creada</dt>
-            <dd className={CLASE_VALOR}>
+            <dt className="p-detail-term">Creada</dt>
+            <dd className="p-detail-value">
               <time dateTime={campana.creadoEn.toISOString()}>
                 {formatearFechaHoraPortal(campana.creadoEn)}
               </time>
             </dd>
           </div>
           <div>
-            <dt className={CLASE_DEFINICION}>Iniciada</dt>
-            <dd className={CLASE_VALOR}>{fechaHora(campana.iniciadaEn)}</dd>
+            <dt className="p-detail-term">Iniciada</dt>
+            <dd className="p-detail-value">{fechaHora(campana.iniciadaEn)}</dd>
           </div>
           <div>
-            <dt className={CLASE_DEFINICION}>Finalizada</dt>
-            <dd className={CLASE_VALOR}>{fechaHora(campana.finalizadaEn)}</dd>
+            <dt className="p-detail-term">Finalizada</dt>
+            <dd className="p-detail-value">
+              {fechaHora(campana.finalizadaEn)}
+            </dd>
           </div>
         </dl>
-      </section>
+      </Panel>
 
       <section aria-label="Contadores de la campaña" className="mb-8">
-        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className={`${CLASE_SECCION} p-4`}>
-            <dt className={CLASE_DEFINICION}>Prospectos</dt>
-            <dd className="mt-1 font-display text-2xl font-semibold text-text">
-              {totalProspectos}
-            </dd>
-          </div>
-          <div className={`${CLASE_SECCION} p-4`}>
-            <dt className={CLASE_DEFINICION}>Con sitio web</dt>
-            <dd className="mt-1 font-display text-2xl font-semibold text-text">
-              {conWeb}
-            </dd>
-          </div>
-          <div className={`${CLASE_SECCION} p-4`}>
-            <dt className={CLASE_DEFINICION}>Posibles duplicados</dt>
-            <dd className="mt-1 font-display text-2xl font-semibold text-text">
-              {posiblesDuplicados}
-            </dd>
-          </div>
-          <div className={`${CLASE_SECCION} p-4`}>
-            <dt className={CLASE_DEFINICION}>Sin score</dt>
-            <dd className="mt-1 font-display text-2xl font-semibold text-text">
-              {sinScore}
-            </dd>
-          </div>
-        </dl>
+        <div className="p-stat-grid">
+          <StatCard
+            label="Prospectos"
+            value={totalProspectos}
+            accent="violet"
+            icon={<Users size={18} aria-hidden="true" />}
+          />
+          <StatCard
+            label="Con sitio web"
+            value={conWeb}
+            accent="cyan"
+            icon={<Globe size={18} aria-hidden="true" />}
+          />
+          <StatCard
+            label="Posibles duplicados"
+            value={posiblesDuplicados}
+            accent="amber"
+            icon={<Copy size={18} aria-hidden="true" />}
+          />
+          <StatCard
+            label="Sin score"
+            value={sinScore}
+            accent="red"
+            icon={<Gauge size={18} aria-hidden="true" />}
+          />
+        </div>
       </section>
 
       <section aria-label="Prospectos de la campaña" className="mb-8">
@@ -358,7 +355,7 @@ export default async function CampanaDetallePage({
       </section>
 
       <section aria-label="Cupos y consumo" className="mb-8">
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="p-quota-grid">
           <CupoDia
             estado={consumoCampana}
             titulo="Consumo de la campaña (hoy)"
@@ -381,40 +378,29 @@ export default async function CampanaDetallePage({
         </p>
       </section>
 
-      <section
+      <Panel
         aria-label="Consumo de Google Places"
-        className={CLASE_SECCION}
+        title="Consumo de Google Places"
+        description="Cada corrida reserva 1 llamada y 1 unidad. El tope diario lo aplica la configuración del servidor; no se encola consumo."
       >
-        <h2 className="font-display text-xl font-semibold text-text">
-          Consumo de Google Places
-        </h2>
-        <p className="mt-1 text-sm leading-6 text-text-dim">
-          Cada corrida reserva 1 llamada y 1 unidad. El tope diario lo aplica
-          la configuración del servidor; no se encola consumo.
-        </p>
-
         {campana.consumos.length === 0 ? (
-          <p role="status" className="mt-4 text-sm text-text-dim">
+          <p role="status" className="p-quota-note">
             Todavía no hay consumo de Places registrado para esta campaña.
           </p>
         ) : (
           <>
-            <dl className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-border bg-bg/40 p-3">
-                <dt className={CLASE_DEFINICION}>Llamadas</dt>
-                <dd className="mt-1 text-lg font-semibold text-text">
-                  {totalLlamadas}
-                </dd>
+            <dl className="p-detail-metrics">
+              <div className="p-detail-metric">
+                <dt className="p-detail-term">Llamadas</dt>
+                <dd className="p-detail-metric-value">{totalLlamadas}</dd>
               </div>
-              <div className="rounded-lg border border-border bg-bg/40 p-3">
-                <dt className={CLASE_DEFINICION}>Unidades</dt>
-                <dd className="mt-1 text-lg font-semibold text-text">
-                  {totalUnidades}
-                </dd>
+              <div className="p-detail-metric">
+                <dt className="p-detail-term">Unidades</dt>
+                <dd className="p-detail-metric-value">{totalUnidades}</dd>
               </div>
-              <div className="rounded-lg border border-border bg-bg/40 p-3">
-                <dt className={CLASE_DEFINICION}>Costo estimado</dt>
-                <dd className="mt-1 text-lg font-semibold text-text">
+              <div className="p-detail-metric">
+                <dt className="p-detail-term">Costo estimado</dt>
+                <dd className="p-detail-metric-value">
                   {totalCostoCentavos > 0
                     ? formatearMonto(totalCostoCentavos, "usd")
                     : "Sin costo estimado"}
@@ -422,54 +408,40 @@ export default async function CampanaDetallePage({
               </div>
             </dl>
 
-            <div className="mt-4 overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <caption className="sr-only">
-                  Consumo diario de Google Places de la campaña
-                </caption>
-                <thead className="border-b border-border">
-                  <tr>
-                    <th scope="col" className="py-2 pr-4 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                      Fecha
+            <TableShell className="p-detail-table">
+              <caption className="sr-only">
+                Consumo diario de Google Places de la campaña
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Fecha</th>
+                  <th scope="col">Llamadas</th>
+                  <th scope="col">Unidades</th>
+                  <th scope="col">Costo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {campana.consumos.map((consumo) => (
+                  <tr key={consumo.id}>
+                    <th scope="row" className="p-table-rowhead">
+                      <time dateTime={consumo.fecha.toISOString()}>
+                        {formatearFechaPortal(consumo.fecha)}
+                      </time>
                     </th>
-                    <th scope="col" className="py-2 pr-4 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                      Llamadas
-                    </th>
-                    <th scope="col" className="py-2 pr-4 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                      Unidades
-                    </th>
-                    <th scope="col" className="py-2 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                      Costo
-                    </th>
+                    <td>{consumo.llamadas}</td>
+                    <td>{consumo.unidades}</td>
+                    <td>
+                      {consumo.costoCentavos > 0
+                        ? formatearMonto(consumo.costoCentavos, "usd")
+                        : "—"}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {campana.consumos.map((consumo) => (
-                    <tr key={consumo.id} className="border-b border-border/60 last:border-0">
-                      <th scope="row" className="py-2 pr-4 text-left font-normal text-text">
-                        <time dateTime={consumo.fecha.toISOString()}>
-                          {formatearFechaPortal(consumo.fecha)}
-                        </time>
-                      </th>
-                      <td className="py-2 pr-4 text-text-dim">
-                        {consumo.llamadas}
-                      </td>
-                      <td className="py-2 pr-4 text-text-dim">
-                        {consumo.unidades}
-                      </td>
-                      <td className="py-2 text-text-dim">
-                        {consumo.costoCentavos > 0
-                          ? formatearMonto(consumo.costoCentavos, "usd")
-                          : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </TableShell>
           </>
         )}
-      </section>
+      </Panel>
     </div>
   )
 }

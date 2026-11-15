@@ -66,14 +66,14 @@ interface RespuestaAprobacion {
 }
 
 const CLASE_DEFINICION =
-  "font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint"
+  "font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-dim"
 const CLASE_VALOR = "mt-1 text-sm leading-6 text-text"
 const CLASE_ENLACE =
   "break-all underline-offset-4 hover:text-text hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
 const CLASE_MENSAJE =
-  "mt-4 rounded-lg border p-3 text-sm leading-6 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
+  "p-banner mt-4 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
 const CLASE_BLOQUEO =
-  "rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm leading-6 text-text"
+  "p-banner p-banner--warn p-banner--block rounded-lg p-3 text-sm leading-6 text-text"
 
 function textoDe(valor: unknown): string | null {
   return typeof valor === "string" && valor.trim().length > 0
@@ -301,7 +301,7 @@ export function AprobacionPanel({
     <section
       aria-label="Aprobación de la propuesta"
       aria-busy={enviando}
-      className="rounded-xl border border-border bg-panel p-5"
+      className="p-panel p-panel-body"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-[70ch]">
@@ -321,7 +321,7 @@ export function AprobacionPanel({
       <div
         role="note"
         aria-label="Aprobar no envía"
-        className="mt-4 rounded-lg border border-mint/30 bg-mint/5 p-3 text-sm leading-6 text-text"
+        className="p-banner p-banner--ok p-banner--block mt-4"
       >
         <strong>Aprobar no envía.</strong> La aprobación guarda un snapshot
         exacto del email y no llama a Resend. El envío real es otra acción
@@ -331,7 +331,7 @@ export function AprobacionPanel({
       {esAprobado ? (
         <p
           role="status"
-          className="mt-3 rounded-lg border border-border bg-bg/40 p-3 text-sm leading-6 text-text-dim"
+          className="p-banner mt-3"
         >
           Snapshot aprobado e inmutable
           {aprobadoPorNombre ? ` por ${aprobadoPorNombre}` : ""}
@@ -462,7 +462,7 @@ export function AprobacionPanel({
               </label>
               <p
                 id={`aprobacion-confirmar-ayuda-${envioId}`}
-                className="mt-1 text-xs leading-5 text-text-faint"
+                className="mt-1 text-xs leading-5 text-text-dim"
               >
                 La aprobación congela el snapshot; el envío queda pendiente de
                 una segunda confirmación (T-18).
@@ -470,7 +470,7 @@ export function AprobacionPanel({
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-4">
+          <div className="p-form-actions">
             <Button
               type="button"
               onClick={() => void aprobar()}
@@ -493,7 +493,7 @@ export function AprobacionPanel({
       )}
 
       {esAprobado && (
-        <div className="mt-5 flex items-start gap-2 rounded-lg border border-mint/30 bg-mint/5 p-3 text-sm leading-6 text-text">
+        <div className="p-banner p-banner--ok mt-5 flex items-start gap-2 text-sm leading-6 text-text">
           <CheckCircle2 aria-hidden="true" className="mt-1 h-4 w-4 shrink-0" />
           <p>
             Este envío está aprobado. No se envía nada automáticamente: el
@@ -505,7 +505,7 @@ export function AprobacionPanel({
       {!esBorrador && !esAprobado && (
         <p
           role="status"
-          className="mt-5 rounded-lg border border-border bg-bg/40 p-3 text-sm leading-6 text-text-dim"
+          className="p-banner mt-5"
         >
           Solo un borrador puede aprobarse. Este envío está en estado{" "}
           <span className="font-mono text-xs">{estado}</span>.
@@ -519,10 +519,10 @@ export function AprobacionPanel({
           role={mensaje.tono === "error" ? "alert" : "status"}
           className={`${CLASE_MENSAJE} ${
             mensaje.tono === "ok"
-              ? "border-mint/30 bg-mint/5 text-text"
+              ? "p-banner--ok"
               : mensaje.tono === "aviso"
-                ? "border-amber-500/30 bg-amber-500/5 text-text"
-                : "border-red-500/30 bg-red-500/10 text-red-300"
+                ? "p-banner--warn"
+                : "p-banner--danger"
           }`}
         >
           {mensaje.texto}

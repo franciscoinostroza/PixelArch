@@ -46,10 +46,10 @@ const ETIQUETAS_MOTIVO: Record<MotivoSupresion, string> = {
   SOLICITUD_ARCO: "Solicitud ARCO",
 }
 
-const CLASE_AYUDA = "mt-1 text-xs leading-5 text-text-faint"
+const CLASE_AYUDA = "mt-1 text-xs leading-5 text-text-dim"
 const CLASE_ERROR = "mt-1 font-mono text-xs text-red-400"
 const CLASE_TEXTAREA =
-  "flex min-h-[90px] w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text placeholder:text-text-faint focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
+  "flex min-h-[90px] w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text placeholder:text-text-dim focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
 const CLASE_SELECT =
   "flex h-10 w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
 
@@ -194,9 +194,9 @@ export function SupresionForm() {
         role="status"
         aria-live="polite"
         aria-label="Resultado del alta de supresión"
-        className="max-w-[70ch] rounded-xl border border-border bg-panel p-6"
+        className="max-w-[70ch]"
       >
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-text-faint">
+        <p className="font-mono text-xs uppercase tracking-[0.18em] text-text-dim">
           {resultado.creada
             ? "Supresión creada"
             : resultado.reactivada
@@ -240,7 +240,7 @@ export function SupresionForm() {
       onSubmit={handleSubmit(onSubmit)}
       noValidate
       aria-busy={enviando}
-      className="max-w-[70ch] rounded-xl border border-border bg-panel p-6"
+      className="max-w-[70ch]"
     >
       {errorGeneral && (
         <div

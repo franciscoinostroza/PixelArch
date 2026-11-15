@@ -1,4 +1,17 @@
 import type { Metadata } from "next"
+import Link from "next/link"
+import {
+  ArrowRight,
+  Ban,
+  FileText,
+  Inbox,
+  Mail,
+  MapPin,
+  Search,
+  Send,
+  ShieldCheck,
+  type LucideIcon,
+} from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { configPropuestas } from "@/lib/propuestas/config"
 import {
@@ -14,6 +27,9 @@ import {
   EstadoVacio,
 } from "@/components/propuestas/estado-vacio"
 import { CupoDia } from "@/components/propuestas/cupo-dia"
+import { PageHeader } from "@/components/propuestas/ui/page-header"
+import { Panel } from "@/components/propuestas/ui/panel"
+import { StatusPill } from "@/components/propuestas/ui/status-pill"
 
 export const dynamic = "force-dynamic"
 
@@ -29,6 +45,9 @@ export const metadata: Metadata = {
  * (`estadoCupos`) con costo, aviso 80% y bloqueo 100%. Solo lectura: no
  * reserva, no encola y no llama a proveedores. Si el esquema falta, se
  * conserva el estado operativo y no se muestran datos ni formularios.
+ *
+ * FASE 2 "PixelArch Console": cabecera, tira de estado operativo, cupos,
+ * estado vacio con CTA y atajos. Sin consultas nuevas ni datos de campaignas.
  */
 async function esquemaDisponible(): Promise<boolean> {
   try {
@@ -39,6 +58,44 @@ async function esquemaDisponible(): Promise<boolean> {
     throw error
   }
 }
+
+interface PiezaOperativa {
+  nombre: string
+  disponible: boolean
+  Icono: LucideIcon
+}
+
+const ATAJOS: ReadonlyArray<{
+  href: string
+  titulo: string
+  descripcion: string
+  Icono: LucideIcon
+}> = [
+  {
+    href: "/propuestas/buscar",
+    titulo: "Buscar",
+    descripcion: "Creá una campaña de prospección.",
+    Icono: Search,
+  },
+  {
+    href: "/propuestas/bandeja",
+    titulo: "Bandeja",
+    descripcion: "Revisá borradores y aprobados pendientes.",
+    Icono: Inbox,
+  },
+  {
+    href: "/propuestas/plantillas",
+    titulo: "Plantillas",
+    descripcion: "Versiones y vista previa de mensajes.",
+    Icono: FileText,
+  },
+  {
+    href: "/propuestas/envios",
+    titulo: "Envíos",
+    descripcion: "Historial y estados de cada envío.",
+    Icono: Send,
+  },
+]
 
 export default async function PropuestasDashboardPage() {
   const disponible = await esquemaDisponible()
@@ -73,20 +130,65 @@ export default async function PropuestasDashboardPage() {
 
   const config = configPropuestas()
 
+  const piezas: readonly PiezaOperativa[] = [
+    {
+      nombre: "Google Places",
+      disponible: config.places.disponible,
+      Icono: MapPin,
+    },
+    {
+      nombre: "Email",
+      disponible: config.resend.disponible,
+      Icono: Mail,
+    },
+    {
+      nombre: "Supresión",
+      disponible: config.supresion.disponible,
+      Icono: Ban,
+    },
+  ]
+
   return (
     <div>
-      <header className="mb-8 max-w-[65ch]">
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-text-faint">
-          Portal interno
-        </p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-text">
-          Propuestas
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-text-dim">
-          Prospección asistida, borradores y envíos con aprobación manual. Este
-          portal está separado del CRM.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Portal interno"
+        title="Propuestas"
+        description="Prospección asistida, borradores y envíos con aprobación manual. Este portal está separado del CRM."
+      />
+
+      <section
+        aria-label="Estado operativo del portal"
+        className="p-status-strip mb-8"
+      >
+        {piezas.map((pieza) => {
+          const Icono = pieza.Icono
+
+          return (
+            <div
+              key={pieza.nombre}
+              className="p-status-item"
+              data-estado={
+                pieza.disponible ? "CONFIGURADO" : "NO_CONFIGURADO"
+              }
+            >
+              <span className="p-status-icon" aria-hidden="true">
+                <Icono size={15} />
+              </span>
+              <span className="p-status-name">{pieza.nombre}</span>
+              <StatusPill tone={pieza.disponible ? "mint" : "amber"}>
+                {pieza.disponible ? "Configurado" : "No configurado"}
+              </StatusPill>
+            </div>
+          )
+        })}
+
+        <div className="p-status-meta">
+          <StatusPill tone="violet">
+            <ShieldCheck size={12} aria-hidden="true" />
+            Aprobación manual · el envío se confirma aparte
+          </StatusPill>
+        </div>
+      </section>
 
       <div className="mb-8">
         <CupoDia
@@ -102,7 +204,39 @@ export default async function PropuestasDashboardPage() {
       <EstadoVacio
         titulo="Todavía no hay campañas"
         descripcion="Cuando crees la primera búsqueda vas a ver acá el estado de las campañas, la cola de revisión y el consumo del día."
+        accion={
+          <Link href="/propuestas/buscar" className="p-btn p-btn--primary">
+            Crear primera búsqueda
+            <ArrowRight size={15} aria-hidden="true" />
+          </Link>
+        }
       />
+
+      <Panel title="Atajos" className="mt-8">
+        <div className="p-shortcut-grid">
+          {ATAJOS.map((atajo) => {
+            const Icono = atajo.Icono
+
+            return (
+              <Link
+                key={atajo.href}
+                href={atajo.href}
+                className="p-shortcut"
+              >
+                <span className="p-shortcut-icon" aria-hidden="true">
+                  <Icono size={17} />
+                </span>
+                <span className="p-shortcut-copy">
+                  <span className="p-shortcut-title">{atajo.titulo}</span>
+                  <span className="p-shortcut-description">
+                    {atajo.descripcion}
+                  </span>
+                </span>
+              </Link>
+            )
+          })}
+        </div>
+      </Panel>
     </div>
   )
 }

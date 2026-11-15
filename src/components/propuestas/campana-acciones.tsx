@@ -229,7 +229,7 @@ export function CampanaAcciones({
     <section
       aria-label="Acciones de la campaña"
       aria-busy={ocupado}
-      className="rounded-xl border border-border bg-panel p-5"
+      className="p-action-panel"
     >
       <div className="flex flex-wrap items-center gap-3">
         {enBorrador && confirmando !== "EJECUTAR" && (

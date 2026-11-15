@@ -51,10 +51,10 @@ interface RespuestaApi {
   error?: unknown
 }
 
-const CLASE_AYUDA = "mt-1 text-xs leading-5 text-text-faint"
+const CLASE_AYUDA = "mt-1 text-xs leading-5 text-text-dim"
 const CLASE_ERROR = "mt-1 font-mono text-xs text-red-400"
 const CLASE_TEXTAREA =
-  "flex min-h-[110px] w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text font-mono placeholder:text-text-faint focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
+  "flex min-h-[110px] w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text font-mono placeholder:text-text-dim focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
 const CLASE_SELECT =
   "flex h-10 w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text font-mono focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
 
@@ -211,9 +211,9 @@ export function CampanaForm({ plantillas }: CampanaFormProps) {
         role="status"
         aria-live="polite"
         aria-label="Resultado de la creación de campaña"
-        className="max-w-[70ch] rounded-xl border border-border bg-panel p-6"
+        className="max-w-[70ch]"
       >
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-text-faint">
+        <p className="font-mono text-xs uppercase tracking-[0.18em] text-text-dim">
           {resultado.reutilizada ? "Campaña existente" : "Campaña creada"}
         </p>
         <h2 className="mt-2 font-display text-2xl font-semibold text-text">
@@ -229,7 +229,7 @@ export function CampanaForm({ plantillas }: CampanaFormProps) {
 
         <dl className="mt-5 grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border border-border bg-bg/40 p-3">
-            <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
+            <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-dim">
               ID
             </dt>
             <dd className="mt-1 break-all font-mono text-xs text-text">
@@ -237,7 +237,7 @@ export function CampanaForm({ plantillas }: CampanaFormProps) {
             </dd>
           </div>
           <div className="rounded-lg border border-border bg-bg/40 p-3">
-            <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
+            <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-dim">
               Estado
             </dt>
             <dd className="mt-1 font-mono text-xs text-text">
@@ -269,7 +269,7 @@ export function CampanaForm({ plantillas }: CampanaFormProps) {
       onSubmit={handleSubmit(onSubmit)}
       noValidate
       aria-busy={enviando}
-      className="max-w-[70ch] rounded-xl border border-border bg-panel p-6"
+      className="max-w-[70ch]"
     >
       {errorGeneral && (
         <div
@@ -344,7 +344,7 @@ export function CampanaForm({ plantillas }: CampanaFormProps) {
               htmlFor="campana-zona"
               className="block text-sm font-medium text-text"
             >
-              Zona <span className="text-text-faint">(opcional)</span>
+              Zona <span className="text-text-dim">(opcional)</span>
             </label>
             <Input
               id="campana-zona"
@@ -369,7 +369,7 @@ export function CampanaForm({ plantillas }: CampanaFormProps) {
               htmlFor="campana-rubro"
               className="block text-sm font-medium text-text"
             >
-              Rubro <span className="text-text-faint">(opcional)</span>
+              Rubro <span className="text-text-dim">(opcional)</span>
             </label>
             <Input
               id="campana-rubro"
@@ -430,7 +430,7 @@ export function CampanaForm({ plantillas }: CampanaFormProps) {
               htmlFor="campana-plantilla"
               className="block text-sm font-medium text-text"
             >
-              Plantilla <span className="text-text-faint">(opcional)</span>
+              Plantilla <span className="text-text-dim">(opcional)</span>
             </label>
             <select
               id="campana-plantilla"

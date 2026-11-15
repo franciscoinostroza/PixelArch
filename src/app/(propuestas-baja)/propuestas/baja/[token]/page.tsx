@@ -14,6 +14,9 @@ import { verificarTokenBaja } from "@/lib/propuestas/supresion"
  * - No consulta la base ni muestra email, nombre, prospecto o estado: la
  *   confirmacion real ocurre por POST en `/api/opt-out`.
  * - No muta nada por GET y no ofrece auto-POST: el boton es explicito.
+ *
+ * FASE 4b "PixelArch Console": misma estetica del portal en una tarjeta
+ * publica, sin shell admin ni datos adicionales.
  */
 
 export const dynamic = "force-dynamic"
@@ -40,35 +43,30 @@ export default async function BajaPropuestasPage({
   verificarTokenBaja(token, configPropuestas().secreto ?? "")
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-6 py-16 sm:py-24">
-      <section
-        aria-labelledby="baja-titulo"
-        className="rounded-2xl border border-border bg-panel p-6 sm:p-8"
-      >
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-text-faint">
-          PixelArch
-        </p>
-        <h1
-          id="baja-titulo"
-          className="mt-3 font-display text-3xl font-semibold text-text"
-        >
+    <main className="p-baja-main">
+      <section aria-labelledby="baja-titulo" className="p-baja-card">
+        <div className="p-baja-brand">
+          <span className="p-brand-mark" aria-hidden="true" />
+          <p className="p-eyebrow">PixelArch</p>
+        </div>
+
+        <h1 id="baja-titulo" className="p-title">
           Baja de propuestas
         </h1>
-        <p className="mt-3 max-w-[65ch] text-sm leading-6 text-text-dim">
+        <p className="p-description max-w-[65ch]">
           Si recibiste una propuesta de servicios de PixelArch y no querés
           recibir más mensajes, podés confirmar la baja acá. No necesitás cuenta
           ni iniciar sesión.
         </p>
 
-        <div
-          role="note"
-          className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm leading-6 text-text"
-        >
-          <p>
-            La baja es <strong>inmediata y global</strong> para la dirección
-            asociada a este enlace: bloquea futuros envíos de propuestas a esa
-            dirección. No hay período de espera.
-          </p>
+        <div role="note" className="p-banner p-banner--warn mt-5">
+          <div className="p-banner-body">
+            <p>
+              La baja es <strong>inmediata y global</strong> para la dirección
+              asociada a este enlace: bloquea futuros envíos de propuestas a esa
+              dirección. No hay período de espera.
+            </p>
+          </div>
         </div>
 
         <p className="mt-4 text-xs leading-5 text-text-dim">
@@ -81,7 +79,7 @@ export default async function BajaPropuestasPage({
         </div>
       </section>
 
-      <p className="mt-6 text-center text-xs leading-5 text-text-faint">
+      <p className="p-baja-foot">
         PixelArch · Desarrollo full-stack e infraestructura
       </p>
     </main>

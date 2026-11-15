@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { Globe2, Mail, ShieldOff, TriangleAlert } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import {
   CODIGO_ESQUEMA_NO_APLICADO,
@@ -6,6 +7,10 @@ import {
 } from "@/lib/propuestas/errores"
 import { formatearFechaHoraPortal } from "@/lib/propuestas/fechas"
 import { EstadoOperativo, EstadoVacio } from "@/components/propuestas/estado-vacio"
+import { PageHeader } from "@/components/propuestas/ui/page-header"
+import { Panel } from "@/components/propuestas/ui/panel"
+import { StatCard } from "@/components/propuestas/ui/stat-card"
+import { StatusPill } from "@/components/propuestas/ui/status-pill"
 import {
   SupresionForm,
   SupresionPurgarForm,
@@ -30,6 +35,10 @@ export const metadata: Metadata = {
  *   revocadas; no hay acciones masivas. Revocar y purgar no reabren prospectos
  *   ni envíos.
  * - Si el esquema no está aplicado, falla cerrado sin datos ni formularios.
+ *
+ * FASE 4b "PixelArch Console": cabecera común, resumen en StatCards y tarjetas
+ * de panel para cada supresión. El alta manual vive dentro de un panel; no se
+ * agregan acciones ni se modifica la lógica.
  */
 
 const ETIQUETAS_MOTIVO: Record<string, string> = {
@@ -106,126 +115,129 @@ export default async function SupresionesPage() {
 
   return (
     <div>
-      <header className="mb-8 max-w-[70ch]">
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-text-faint">
-          Portal interno
-        </p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-text">
-          Supresiones
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-text-dim">
-          Lista global de emails y dominios de negocio que no deben volver a
-          recibir propuestas. Se guarda un hash, un email enmascarado o el
-          dominio, con motivo, origen, fecha y estado. No se muestran datos del
-          CRM ni emails completos.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Portal interno"
+        title="Supresiones"
+        description="Lista global de emails y dominios de negocio que no deben volver a recibir propuestas. Se guarda un hash, un email enmascarado o el dominio, con motivo, origen, fecha y estado. No se muestran datos del CRM ni emails completos."
+      />
 
-      <section aria-label="Supresiones registradas" className="mb-10">
-        <h2 className="font-display text-xl font-semibold text-text">
+      <section aria-label="Supresiones registradas" className="mb-8">
+        <h2 className="mb-3 font-display text-xl font-semibold text-text">
           Registradas ({supresiones.length})
         </h2>
 
         {supresiones.length === 0 ? (
-          <div className="mt-3">
-            <EstadoVacio
-              titulo="Todavía no hay supresiones"
-              descripcion="Cuando registres una baja, un rebote duro, una queja o una supresión manual, va a aparecer acá con su motivo, origen y fecha."
-            />
-          </div>
+          <EstadoVacio
+            titulo="Todavía no hay supresiones"
+            descripcion="Cuando registres una baja, un rebote duro, una queja o una supresión manual, va a aparecer acá con su motivo, origen y fecha."
+          />
         ) : (
           <>
-            <p className="mt-2 text-sm text-text-dim">
+            <div className="p-stats-3">
+              <StatCard
+                label="Activas"
+                value={activas}
+                hint="Bloquean futuros envíos"
+                accent="mint"
+                icon={<ShieldOff size={18} aria-hidden="true" />}
+              />
+              <StatCard
+                label="Por email"
+                value={porEmail}
+                hint="Clave por hash HMAC"
+                accent="cyan"
+                icon={<Mail size={18} aria-hidden="true" />}
+              />
+              <StatCard
+                label="Por dominio"
+                value={porDominio}
+                hint="Dominios de negocio"
+                accent="violet"
+                icon={<Globe2 size={18} aria-hidden="true" />}
+              />
+            </div>
+
+            <p className="mt-3 text-sm text-text-dim">
               {activas} activas · {porEmail} por email · {porDominio} por
               dominio. La lista muestra hasta 200 registros, primero los
               activos.
             </p>
 
-            <ul className="mt-4 space-y-3">
+            <ul className="p-list mt-4">
               {supresiones.map((fila) => {
                 const etiqueta = etiquetaContacto(fila)
 
                 return (
-                  <li
-                    key={fila.id}
-                    className="rounded-xl border border-border bg-panel p-5"
-                  >
+                  <li key={fila.id} className="p-panel p-list-item">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h3 className="font-display text-lg font-semibold text-text">
+                        <p className="p-panel-eyebrow">
+                          {fila.ambito === "DOMINIO"
+                            ? "Dominio de negocio"
+                            : "Email"}
+                        </p>
+                        <h3 className="mt-1 font-display text-lg font-semibold text-text">
                           {etiqueta}
                         </h3>
                         <p className="mt-1 break-all font-mono text-xs text-text-dim">
                           {claveCorta(fila.clave)}
                         </p>
                       </div>
-                      <span
-                        className={`rounded-full border px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.12em] ${
-                          fila.activa
-                            ? "border-mint/30 bg-mint/5 text-mint"
-                            : "border-border bg-bg/40 text-text-dim"
-                        }`}
-                      >
+                      <StatusPill tone={fila.activa ? "mint" : "neutral"}>
                         {fila.activa ? "Activa" : "Revocada"}
-                      </span>
+                      </StatusPill>
                     </div>
 
-                    <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <dl className="p-meta-grid mt-4">
                       <div>
-                        <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                          Ámbito
-                        </dt>
-                        <dd className="mt-1 font-mono text-xs text-text">
+                        <dt className="p-detail-term">Ámbito</dt>
+                        <dd className="p-detail-value font-mono text-xs">
                           {fila.ambito}
                         </dd>
                       </div>
                       <div>
-                        <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                          Motivo
-                        </dt>
-                        <dd className="mt-1 text-sm text-text">
+                        <dt className="p-detail-term">Motivo</dt>
+                        <dd className="p-detail-value">
                           {ETIQUETAS_MOTIVO[fila.motivo] ?? fila.motivo}
                         </dd>
                       </div>
                       <div>
-                        <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                          Origen
-                        </dt>
-                        <dd className="mt-1 font-mono text-xs text-text">
+                        <dt className="p-detail-term">Origen</dt>
+                        <dd className="p-detail-value font-mono text-xs">
                           {fila.origen}
                         </dd>
                       </div>
                       <div>
-                        <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                          Registrada
-                        </dt>
-                        <dd className="mt-1 text-sm text-text">
+                        <dt className="p-detail-term">Registrada</dt>
+                        <dd className="p-detail-value">
                           {formatearFechaHoraPortal(fila.creadaEn)}
                         </dd>
                       </div>
                     </dl>
 
                     {fila.creadaPorNombre && (
-                      <p className="mt-3 text-xs text-text-faint">
+                      <p className="mt-3 text-xs text-text-dim">
                         Registrada por {fila.creadaPorNombre}
                       </p>
                     )}
 
                     {!fila.activa && (
                       <>
-                        <div className="mt-3 rounded-lg border border-border bg-bg/40 p-3 text-sm leading-6 text-text-dim">
-                          <p>
-                            Revocada{" "}
-                            {fila.revocadaEn
-                              ? formatearFechaHoraPortal(fila.revocadaEn)
-                              : "sin fecha"}
-                            .
-                          </p>
-                          {fila.motivoRevocacion && (
-                            <p className="mt-1">
-                              Motivo de la excepción: {fila.motivoRevocacion}
+                        <div className="p-banner mt-3">
+                          <div className="p-banner-body">
+                            <p>
+                              Revocada{" "}
+                              {fila.revocadaEn
+                                ? formatearFechaHoraPortal(fila.revocadaEn)
+                                : "sin fecha"}
+                              .
                             </p>
-                          )}
+                            {fila.motivoRevocacion && (
+                              <p className="mt-1">
+                                Motivo de la excepción: {fila.motivoRevocacion}
+                              </p>
+                            )}
+                          </div>
                         </div>
                         <SupresionPurgarForm id={fila.id} etiqueta={etiqueta} />
                       </>
@@ -242,25 +254,28 @@ export default async function SupresionesPage() {
         )}
       </section>
 
-      <p
-        role="note"
-        className="mb-10 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm leading-6 text-text"
-      >
-        La supresión es global y permanente hasta una excepción. Bloquea futuros
-        envíos aunque se borre el prospecto o la campaña, y la revocación no
-        reabre prospectos ni envíos: solo deja de bloquear al contacto. La purga
-        es una excepción administrativa que solo aplica a supresiones ya
-        revocadas; no hay acciones masivas desde esta página. El texto del
-        motivo de la purga no se guarda: solo queda un registro operativo sin
-        datos personales.
-      </p>
+      <div role="note" className="p-banner p-banner--warn mb-8">
+        <TriangleAlert
+          aria-hidden="true"
+          size={16}
+          className="p-banner-icon"
+        />
+        <div className="p-banner-body">
+          <p>
+            La supresión es global y permanente hasta una excepción. Bloquea
+            futuros envíos aunque se borre el prospecto o la campaña, y la
+            revocación no reabre prospectos ni envíos: solo deja de bloquear al
+            contacto. La purga es una excepción administrativa que solo aplica a
+            supresiones ya revocadas; no hay acciones masivas desde esta página.
+            El texto del motivo de la purga no se guarda: solo queda un registro
+            operativo sin datos personales.
+          </p>
+        </div>
+      </div>
 
-      <section aria-label="Alta manual de supresión">
-        <h2 className="mb-3 font-display text-xl font-semibold text-text">
-          Nueva supresión
-        </h2>
+      <Panel aria-label="Alta manual de supresión" title="Nueva supresión">
         <SupresionForm />
-      </section>
+      </Panel>
     </div>
   )
 }

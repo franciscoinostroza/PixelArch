@@ -90,14 +90,14 @@ interface Mensaje {
   texto: string
 }
 
-const CLASE_AYUDA = "mt-1 text-xs leading-5 text-text-faint"
+const CLASE_AYUDA = "mt-1 text-xs leading-5 text-text-dim"
 const CLASE_ERROR = "mt-1 font-mono text-xs text-red-400"
 const CLASE_TEXTAREA =
-  "flex min-h-[110px] w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text font-mono placeholder:text-text-faint focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
+  "flex min-h-[110px] w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text font-mono placeholder:text-text-dim focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet disabled:cursor-not-allowed disabled:opacity-50"
 const CLASE_MENSAJE =
-  "rounded-lg border p-3 text-sm leading-6 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
+  "p-banner rounded-lg border p-3 text-sm leading-6 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
 const CLASE_AVISO =
-  "rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs leading-5 text-text-dim"
+  "p-banner p-banner--warn rounded-lg p-3 text-xs leading-5 text-text-dim"
 
 const CAMPOS_FORMULARIO = new Set<string>([
   "nombreNegocio",
@@ -562,7 +562,10 @@ export function ProspectoFicha({
   const titulo = modo === "ALTA" ? "Alta manual" : "Corregir prospecto"
 
   return (
-    <section aria-label={titulo} className="rounded-xl border border-border bg-panel p-5">
+    <section
+      aria-label={titulo}
+      className="p-panel p-panel-body"
+    >
       <h3 className="font-display text-lg font-semibold text-text">{titulo}</h3>
       <p className="mt-1 text-sm leading-6 text-text-dim">
         {modo === "ALTA"
@@ -580,9 +583,7 @@ export function ProspectoFicha({
           tabIndex={-1}
           role={mensaje.tono === "ok" ? "status" : "alert"}
           className={`mt-4 ${CLASE_MENSAJE} ${
-            mensaje.tono === "ok"
-              ? "border-mint/30 bg-mint/5 text-text"
-              : "border-red-500/30 bg-red-500/10 text-red-300"
+            mensaje.tono === "ok" ? "p-banner--ok" : "p-banner--danger"
           }`}
         >
           {mensaje.texto}
@@ -595,7 +596,7 @@ export function ProspectoFicha({
         aria-busy={enviando}
         className="mt-4 space-y-5"
       >
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="p-form-grid">
           <Campo
             id={`${idBase}-nombre`}
             etiqueta="Nombre del negocio"
@@ -734,7 +735,7 @@ export function ProspectoFicha({
           />
         )}
 
-        <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+        <div className="p-form-actions border-t border-border pt-4">
           <Button type="submit" disabled={enviando}>
             {enviando && <Loader2 aria-hidden="true" className="animate-spin" />}
             {enviando
@@ -769,7 +770,7 @@ export function AltaProspecto({ campanaId }: { campanaId: string }) {
   return (
     <section
       aria-label="Alta manual de prospecto"
-      className="rounded-xl border border-border bg-panel p-5"
+      className="p-panel p-panel-body"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-[65ch]">
@@ -913,9 +914,7 @@ function DescarteProspecto({
           tabIndex={-1}
           role={mensaje.tono === "ok" ? "status" : "alert"}
           className={`${CLASE_MENSAJE} ${
-            mensaje.tono === "ok"
-              ? "border-mint/30 bg-mint/5 text-text"
-              : "border-red-500/30 bg-red-500/10 text-red-300"
+            mensaje.tono === "ok" ? "p-banner--ok" : "p-banner--danger"
           }`}
         >
           {mensaje.texto}
@@ -954,7 +953,7 @@ function DescarteProspecto({
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="p-form-actions">
         <Button
           type="submit"
           disabled={enviando}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { Inbox, Lock } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import {
   CODIGO_ESQUEMA_NO_APLICADO,
@@ -7,6 +8,9 @@ import {
 } from "@/lib/propuestas/errores"
 import { formatearFechaHoraPortal } from "@/lib/propuestas/fechas"
 import { EstadoOperativo } from "@/components/propuestas/estado-vacio"
+import { EmptyState } from "@/components/propuestas/ui/empty-state"
+import { PageHeader } from "@/components/propuestas/ui/page-header"
+import { StatusPill, type StatusTone } from "@/components/propuestas/ui/status-pill"
 
 export const dynamic = "force-dynamic"
 
@@ -22,6 +26,10 @@ export const metadata: Metadata = {
  * del prospecto (desc) y fecha. Es solo lectura: no hay aprobación, envío ni
  * acción en lote. Cada fila enlaza a la ficha del prospecto, no a datos
  * personales en la URL. Si el esquema no está aplicado, falla cerrado.
+ *
+ * FASE 3b "PixelArch Console": cabecera y estado vacío con primitivas,
+ * tarjetas de panel con score, metadatos y enlace de revisión. Sin botones ni
+ * acciones masivas.
  */
 
 const CLASE_ENLACE =
@@ -54,10 +62,8 @@ function cargarPendientes() {
   })
 }
 
-function colorEstado(estado: string): string {
-  return estado === "APROBADO"
-    ? "border-violet/30 bg-violet-soft text-text"
-    : "border-cyan/30 bg-cyan/5 text-cyan"
+function tonoEstado(estado: string): StatusTone {
+  return estado === "APROBADO" ? "violet" : "cyan"
 }
 
 export default async function BandejaPage() {
@@ -91,146 +97,128 @@ export default async function BandejaPage() {
 
   return (
     <div>
-      <header className="mb-8 max-w-[70ch]">
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-text-faint">
-          Portal interno
-        </p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-text">
-          Bandeja de borradores
-        </h1>
-        <p className="mt-2 text-sm leading-6 text-text-dim">
-          Borradores y envíos aprobados pendientes, priorizados por el score
-          del prospecto. Esta bandeja no aprueba ni envía: cada mensaje se
-          revisa en su ficha, uno por uno. No hay acciones masivas.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Portal interno"
+        title="Bandeja de borradores"
+        description="Borradores y envíos aprobados pendientes, priorizados por el score del prospecto. Esta bandeja no aprueba ni envía: cada mensaje se revisa en su ficha, uno por uno. No hay acciones masivas."
+      />
 
       {ordenados.length === 0 ? (
-        <section
+        <EmptyState
           role="status"
           aria-label="Bandeja vacía"
-          className="rounded-xl border border-border bg-panel p-8"
-        >
-          <h2 className="font-display text-2xl font-semibold text-text">
-            No hay borradores pendientes
-          </h2>
-          <p className="mt-2 max-w-[60ch] text-sm leading-6 text-text-dim">
-            Cuando generes un borrador desde la ficha de un prospecto, va a
-            aparecer acá hasta que lo apruebes o lo descartes.
-          </p>
-        </section>
+          icon={<Inbox size={20} aria-hidden="true" />}
+          title="No hay borradores pendientes"
+          description="Cuando generes un borrador desde la ficha de un prospecto, va a aparecer acá hasta que lo apruebes o lo descartes."
+        />
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-6">
           <p className="text-sm text-text-dim">
-            {borradores.length} en borrador · {aprobados.length} aprobados sin
-            enviar.
+            {`${borradores.length} en borrador · ${aprobados.length} aprobados sin enviar.`}
           </p>
 
-          <ul className="space-y-3">
-            {ordenados.map((envio) => (
-              <li
-                key={envio.id}
-                className="rounded-xl border border-border bg-panel p-5"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="font-display text-lg font-semibold text-text">
-                      <Link
-                        href={`/propuestas/prospectos/${encodeURIComponent(
-                          envio.prospecto.id,
-                        )}`}
-                        className={CLASE_ENLACE}
+          <ul className="p-list">
+            {ordenados.map((envio) => {
+              const score = envio.prospecto.score
+
+              return (
+                <li key={envio.id} className="p-panel p-list-item">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="font-display text-lg font-semibold text-text">
+                        <Link
+                          href={`/propuestas/prospectos/${encodeURIComponent(
+                            envio.prospecto.id,
+                          )}`}
+                          className={CLASE_ENLACE}
+                        >
+                          {envio.prospecto.nombreNegocio}
+                        </Link>
+                      </h2>
+                      <p className="mt-1 break-words text-sm leading-6 text-text-dim">
+                        {envio.asunto}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusPill tone={tonoEstado(envio.estado)}>
+                        {envio.estado}
+                      </StatusPill>
+                      <span
+                        className="p-score-chip"
+                        role="img"
+                        aria-label={
+                          score === null
+                            ? "Sin score"
+                            : `Score ${score} de 100`
+                        }
                       >
-                        {envio.prospecto.nombreNegocio}
-                      </Link>
-                    </h2>
-                    <p className="mt-1 break-words text-sm leading-6 text-text-dim">
-                      {envio.asunto}
-                    </p>
+                        {score === null ? "—" : `${score}/100`}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={`rounded-full border px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.12em] ${colorEstado(
-                        envio.estado,
+
+                  <dl className="p-meta-grid mt-4">
+                    <div>
+                      <dt className="p-detail-term">Campaña</dt>
+                      <dd className="p-detail-value">
+                        <Link
+                          href={`/propuestas/campanas/${encodeURIComponent(
+                            envio.campana.id,
+                          )}`}
+                          className={CLASE_ENLACE}
+                        >
+                          {envio.campana.nombre}
+                        </Link>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="p-detail-term">Prospecto</dt>
+                      <dd className="p-detail-value">
+                        {[envio.prospecto.rubro, envio.prospecto.ciudad]
+                          .filter((valor): valor is string => Boolean(valor))
+                          .join(" · ") || "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="p-detail-term">Mensaje</dt>
+                      <dd className="p-detail-value">
+                        <span className="p-code">{`secuencia ${envio.secuencia} · versión ${envio.version}`}</span>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="p-detail-term">Actualizado</dt>
+                      <dd className="p-detail-value">
+                        {formatearFechaHoraPortal(envio.actualizadoEn)}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <p className="mt-4">
+                    <Link
+                      href={`/propuestas/prospectos/${encodeURIComponent(
+                        envio.prospecto.id,
                       )}`}
+                      className="p-btn p-btn--ghost p-btn--sm"
                     >
-                      {envio.estado}
-                    </span>
-                    <span className="rounded-full border border-border bg-bg/40 px-3 py-1 font-mono text-[0.68rem] text-text-dim">
-                      score{" "}
-                      {envio.prospecto.score === null
-                        ? "—"
-                        : `${envio.prospecto.score}/100`}
-                    </span>
-                  </div>
-                </div>
-
-                <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <div>
-                    <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                      Campaña
-                    </dt>
-                    <dd className="mt-1 text-sm text-text">
-                      <Link
-                        href={`/propuestas/campanas/${encodeURIComponent(
-                          envio.campana.id,
-                        )}`}
-                        className={CLASE_ENLACE}
-                      >
-                        {envio.campana.nombre}
-                      </Link>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                      Prospecto
-                    </dt>
-                    <dd className="mt-1 text-sm text-text">
-                      {[envio.prospecto.rubro, envio.prospecto.ciudad]
-                        .filter((valor): valor is string => Boolean(valor))
-                        .join(" · ") || "—"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                      Mensaje
-                    </dt>
-                    <dd className="mt-1 font-mono text-xs text-text">
-                      secuencia {envio.secuencia} · versión {envio.version}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint">
-                      Actualizado
-                    </dt>
-                    <dd className="mt-1 text-sm text-text">
-                      {formatearFechaHoraPortal(envio.actualizadoEn)}
-                    </dd>
-                  </div>
-                </dl>
-
-                <p className="mt-4">
-                  <Link
-                    href={`/propuestas/prospectos/${encodeURIComponent(
-                      envio.prospecto.id,
-                    )}`}
-                    className="inline-flex rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-dim transition-colors hover:bg-white/5 hover:text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
-                  >
-                    Revisar en la ficha del prospecto
-                  </Link>
-                </p>
-              </li>
-            ))}
+                      Revisar en la ficha del prospecto
+                    </Link>
+                  </p>
+                </li>
+              )
+            })}
           </ul>
 
-          <p
-            role="note"
-            className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm leading-6 text-text"
-          >
-            La bandeja es solo lectura. No hay aprobación ni envío por lote:
-            cada mensaje se revisa y se aprueba desde su ficha, y el envío
-            sigue siendo una confirmación separada.
-          </p>
+          <div role="note" className="p-banner p-banner--warn">
+            <Lock aria-hidden="true" size={16} className="p-banner-icon" />
+            <div className="p-banner-body">
+              <p className="p-banner-title">La bandeja es solo lectura.</p>
+              <p className="mt-1">
+                No hay aprobación ni envío por lote: cada mensaje se revisa y
+                se aprueba desde su ficha, y el envío sigue siendo una
+                confirmación separada.
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>

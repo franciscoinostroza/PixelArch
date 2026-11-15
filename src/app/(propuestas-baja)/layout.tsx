@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import "../(propuestas)/propuestas.css"
 
 /**
  * T-19 (AC-33, AC-34, AC-35; RF-51, RF-52, RF-56): layout minimo de la baja
@@ -7,6 +8,9 @@ import type { Metadata } from "next"
  * Vive en un route group propio, fuera de `(propuestas)`, para no heredar el
  * guard admin ni el shell del portal. No importa Clerk, Prisma ni componentes
  * del CRM: la baja debe funcionar sin sesion y sin revelar datos.
+ *
+ * FASE 4b "PixelArch Console": comparte la hoja visual del portal (`p-portal`)
+ * con una variante publica `p-baja`, sin sidebar ni navegacion del admin.
  */
 
 export const dynamic = "force-dynamic"
@@ -23,5 +27,5 @@ export default function BajaPropuestasLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <div className="flex min-h-svh flex-col bg-bg text-text">{children}</div>
+  return <div className="p-portal p-baja">{children}</div>
 }

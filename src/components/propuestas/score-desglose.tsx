@@ -7,6 +7,8 @@
  * que no hay desglose disponible.
  */
 
+import { Panel } from "@/components/propuestas/ui/panel"
+
 interface ScoreDesgloseProps {
   score: number | null
   detalle: unknown
@@ -21,7 +23,7 @@ interface ComponenteVista {
 }
 
 const CLASE_DEFINICION =
-  "font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint"
+  "font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-dim"
 
 function esObjeto(valor: unknown): valor is Record<string, unknown> {
   return typeof valor === "object" && valor !== null && !Array.isArray(valor)
@@ -85,26 +87,22 @@ export function ScoreDesglose({ score, detalle }: ScoreDesgloseProps) {
   const componentes = componentesDe(detalle)
 
   return (
-    <section
+    <Panel
       aria-label="Score del prospecto y motivos"
-      className="rounded-xl border border-border bg-panel p-5"
+      title="Score y motivos"
     >
-      <h2 className="font-display text-xl font-semibold text-text">
-        Score y motivos
-      </h2>
-
       {total === null ? (
-        <p role="status" className="mt-3 text-sm leading-6 text-text-dim">
+        <p role="status" className="text-sm leading-6 text-text-dim">
           Todavía no hay un score calculado para este prospecto. Se calcula al
           analizar la web y queda explicado por componentes.
         </p>
       ) : (
-        <p className="mt-3 flex flex-wrap items-baseline gap-2">
+        <p className="flex flex-wrap items-baseline gap-2">
           <span className={CLASE_DEFINICION}>Total</span>
           <strong className="font-display text-3xl font-semibold text-text">
             {total}
           </strong>
-          <span className="font-mono text-xs text-text-faint">/ 100</span>
+          <span className="font-mono text-xs text-text-dim">/ 100</span>
         </p>
       )}
 
@@ -115,38 +113,66 @@ export function ScoreDesglose({ score, detalle }: ScoreDesgloseProps) {
           </p>
         )
       ) : (
-        <ul className="mt-5 space-y-4">
-          {componentes.map((componente) => (
-            <li
-              key={componente.clave}
-              className="rounded-lg border border-border bg-bg/40 p-4"
-            >
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="text-sm font-medium text-text">
-                  {componente.etiqueta}
-                </h3>
-                <span className="font-mono text-xs text-text-dim">
-                  {componente.puntos}/{componente.maximo} puntos
-                </span>
-              </div>
+        <ul className="p-score-list">
+          {componentes.map((componente) => {
+            const porcentaje =
+              componente.maximo > 0
+                ? Math.min(
+                    100,
+                    Math.round((componente.puntos / componente.maximo) * 100),
+                  )
+                : 0
+            // Defensa contra un JSON manipulado: un progressbar con
+            // valuenow > valuemax (o valuemax 0) es invalido.
+            const ariaMax = Math.max(1, componente.maximo)
+            const ariaNow = Math.min(
+              Math.max(0, componente.puntos),
+              componente.maximo,
+            )
 
-              {componente.motivos.length > 0 ? (
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-text-dim">
-                  {componente.motivos.map((motivo, indice) => (
-                    <li key={`${componente.clave}-motivo-${indice}`}>
-                      {motivo}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-2 text-sm leading-6 text-text-faint">
-                  Sin motivos registrados para este componente.
-                </p>
-              )}
-            </li>
-          ))}
+            return (
+              <li key={componente.clave} className="p-score-item">
+                <div className="p-score-head">
+                  <h3 className="text-sm font-medium text-text">
+                    {componente.etiqueta}
+                  </h3>
+                  <span className="p-score-points">
+                    {componente.puntos}/{componente.maximo} puntos
+                  </span>
+                </div>
+
+                <div
+                  className="p-progress"
+                  role="progressbar"
+                  aria-label={`${componente.etiqueta}: ${componente.puntos} de ${componente.maximo} puntos`}
+                  aria-valuemin={0}
+                  aria-valuemax={ariaMax}
+                  aria-valuenow={ariaNow}
+                >
+                  <div
+                    className="p-progress-fill"
+                    style={{ width: `${porcentaje}%` }}
+                  />
+                </div>
+
+                {componente.motivos.length > 0 ? (
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-text-dim">
+                    {componente.motivos.map((motivo, indice) => (
+                      <li key={`${componente.clave}-motivo-${indice}`}>
+                        {motivo}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-sm leading-6 text-text-dim">
+                    Sin motivos registrados para este componente.
+                  </p>
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
-    </section>
+    </Panel>
   )
 }

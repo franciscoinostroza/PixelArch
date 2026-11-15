@@ -1,8 +1,17 @@
 import Link from "next/link"
+import {
+  Gauge,
+  Globe,
+  Mail,
+  MapPin,
+  PenLine,
+  type LucideIcon,
+} from "lucide-react"
 
 import { formatearMonto } from "@/lib/pagos"
 import type { ProveedorConsumoCupo } from "@/lib/propuestas/consumo"
 import { formatearFechaPortal } from "@/lib/propuestas/fechas"
+import { StatusPill, type StatusTone } from "@/components/propuestas/ui/status-pill"
 
 /**
  * T-21 (AC-38, AC-39; RF-57, RF-58): medidor de cupos y consumo del dia.
@@ -15,6 +24,9 @@ import { formatearFechaPortal } from "@/lib/propuestas/fechas"
  * Resend, secreto o cap <= 0) muestra "No configurado" sin inventar numeros.
  *
  * No hay cola: el texto y el enlace a supresiones lo recuerdan.
+ *
+ * FASE 2 "PixelArch Console": panel, filas con icono y barra de progreso
+ * (`p-progress`). Conserva roles, atributos ARIA, `data-estado` y textos.
  */
 
 export interface FilaCupoDia {
@@ -74,9 +86,13 @@ const UNIDADES: Record<ProveedorConsumoCupo, string> = {
   RESEND: "envíos",
 }
 
-const CLASE_DEFINICION =
-  "font-mono text-[0.68rem] uppercase tracking-[0.14em] text-text-faint"
-const CLASE_TARJETA = "rounded-lg border border-border bg-bg/40 p-3"
+const ICONOS: Record<ProveedorConsumoCupo, LucideIcon> = {
+  GOOGLE_PLACES: MapPin,
+  WEB_FETCH: Globe,
+  AUDITORIA: Gauge,
+  REDACTOR: PenLine,
+  RESEND: Mail,
+}
 
 function motivoNoConfigurado(
   proveedor: ProveedorConsumoCupo,
@@ -95,10 +111,10 @@ function motivoNoConfigurado(
   return null
 }
 
-function colorBarra(bloqueado: boolean, alerta: boolean): string {
-  if (bloqueado) return "bg-red-400"
-  if (alerta) return "bg-amber-400"
-  return "bg-cyan"
+function tonoBarra(bloqueado: boolean, alerta: boolean): string {
+  if (bloqueado) return "bloqueado"
+  if (alerta) return "alerta"
+  return "ok"
 }
 
 function BarraCupo({
@@ -116,6 +132,7 @@ function BarraCupo({
 }) {
   const porcentaje =
     cap > 0 ? Math.min(100, Math.max(0, Math.round((usado / cap) * 100))) : 0
+  const tono = tonoBarra(bloqueado, alerta)
 
   return (
     <div
@@ -125,13 +142,10 @@ function BarraCupo({
       aria-valuemax={cap}
       aria-valuenow={Math.min(usado, cap)}
       aria-valuetext={`${usado} de ${cap} usados`}
-      className="mt-2 h-2 w-full overflow-hidden rounded-full bg-bg/60"
+      className="p-progress"
     >
       <div
-        className={`h-full rounded-full transition-[width] ${colorBarra(
-          bloqueado,
-          alerta,
-        )}`}
+        className={`p-progress-fill p-progress-fill--${tono}`}
         style={{ width: `${porcentaje}%` }}
       />
     </div>
@@ -147,6 +161,7 @@ function FilaCupoDia({
 }) {
   const etiqueta = ETIQUETAS[fila.proveedor]
   const unidad = UNIDADES[fila.proveedor]
+  const Icono = ICONOS[fila.proveedor]
   const motivo = motivoNoConfigurado(fila.proveedor, fila.cap, disponibilidad)
 
   if (motivo !== null) {
@@ -154,15 +169,18 @@ function FilaCupoDia({
       <li
         data-estado="NO_CONFIGURADO"
         aria-label={`${etiqueta}: no configurado`}
-        className={CLASE_TARJETA}
+        className="p-quota-row"
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-medium text-text">{etiqueta}</p>
-          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-[0.1em] text-amber-300">
-            No configurado
-          </span>
+        <span className="p-quota-icon" aria-hidden="true">
+          <Icono size={16} />
+        </span>
+        <div className="p-quota-main">
+          <div className="p-quota-head">
+            <p className="p-quota-label">{etiqueta}</p>
+            <StatusPill tone="amber">No configurado</StatusPill>
+          </div>
+          <p className="p-quota-note">{motivo}</p>
         </div>
-        <p className="mt-1 text-xs leading-5 text-text-dim">{motivo}</p>
       </li>
     )
   }
@@ -175,60 +193,58 @@ function FilaCupoDia({
     : fila.alerta
       ? "Aviso 80%"
       : "Dentro del cupo"
-  const claseEstado = bloqueado
-    ? "border-red-500/30 bg-red-500/10 text-red-300"
-    : fila.alerta
-      ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
-      : "border-mint/30 bg-mint/5 text-mint"
+  const tono: StatusTone = bloqueado ? "red" : fila.alerta ? "amber" : "mint"
 
   return (
     <li
       data-estado={estado}
       aria-label={`${etiqueta}: ${fila.usado} de ${fila.cap} ${unidad}`}
-      className={CLASE_TARJETA}
+      className="p-quota-row"
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-sm font-medium text-text">{etiqueta}</p>
-        <span
-          className={`rounded-full border px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-[0.1em] ${claseEstado}`}
-        >
-          {textoEstado}
-        </span>
+      <span className="p-quota-icon" aria-hidden="true">
+        <Icono size={16} />
+      </span>
+
+      <div className="p-quota-main">
+        <div className="p-quota-head">
+          <p className="p-quota-label">{etiqueta}</p>
+          <StatusPill tone={tono}>{textoEstado}</StatusPill>
+        </div>
+
+        <dl className="p-quota-stats">
+          <div className="p-quota-stat">
+            <dt>Usado hoy</dt>
+            <dd>
+              {fila.usado} / {fila.cap}
+            </dd>
+          </div>
+          <div className="p-quota-stat">
+            <dt>Restante</dt>
+            <dd>{fila.restante}</dd>
+          </div>
+          <div className="p-quota-stat">
+            <dt>{unidad}</dt>
+            <dd>del día</dd>
+          </div>
+        </dl>
+
+        <BarraCupo
+          etiqueta={etiqueta}
+          usado={fila.usado}
+          cap={fila.cap}
+          bloqueado={bloqueado}
+          alerta={fila.alerta}
+        />
+
+        <p className="p-quota-cost">
+          Costo estimado:{" "}
+          <span className="p-quota-cost-value">
+            {fila.costoCentavos > 0
+              ? formatearMonto(fila.costoCentavos, "usd")
+              : "sin costo estimado"}
+          </span>
+        </p>
       </div>
-
-      <dl className="mt-2 grid grid-cols-3 gap-2 text-xs">
-        <div>
-          <dt className={CLASE_DEFINICION}>Usado hoy</dt>
-          <dd className="mt-0.5 text-sm font-semibold text-text">
-            {fila.usado} / {fila.cap}
-          </dd>
-        </div>
-        <div>
-          <dt className={CLASE_DEFINICION}>Restante</dt>
-          <dd className="mt-0.5 text-sm text-text">{fila.restante}</dd>
-        </div>
-        <div>
-          <dt className={CLASE_DEFINICION}>{unidad}</dt>
-          <dd className="mt-0.5 text-sm text-text-dim">del día</dd>
-        </div>
-      </dl>
-
-      <BarraCupo
-        etiqueta={etiqueta}
-        usado={fila.usado}
-        cap={fila.cap}
-        bloqueado={bloqueado}
-        alerta={fila.alerta}
-      />
-
-      <p className="mt-2 text-xs leading-5 text-text-dim">
-        Costo estimado:{" "}
-        <span className="text-text">
-          {fila.costoCentavos > 0
-            ? formatearMonto(fila.costoCentavos, "usd")
-            : "sin costo estimado"}
-        </span>
-      </p>
     </li>
   )
 }
@@ -236,7 +252,7 @@ function FilaCupoDia({
 function PresupuestoMensual({ estado }: { estado: EstadoCupoDia }) {
   if (estado.presupuestoMensualCentavos <= 0) {
     return (
-      <p className="mt-4 text-xs leading-5 text-text-dim">
+      <p className="p-quota-note p-quota-budget-empty">
         Sin presupuesto mensual configurado. El tope duro por proveedor/día
         sigue aplicando.
       </p>
@@ -245,7 +261,7 @@ function PresupuestoMensual({ estado }: { estado: EstadoCupoDia }) {
 
   if (estado.gastadoMesCentavos === null) {
     return (
-      <p className="mt-4 text-xs leading-5 text-text-dim">
+      <p className="p-quota-note p-quota-budget-empty">
         Presupuesto mensual global configurado; no hay dato de gasto del mes.
       </p>
     )
@@ -268,29 +284,19 @@ function PresupuestoMensual({ estado }: { estado: EstadoCupoDia }) {
     : alerta
       ? "Aviso 80%"
       : "Dentro del presupuesto"
-  const claseEstado = bloqueado
-    ? "border-red-500/30 bg-red-500/10 text-red-300"
-    : alerta
-      ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
-      : "border-mint/30 bg-mint/5 text-mint"
+  const tono: StatusTone = bloqueado ? "red" : alerta ? "amber" : "mint"
 
   return (
     <div
       data-estado={estadoTexto}
       aria-label="Presupuesto mensual global"
-      className={`mt-4 ${CLASE_TARJETA}`}
+      className="p-quota-budget"
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-sm font-medium text-text">
-          Presupuesto mensual global
-        </p>
-        <span
-          className={`rounded-full border px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-[0.1em] ${claseEstado}`}
-        >
-          {textoEstado}
-        </span>
+      <div className="p-quota-head">
+        <p className="p-quota-label">Presupuesto mensual global</p>
+        <StatusPill tone={tono}>{textoEstado}</StatusPill>
       </div>
-      <p className="mt-1 text-xs leading-5 text-text-dim">
+      <p className="p-quota-note">
         Gastado {formatearMonto(gastado, "usd")} de{" "}
         {formatearMonto(presupuesto, "usd")} · restante{" "}
         {formatearMonto(restante, "usd")}
@@ -338,81 +344,79 @@ export function CupoDia({
     <section
       aria-label={titulo}
       data-variante={variante}
-      className={
-        compacto
-          ? "rounded-xl border border-border bg-panel p-4"
-          : "rounded-xl border border-border bg-panel p-5"
-      }
+      className="p-panel"
     >
-      <header>
-        <Titulo className="font-display text-xl font-semibold text-text">
-          {titulo}
-        </Titulo>
-        <p className="mt-1 text-xs leading-5 text-text-dim">
-          Solo lectura ·{" "}
-          <time dateTime={estado.fecha.toISOString()}>
-            {formatearFechaPortal(estado.fecha)}
-          </time>{" "}
-          · total estimado:{" "}
-          <span className="text-text">
-            {estado.totalCostoCentavos > 0
-              ? formatearMonto(estado.totalCostoCentavos, "usd")
-              : "sin costo estimado"}
-          </span>
-        </p>
-      </header>
+      <div className="p-panel-head">
+        <div className="p-panel-heading">
+          <Titulo className="p-panel-title">{titulo}</Titulo>
+          <p className="p-panel-description">
+            Solo lectura ·{" "}
+            <time dateTime={estado.fecha.toISOString()}>
+              {formatearFechaPortal(estado.fecha)}
+            </time>{" "}
+            · total estimado:{" "}
+            <span className="p-quota-total">
+              {estado.totalCostoCentavos > 0
+                ? formatearMonto(estado.totalCostoCentavos, "usd")
+                : "sin costo estimado"}
+            </span>
+          </p>
+        </div>
+      </div>
 
-      {faltantes.length > 0 && (
-        <div
-          role="status"
-          aria-label="Configuración de cupos"
-          data-estado="NO_CONFIGURADO"
-          className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3"
-        >
-          <p className="font-mono text-[0.65rem] uppercase tracking-[0.1em] text-amber-300">
-            Estado operativo: no configurado
+      <div className="p-panel-body">
+        {faltantes.length > 0 && (
+          <div
+            role="status"
+            aria-label="Configuración de cupos"
+            data-estado="NO_CONFIGURADO"
+            className="p-banner p-banner--warn p-quota-alert"
+          >
+            <div className="p-banner-body">
+              <p className="p-banner-title">
+                Estado operativo: no configurado
+              </p>
+              <p className="p-quota-note">
+                Faltan piezas para operar con cupos completos:
+              </p>
+              <ul className="p-quota-missing">
+                {faltantes.map((motivo) => (
+                  <li key={motivo}>{motivo}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {filas.length === 0 ? (
+          <p role="status" className="p-quota-note">
+            No hay proveedores para mostrar en este ámbito.
           </p>
-          <p className="mt-1 text-xs leading-5 text-text-dim">
-            Faltan piezas para operar con cupos completos:
-          </p>
-          <ul className="mt-1 list-disc space-y-1 pl-4 text-xs leading-5 text-text-dim">
-            {faltantes.map((motivo) => (
-              <li key={motivo}>{motivo}</li>
+        ) : (
+          <ul className="p-quota-list">
+            {filas.map((fila) => (
+              <FilaCupoDia
+                key={fila.proveedor}
+                fila={fila}
+                disponibilidad={disponibilidad}
+              />
             ))}
           </ul>
-        </div>
-      )}
+        )}
 
-      {filas.length === 0 ? (
-        <p role="status" className="mt-4 text-sm text-text-dim">
-          No hay proveedores para mostrar en este ámbito.
-        </p>
-      ) : (
-        <ul className="mt-4 space-y-3">
-          {filas.map((fila) => (
-            <FilaCupoDia
-              key={fila.proveedor}
-              fila={fila}
-              disponibilidad={disponibilidad}
-            />
-          ))}
-        </ul>
-      )}
+        {mostrarPresupuesto && <PresupuestoMensual estado={estado} />}
 
-      {mostrarPresupuesto && <PresupuestoMensual estado={estado} />}
-
-      {mostrarPie && (
-        <p className="mt-4 text-xs leading-5 text-text-dim">
-          No hay cola automática ni sobreconsumo: al 100% la acción se bloquea.{" "}
-          <Link
-            href="/propuestas/supresiones"
-            className="underline underline-offset-4 hover:text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet"
-          >
-            Ver supresiones
-          </Link>
-          .
-        </p>
-      )}
+        {mostrarPie && (
+          <p className="p-quota-foot">
+            No hay cola automática ni sobreconsumo: al 100% la acción se
+            bloquea.{" "}
+            <Link href="/propuestas/supresiones" className="p-quota-link">
+              Ver supresiones
+            </Link>
+            .
+          </p>
+        )}
+      </div>
     </section>
   )
 }

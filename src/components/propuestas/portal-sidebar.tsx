@@ -10,6 +10,7 @@ import {
   FileText,
   Inbox,
   LayoutDashboard,
+  Megaphone,
   Menu,
   Search,
   Send,
@@ -28,6 +29,12 @@ interface SeccionPortal {
 
 const SECCIONES: readonly SeccionPortal[] = [
   { href: "/propuestas", label: "Panel", exacta: true, Icono: LayoutDashboard },
+  {
+    href: "/propuestas/campanas",
+    label: "Campañas",
+    exacta: false,
+    Icono: Megaphone,
+  },
   { href: "/propuestas/buscar", label: "Buscar", exacta: false, Icono: Search },
   { href: "/propuestas/bandeja", label: "Bandeja", exacta: false, Icono: Inbox },
   {

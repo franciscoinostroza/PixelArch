@@ -31,10 +31,14 @@ const mocks = vi.hoisted(() => ({
   plantillaFindMany: vi.fn(),
   plantillaFindUnique: vi.fn(),
   campanaFindUnique: vi.fn(),
+  campanaFindMany: vi.fn(),
+  campanaCount: vi.fn(),
   prospectoFindUnique: vi.fn(),
   prospectoFindFirst: vi.fn(),
+  prospectoCount: vi.fn(),
   envioFindFirst: vi.fn(),
   envioFindMany: vi.fn(),
+  envioCount: vi.fn(),
   supresionFindMany: vi.fn(),
   consumoFindMany: vi.fn(),
   consumoUpsert: vi.fn(),
@@ -53,14 +57,20 @@ vi.mock("@/lib/prisma", () => ({
       findMany: mocks.plantillaFindMany,
       findUnique: mocks.plantillaFindUnique,
     },
-    campanaProspeccion: { findUnique: mocks.campanaFindUnique },
+    campanaProspeccion: {
+      findUnique: mocks.campanaFindUnique,
+      findMany: mocks.campanaFindMany,
+      count: mocks.campanaCount,
+    },
     prospecto: {
       findUnique: mocks.prospectoFindUnique,
       findFirst: mocks.prospectoFindFirst,
+      count: mocks.prospectoCount,
     },
     envioPropuesta: {
       findFirst: mocks.envioFindFirst,
       findMany: mocks.envioFindMany,
+      count: mocks.envioCount,
     },
     supresionProspecto: { findMany: mocks.supresionFindMany },
     consumoProveedor: {
@@ -93,6 +103,10 @@ vi.mock("next/cache", () => ({ unstable_noStore: vi.fn() }))
 import PropuestasDashboardPage, {
   metadata,
 } from "@/app/(propuestas)/propuestas/page"
+import CampanasPage, {
+  dynamic as dynamicCampanas,
+  metadata as metadataCampanas,
+} from "@/app/(propuestas)/propuestas/campanas/page"
 import BuscarProspectosPage, {
   metadata as metadataBuscar,
 } from "@/app/(propuestas)/propuestas/buscar/page"
@@ -183,10 +197,14 @@ beforeEach(() => {
   mocks.plantillaFindMany.mockResolvedValue([])
   mocks.plantillaFindUnique.mockResolvedValue(null)
   mocks.campanaFindUnique.mockResolvedValue(null)
+  mocks.campanaFindMany.mockResolvedValue([])
+  mocks.campanaCount.mockResolvedValue(0)
   mocks.prospectoFindUnique.mockResolvedValue(null)
   mocks.prospectoFindFirst.mockResolvedValue(null)
+  mocks.prospectoCount.mockResolvedValue(0)
   mocks.envioFindFirst.mockResolvedValue(null)
   mocks.envioFindMany.mockResolvedValue([])
+  mocks.envioCount.mockResolvedValue(0)
   mocks.supresionFindMany.mockResolvedValue([])
   mocks.consumoFindMany.mockResolvedValue([])
 })
@@ -423,6 +441,7 @@ describe("shell del portal (AC-3, RNF-7)", () => {
     ).toBeInTheDocument()
     for (const nombre of [
       "Panel",
+      "Campañas",
       "Buscar",
       "Bandeja",
       "Plantillas",
@@ -495,6 +514,44 @@ describe("shell del portal (AC-3, RNF-7)", () => {
       "aria-current",
     )
   })
+
+  it("T-28: enlaza Campañas y la marca activa en el listado", () => {
+    mocks.pathname = "/propuestas/campanas"
+
+    render(
+      <PortalShell admin={{ userId: "user_1", nombre: "Ana Perez" }}>
+        <div>contenido</div>
+      </PortalShell>,
+    )
+
+    const campanas = screen.getByRole("link", { name: "Campañas" })
+    expect(campanas).toHaveAttribute("href", "/propuestas/campanas")
+    expect(campanas).toHaveAttribute("aria-current", "page")
+    expect(screen.getByRole("link", { name: "Panel" })).not.toHaveAttribute(
+      "aria-current",
+    )
+    expect(screen.getByRole("link", { name: "Buscar" })).not.toHaveAttribute(
+      "aria-current",
+    )
+  })
+
+  it("T-28: Campañas sigue activa en el detalle de una campaña", () => {
+    mocks.pathname = "/propuestas/campanas/camp_1"
+
+    render(
+      <PortalShell admin={{ userId: "user_1", nombre: "Ana Perez" }}>
+        <div>contenido</div>
+      </PortalShell>,
+    )
+
+    expect(screen.getByRole("link", { name: "Campañas" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    )
+    expect(screen.getByRole("link", { name: "Panel" })).not.toHaveAttribute(
+      "aria-current",
+    )
+  })
 })
 
 describe("fechas de UI del portal (AC-5)", () => {
@@ -508,6 +565,378 @@ describe("fechas de UI del portal (AC-5)", () => {
     expect(
       formatearFechaHoraPortal(new Date("2026-11-10T15:30:00.000Z")),
     ).toContain("12:30")
+  })
+})
+
+/* ------------------------------------------------------------------ */
+/* T-28 (AC-46..AC-50): listado de campanas y dashboard operativo      */
+/* ------------------------------------------------------------------ */
+
+interface CampanaListadoFixture {
+  id: string
+  nombre: string
+  consulta: string
+  zona: string | null
+  rubro: string | null
+  estado: string
+  creadoEn: Date
+  actualizadoEn: Date
+  _count: { prospectos: number }
+}
+
+function campanaListadoFixture(
+  overrides: Partial<CampanaListadoFixture> = {},
+): CampanaListadoFixture {
+  return {
+    id: "camp_1",
+    nombre: "Estudios contables Palermo",
+    consulta: "estudios contables en Palermo, CABA",
+    zona: "Palermo, CABA",
+    rubro: "Contabilidad",
+    estado: "COMPLETADA",
+    creadoEn: new Date("2026-11-10T12:00:00.000Z"),
+    actualizadoEn: new Date("2026-11-10T12:05:00.000Z"),
+    _count: { prospectos: 7 },
+    ...overrides,
+  }
+}
+
+interface EnvioDashboardFixture {
+  id: string
+  estado: string
+  asunto: string
+  actualizadoEn: Date
+  prospecto: {
+    id: string
+    nombreNegocio: string
+    score: number | null
+  }
+}
+
+function envioDashboardFixture(
+  overrides: Partial<EnvioDashboardFixture> = {},
+): EnvioDashboardFixture {
+  return {
+    id: "env_1",
+    estado: "BORRADOR",
+    asunto: "Propuesta para Consultora Alfa",
+    actualizadoEn: new Date("2026-11-12T12:00:00.000Z"),
+    prospecto: {
+      id: "pros_1",
+      nombreNegocio: "Consultora Alfa",
+      score: 88,
+    },
+    ...overrides,
+  }
+}
+
+describe("/propuestas/campanas (T-28, AC-46)", () => {
+  it("lista campanas con estado, alcance, prospectos y enlace al detalle", async () => {
+    mocks.campanaFindMany.mockResolvedValue([
+      campanaListadoFixture(),
+      campanaListadoFixture({
+        id: "camp_2",
+        nombre: "Clínicas Córdoba",
+        consulta: "clínicas en Córdoba",
+        zona: null,
+        rubro: null,
+        estado: "EN_CURSO",
+        creadoEn: new Date("2026-11-08T12:00:00.000Z"),
+        _count: { prospectos: 0 },
+      }),
+    ])
+
+    render(await CampanasPage())
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Campañas" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: /nueva campaña/i }),
+    ).toHaveAttribute("href", "/propuestas/buscar")
+
+    const tabla = screen.getByRole("table", {
+      name: /campañas de prospección del portal/i,
+    })
+    const filas = within(tabla).getAllByRole("row")
+
+    expect(
+      within(filas[1]).getByRole("link", {
+        name: "Estudios contables Palermo",
+      }),
+    ).toHaveAttribute("href", "/propuestas/campanas/camp_1")
+    expect(within(filas[1]).getByText("COMPLETADA")).toBeInTheDocument()
+    expect(
+      within(filas[1]).getByText("estudios contables en Palermo, CABA"),
+    ).toBeInTheDocument()
+    expect(within(filas[1]).getByText("Palermo, CABA")).toBeInTheDocument()
+    expect(within(filas[1]).getByText("Contabilidad")).toBeInTheDocument()
+    expect(within(filas[1]).getByText("7")).toBeInTheDocument()
+
+    expect(
+      within(filas[2]).getByRole("link", { name: "Clínicas Córdoba" }),
+    ).toHaveAttribute("href", "/propuestas/campanas/camp_2")
+    expect(within(filas[2]).getByText("EN_CURSO")).toBeInTheDocument()
+    expect(within(filas[2]).getAllByText("—")).toHaveLength(2)
+    expect(within(filas[2]).getByText("0")).toBeInTheDocument()
+
+    expect(mocks.campanaFindMany).toHaveBeenCalledWith({
+      select: {
+        id: true,
+        nombre: true,
+        consulta: true,
+        zona: true,
+        rubro: true,
+        estado: true,
+        creadoEn: true,
+        actualizadoEn: true,
+        _count: { select: { prospectos: true } },
+      },
+      orderBy: { creadoEn: "desc" },
+      take: 100,
+    })
+  })
+
+  it("muestra el estado vacio con CTA a /propuestas/buscar", async () => {
+    mocks.campanaFindMany.mockResolvedValue([])
+
+    render(await CampanasPage())
+
+    expect(
+      screen.getByRole("heading", { name: /todavía no hay campañas/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: /crear primera campaña/i }),
+    ).toHaveAttribute("href", "/propuestas/buscar")
+    expect(screen.queryByRole("table")).not.toBeInTheDocument()
+  })
+
+  it("con el esquema faltante falla cerrado sin datos", async () => {
+    mocks.campanaFindMany.mockRejectedValue({ code: "P2021" })
+
+    render(await CampanasPage())
+
+    expect(screen.getByRole("alert")).toHaveAttribute(
+      "data-estado",
+      CODIGO_ESQUEMA_NO_APLICADO,
+    )
+    expect(screen.queryByRole("table")).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("link", { name: /nueva campaña/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("no oculta errores que no son de esquema", async () => {
+    mocks.campanaFindMany.mockRejectedValue(new Error("base caida"))
+
+    await expect(CampanasPage()).rejects.toThrow("base caida")
+  })
+
+  it("publica metadata noindex/nofollow y fuerza datos dinamicos", () => {
+    expect(metadataCampanas.robots).toEqual({ index: false, follow: false })
+    expect(dynamicCampanas).toBe("force-dynamic")
+  })
+})
+
+describe("T-28: dashboard operativo (AC-48, AC-49)", () => {
+  function prepararDatos(): void {
+    mocks.queryRaw.mockResolvedValue([])
+    mocks.campanaCount.mockResolvedValue(3)
+    mocks.prospectoCount.mockResolvedValue(12)
+    mocks.envioCount.mockImplementation(
+      (args: { where: { estado: unknown } }) =>
+        args.where.estado === "ENVIADO" ? 2 : 4,
+    )
+    mocks.campanaFindMany.mockResolvedValue([
+      campanaListadoFixture({
+        id: "camp_1",
+        nombre: "Estudios contables Palermo",
+        estado: "COMPLETADA",
+        _count: { prospectos: 7 },
+      }),
+    ])
+    mocks.envioFindMany.mockResolvedValue([envioDashboardFixture()])
+  }
+
+  it("muestra KPIs, campanas recientes y cola de revision", async () => {
+    prepararDatos()
+
+    render(await PropuestasDashboardPage())
+
+    const metricas = screen.getByRole("region", {
+      name: "Métricas del portal",
+    })
+    const tarjeta = (label: string) =>
+      within(metricas).getByText(label).closest(".p-stat") as HTMLElement
+
+    expect(within(tarjeta("Campañas")).getByText("3")).toBeInTheDocument()
+    expect(within(tarjeta("Prospectos")).getByText("12")).toBeInTheDocument()
+    expect(within(tarjeta("Pendientes")).getByText("4")).toBeInTheDocument()
+    expect(within(tarjeta("Envíos hoy")).getByText("2")).toBeInTheDocument()
+
+    const recientes = screen.getByRole("region", {
+      name: "Campañas recientes",
+    })
+    expect(
+      within(recientes).getByRole("link", { name: "Ver todas" }),
+    ).toHaveAttribute("href", "/propuestas/campanas")
+    expect(
+      within(recientes).getByRole("link", {
+        name: "Estudios contables Palermo",
+      }),
+    ).toHaveAttribute("href", "/propuestas/campanas/camp_1")
+    expect(within(recientes).getByText("7")).toBeInTheDocument()
+
+    const cola = screen.getByRole("region", { name: "Cola de revisión" })
+    expect(
+      within(cola).getByRole("link", { name: "Consultora Alfa" }),
+    ).toHaveAttribute("href", "/propuestas/prospectos/pros_1")
+    expect(
+      within(cola).getByText("Propuesta para Consultora Alfa"),
+    ).toBeInTheDocument()
+    expect(within(cola).getByText("BORRADOR")).toBeInTheDocument()
+    expect(
+      screen.queryByText(/no hay borradores pendientes/i),
+    ).not.toBeInTheDocument()
+
+    expect(mocks.campanaFindMany).toHaveBeenCalledWith({
+      orderBy: { creadoEn: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        nombre: true,
+        estado: true,
+        creadoEn: true,
+        _count: { select: { prospectos: true } },
+      },
+    })
+    expect(mocks.envioFindMany).toHaveBeenCalledWith({
+      where: { estado: { in: ["BORRADOR", "APROBADO"] } },
+      orderBy: { actualizadoEn: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        estado: true,
+        asunto: true,
+        actualizadoEn: true,
+        prospecto: {
+          select: { id: true, nombreNegocio: true, score: true },
+        },
+      },
+    })
+
+    const llamadas = mocks.envioCount.mock.calls.map(
+      ([args]) =>
+        args as {
+          where: {
+            estado: string | { in: string[] }
+            enviadoEn?: { gte: Date }
+          }
+        },
+    )
+    expect(
+      llamadas.find((args) => args.where.estado === "ENVIADO")?.where
+        .enviadoEn?.gte,
+    ).toEqual(diaUTCDe(new Date()))
+    expect(
+      llamadas.find(
+        (args) =>
+          typeof args.where.estado === "object" &&
+          args.where.estado.in.includes("BORRADOR"),
+      )?.where.estado,
+    ).toEqual({ in: ["BORRADOR", "APROBADO"] })
+  })
+
+  it("conserva el estado vacio solo cuando no hay campanas", async () => {
+    mocks.queryRaw.mockResolvedValue([])
+
+    render(await PropuestasDashboardPage())
+
+    expect(
+      screen.getByRole("heading", { name: /todavía no hay campañas/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: /crear primera búsqueda/i }),
+    ).toHaveAttribute("href", "/propuestas/buscar")
+    expect(
+      screen.getByText(/no hay borradores pendientes/i),
+    ).toBeInTheDocument()
+  })
+
+  it("con campanas no muestra el estado vacio aunque la cola este vacia", async () => {
+    mocks.queryRaw.mockResolvedValue([])
+    mocks.campanaCount.mockResolvedValue(1)
+    mocks.campanaFindMany.mockResolvedValue([
+      campanaListadoFixture({ _count: { prospectos: 0 } }),
+    ])
+
+    render(await PropuestasDashboardPage())
+
+    expect(
+      screen.queryByRole("heading", { name: /todavía no hay campañas/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "Campañas recientes" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/no hay borradores pendientes/i),
+    ).toBeInTheDocument()
+  })
+
+  it("no ofrece botones de envio ni aprobacion masiva", async () => {
+    prepararDatos()
+
+    render(await PropuestasDashboardPage())
+
+    expect(
+      screen.queryByRole("button", { name: /enviar|aprobar/i }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0)
+  })
+
+  it("si falta el esquema en una consulta nueva falla cerrado", async () => {
+    mocks.queryRaw.mockResolvedValue([])
+    mocks.campanaCount.mockRejectedValue({ code: "P2021" })
+
+    render(await PropuestasDashboardPage())
+
+    expect(screen.getByRole("alert")).toHaveAttribute(
+      "data-estado",
+      CODIGO_ESQUEMA_NO_APLICADO,
+    )
+    expect(
+      screen.queryByRole("region", { name: "Métricas del portal" }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("las paginas nuevas son solo lectura: sin mutaciones ni fetch", () => {
+    const archivos = [
+      path.join(
+        process.cwd(),
+        "src",
+        "app",
+        "(propuestas)",
+        "propuestas",
+        "page.tsx",
+      ),
+      path.join(
+        process.cwd(),
+        "src",
+        "app",
+        "(propuestas)",
+        "propuestas",
+        "campanas",
+        "page.tsx",
+      ),
+    ]
+
+    for (const archivo of archivos) {
+      const codigo = readFileSync(archivo, "utf8")
+      expect(codigo, archivo).not.toMatch(
+        /\.(create|createMany|update|updateMany|upsert|delete|deleteMany)\s*\(/,
+      )
+      expect(codigo, archivo).not.toMatch(/\bfetch\s*\(/)
+    }
   })
 })
 

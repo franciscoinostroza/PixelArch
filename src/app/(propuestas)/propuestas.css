@@ -989,6 +989,18 @@
   border-bottom: 0;
 }
 
+/* T-28: consulta/asunto en tablas de campanas y cola (responsive) */
+.p-table-cell-consulta {
+  max-width: 320px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 899px) {
+  .p-table-cell-consulta {
+    max-width: 220px;
+  }
+}
+
 /* --------------------------------------------------------------------------
    Score ring
    -------------------------------------------------------------------------- */

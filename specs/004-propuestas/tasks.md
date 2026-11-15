@@ -304,6 +304,21 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
   - Depende: T-26 + checklist legal firmado + autorización del dueño.
   - Cierre: tester (health, smoke, primer envío controlado) · reviewer (PASS/FAIL, observaciones, deuda) · sin commit de código.
 
+- [ ] **T-28 (AC-46, AC-47, AC-48, AC-49, AC-50; RF-1, RF-2, RF-5, RF-6, RF-8, RF-66) — Listado de campañas y dashboard operativo.**
+  - Contexto: la preview visual mostraba el listado de campañas, los KPIs y la cola; en producción faltan el listado y el Panel muestra un estado vacío fijo. No hay pérdida de datos: la información ya está en los modelos y APIs del portal.
+  - AC-46: crear `/propuestas/campanas` (admin-only, `noindex`) con listado de campañas: nombre, estado, consulta/zona/rubro, cantidad de prospectos, fecha y enlace a `/propuestas/campanas/[id]`; estado vacío con CTA a `/propuestas/buscar`; si falta el esquema, fallar cerrado con `EstadoOperativo`.
+  - AC-47: agregar «Campañas» al sidebar con icono y estado activo (`aria-current`, también en `/propuestas/campanas/[id]`); no romper las secciones existentes ni la navegación mobile/teclado.
+  - AC-48: el dashboard `/propuestas` muestra datos reales: KPIs (campañas, prospectos, pendientes de revisión, envíos de hoy), campañas recientes (máx. 5) y cola de borradores/aprobados (máx. 5); el estado vacío «Todavía no hay campañas» solo aparece si no hay campañas; conserva estado operativo, cupos y atajos; sin envíos ni acciones masivas.
+  - AC-49: usar solo modelos del portal (`CampanaProspeccion`, `Prospecto`, `EnvioPropuesta` y el consumo ya existente), sin CRM; sin PII en logs; queries de solo lectura; si falta el esquema, fallar cerrado con `EstadoOperativo`.
+  - AC-50: actualizar mocks/tests del dashboard y agregar cobertura de la nueva página; `tsc --noEmit`, suite completa, lint baseline (18/18) y build; sin regresiones.
+  - Nota de numeración: AC-46..AC-50 son una extensión del portal (spec §17.8) y **no reemplazan** los AC-40..AC-44 originales de la spec; `propuestas-cobertura.test.ts` sigue cubriendo AC-1..AC-44.
+  - Archivos esperados: `src/app/(propuestas)/propuestas/campanas/page.tsx`; `src/app/(propuestas)/propuestas/page.tsx`; `src/components/propuestas/portal-sidebar.tsx`; `src/app/(propuestas)/propuestas.css`; `src/__tests__/app/propuestas-pages.test.tsx` (ampliar: dashboard, sidebar y nueva página).
+  - UI: reutilizar los componentes y estilos existentes del portal (`PageHeader`, `Panel`, `StatCard`, `StatusPill`, `EmptyState`/`EstadoVacio`, tablas y CSS); no crear un design system paralelo.
+  - Depende: T-02, T-13, T-21, T-25.
+  - Tests: `/propuestas/campanas` admin-only y `noindex`; listado con nombre, estado, consulta/zona/rubro, cantidad y enlace; zona/rubro nulos → «—»; estado vacío + CTA; esquema faltante (`P2021`) → `EstadoOperativo` sin datos; sidebar con «Campañas» y `aria-current` en listado y detalle, sin romper las 6 secciones previas; dashboard con KPIs (envíos de hoy = `ENVIADO` con `enviadoEn` del día UTC), recientes ≤5 y cola ≤5; «Todavía no hay campañas» solo con 0 campañas; cola vacía con mensaje propio; sin botones de envío/aprobación masiva; mocks de Prisma solo de modelos del portal y sin mutaciones; sin llamadas a Places/Resend/LLM; logs sin PII.
+  - Notas: no cambiar el gating de envío (`estadoEnvio`/`PROPUESTAS_ENVIO_HABILITADO`), el schema Prisma, las envs ni las APIs; no hacer commit (el commit se decide al cerrar la revisión).
+  - Cierre: tester (`propuestas-pages.test.tsx`, `propuestas-aislamiento.test.ts`) · reviewer (auth/aislamiento CRM, solo lectura, fail-closed, estados vacíos) · sin commit.
+
 ---
 
 ## Trazabilidad AC → tareas
@@ -355,6 +370,11 @@ Cierre: tester <tests que corre> · reviewer <foco de revisión> · 1 commit
 | AC-43 | T-03 |
 | AC-44 | T-23, T-25 |
 | AC-45 | T-25, T-26, T-27 |
+| AC-46 | T-28 |
+| AC-47 | T-28 |
+| AC-48 | T-28 |
+| AC-49 | T-28 |
+| AC-50 | T-28 |
 
 ## Dependencias y orden
 

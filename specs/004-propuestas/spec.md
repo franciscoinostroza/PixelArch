@@ -771,6 +771,16 @@ Los números exactos se validan en el plan; los AC usan «el cupo configurado»,
 - **AC-44:** Dados los criterios AC-1 a AC-43, cuando se ejecuta la suite, entonces cada uno tiene al menos un test automatizado (unitario, ruta o middleware) y no se hacen llamadas reales a Google, LLM ni Resend.
 - **AC-45:** Dada la suite existente, cuando se ejecuta completa, entonces CRM, clientes, cobros, pagos, PayPal, Mercado Pago, auth y landing siguen verdes; no hay errores nuevos de typecheck/lint/build sobre el baseline.
 
+### 17.8 Extensión T-28 (2026-11-15)
+
+Extensión del portal (listado de campañas y dashboard operativo). **No reemplaza** los AC-40 a AC-44 originales, que siguen vigentes; `propuestas-cobertura.test.ts` sigue cubriendo AC-1 a AC-44.
+
+- **AC-46 (antes AC-40):** Dado un admin, cuando abre `/propuestas/campanas`, entonces ve el listado de campañas con nombre, estado, consulta/zona/rubro, cantidad de prospectos, fecha y enlace a `/propuestas/campanas/[id]`; la página es admin-only y `noindex`; con 0 campañas muestra estado vacío con CTA a `/propuestas/buscar` y, si falta el esquema, falla cerrado con `EstadoOperativo`.
+- **AC-47 (antes AC-41):** Dado el sidebar del portal, cuando se navega a `/propuestas/campanas` o `/propuestas/campanas/[id]`, entonces «Campañas» aparece con icono y estado activo (`aria-current`); las secciones existentes y la navegación mobile/teclado no se rompen.
+- **AC-48 (antes AC-42):** Dado un admin, cuando abre el dashboard `/propuestas`, entonces ve datos reales: KPIs (campañas, prospectos, pendientes de revisión, envíos de hoy), campañas recientes (máx. 5) y cola de borradores/aprobados (máx. 5); «Todavía no hay campañas» solo aparece si no hay campañas; conserva estado operativo, cupos y atajos; sin envíos ni acciones masivas.
+- **AC-49 (antes AC-43):** Dados el listado y el dashboard, cuando consultan datos, entonces usan solo modelos del portal (`CampanaProspeccion`, `Prospecto`, `EnvioPropuesta` y el consumo ya existente), sin CRM, con queries de solo lectura y sin PII en logs; si falta el esquema, fallan cerrado con `EstadoOperativo`.
+- **AC-50 (antes AC-44):** Dados los mocks/tests del dashboard y la cobertura de la nueva página, cuando se ejecutan `tsc --noEmit`, la suite completa, el lint baseline (18/18) y el build, entonces no hay regresiones.
+
 ---
 
 ## 18. Tests esperados

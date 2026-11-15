@@ -2848,6 +2848,76 @@ describe("T-21 helpers de consumo: agregados acotados y solo lectura (AC-38, AC-
 })
 
 // ---------------------------------------------------------------------------
+// Regresion: los locks no proyectan la columna `void`
+// ---------------------------------------------------------------------------
+
+/**
+ * Transaccion minima que captura el SQL reconstruido de cada `$queryRaw`
+ * (plantilla + parametros). `pg_advisory_xact_lock` devuelve `void` y Prisma 7
+ * con `@prisma/adapter-pg` falla al deserializar esa columna, asi que los locks
+ * deben invocarse en el `FROM` y proyectar `1`, nunca en el `SELECT`.
+ */
+function crearTxCapturaSql(estado: EstadoFake): {
+  tx: ClienteConsumo
+  sql: string[]
+} {
+  const sql: string[] = []
+
+  const tx = {
+    $queryRaw: async (strings: TemplateStringsArray, ...valores: unknown[]) => {
+      let texto = strings[0] ?? ""
+      valores.forEach((valor, indice) => {
+        texto = `${texto}$${indice + 1}${strings[indice + 1] ?? ""}`
+      })
+      sql.push(texto)
+      estado.llamadas.push({ operacion: "queryRaw", detalle: valores })
+      return [{ "?column?": 1 }]
+    },
+    consumoProveedor: {
+      findMany: async () => [],
+      upsert: async (args: ArgsUpsert) => args.create,
+    },
+  }
+
+  return { tx: tx as unknown as ClienteConsumo, sql }
+}
+
+describe("regresion: los advisory locks no seleccionan la columna void", () => {
+  it("AC-39: el lock global y el diario usan SELECT 1 FROM ...", async () => {
+    const estado = crearEstado()
+    const { tx, sql } = crearTxCapturaSql(estado)
+
+    const resultado = await reservarCupo(tx, {
+      campanaId: "camp-1",
+      proveedor: "GOOGLE_PLACES",
+      fecha: DIA,
+      capDiario: 20,
+      costoCentavos: 25,
+      presupuestoMensualCentavos: 1_000,
+    }, { config: CONFIG })
+
+    expect(resultado).toEqual({ restantes: 19 })
+
+    // Dos locks (global del presupuesto y diario por proveedor/fecha).
+    expect(sql).toHaveLength(2)
+    for (const consulta of sql) {
+      expect(consulta.startsWith("SELECT 1 FROM")).toBe(true)
+      expect(consulta).toContain("pg_advisory_xact_lock")
+      expect(consulta).not.toMatch(/SELECT\s+pg_advisory_xact_lock/i)
+    }
+
+    // Los parametros siguen siendo las claves de lock de siempre.
+    expect(llamadasDe(estado, "queryRaw")[0]?.detalle).toEqual([
+      "PROPUESTAS_PRESUPUESTO",
+    ])
+    expect(llamadasDe(estado, "queryRaw")[1]?.detalle).toEqual([
+      "GOOGLE_PLACES",
+      "2026-11-12",
+    ])
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Test estatico: aislamiento de Prisma/CRM
 // ---------------------------------------------------------------------------
 

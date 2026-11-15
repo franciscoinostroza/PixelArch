@@ -594,14 +594,20 @@ export async function reservarCupo(
   // transaccionales (`pg_advisory_xact_lock`) y se liberan al commit/rollback.
   if (aplicaPresupuesto) {
     const lockPresupuesto = claveLockPresupuesto()
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${lockPresupuesto.clave}))`
+    // `pg_advisory_xact_lock` devuelve `void` y Prisma 7 con
+    // `@prisma/adapter-pg` no puede deserializar esa columna: el lock se
+    // invoca desde el `FROM` y se proyecta una constante, asi la fila que
+    // llega al driver solo tiene un entero (`SELECT 1 FROM ...`). Misma
+    // semantica de lock: se libera al commit/rollback.
+    await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtext(${lockPresupuesto.clave}))`
   }
 
   const lockDiario = claveLockCupo(proveedor, fecha)
 
   // Lock transaccional por (proveedor, fecha). Parametrizado: nada de SQL
-  // interpolado.
-  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${lockDiario.proveedor}), hashtext(${lockDiario.fecha}))`
+  // interpolado. Igual que el global, se invoca en el `FROM` para no
+  // seleccionar la columna `void`.
+  await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtext(${lockDiario.proveedor}), hashtext(${lockDiario.fecha}))`
 
   // Relectura dentro de los locks: las reservas concurrentes del mismo dia
   // quedan serializadas y ven el consumo ya confirmado por la anterior.
